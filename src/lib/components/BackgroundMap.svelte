@@ -1,0 +1,70 @@
+<script>
+  import { browser } from '$app/environment'
+  import { LeafletMap, TileLayer } from 'svelte-leafletjs?client';
+  import Shape from '$lib/components/Shape.svelte'
+  import { onMount } from 'svelte'
+  import { leafletMap } from '$lib/stores.js';
+  import {scenario, datalaag} from "$lib/stores.js";
+  
+  
+  export let datajson
+  
+
+  $: featureLayer = $datalaag === 'Empty' ? '0' :
+    $scenario === 'Current' ? datajson[0].features :
+    $scenario === '2050 high' ? datajson[1].features :
+    datajson[2].features;
+
+  
+
+  const mapOptions = {
+    center: [8, -1],
+    zoom: 6.5,
+  };
+
+  const tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+
+  const tileLayerOptions = {
+      minZoom: 2,
+      maxZoom: 20,
+      maxNativeZoom: 19,
+      attribution: "© OpenStreetMap contributors",
+      maxBounds: [[51.263871, 3.892372],[52.263871, 4.892372]],
+  };
+
+  onMount(() => {
+
+    leafletMap.set($leafletMap.getMap())
+
+  })
+
+
+</script>
+
+<div class="backgroundMap">
+    {#if browser}
+    <LeafletMap bind:this={$leafletMap} options={mapOptions}>
+      <TileLayer url={tileUrl} options={tileLayerOptions}/>
+      {#each featureLayer as feature, i}
+        <Shape {feature} />
+      {/each}
+    </LeafletMap>
+  {/if}
+
+</div>
+
+<style>
+  input[type=range]{
+    /* fix for FF unable to apply focus style bug  */
+    border: 0.5px solid black; 
+  }
+  label{
+    font-size:14px; 
+  }
+
+	div{
+		height:100%;
+    width:100%;
+	}
+
+</style>
