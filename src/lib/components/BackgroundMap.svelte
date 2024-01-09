@@ -5,17 +5,24 @@
   import { onMount } from 'svelte'
   import { leafletMap } from '$lib/stores.js';
   import {scenario, datalaag} from "$lib/stores.js";
-  
+  import * as d3 from 'd3';
+  import Legend from '$lib/components/Legend.svelte'
   
   export let datajson
   
-
   $: featureLayer = $datalaag === 'Empty' ? '0' :
-    $scenario === 'Current' ? datajson[0].features :
-    $scenario === '2050 high' ? datajson[1].features :
-    datajson[2].features;
+    $scenario === 'Current' && $datalaag === 'Maximum temperature' ? datajson[0].features :
+    $scenario === '2050 high' && $datalaag === 'Maximum temperature' ? datajson[1].features :
+    $scenario === '2050 low' && $datalaag === 'Maximum temperature' ? datajson[2].features :
+    $scenario === 'Current' && $datalaag === 'Minimum temperature' ? datajson[3].features :
+    $scenario === '2050 high' && $datalaag === 'Minimum temperature' ? datajson[4].features :
+    $scenario === '2050 low' && $datalaag === 'Minimum temperature' ? datajson[5].features :
+    $scenario === 'Current' && $datalaag === 'Annual precipitation' ? datajson[6].features :
+    $scenario === '2050 high' && $datalaag === 'Annual precipitation' ? datajson[7].features :
+    $scenario === '2050 low' && $datalaag === 'Annual precipitation' ? datajson[8].features :
+    datajson[8].features
 
-  
+  $: console.log($datalaag)
 
   const mapOptions = {
     center: [8, -1],
@@ -38,6 +45,11 @@
 
   })
 
+  $: colorScale = d3.scaleSequential([25, 40], d3.interpolateYlOrRd)
+
+  // $: var legend = d3.legendColor()
+  //   .scale(colorScale);
+
 
 </script>
 
@@ -48,7 +60,9 @@
       {#each featureLayer as feature, i}
         <Shape {feature} />
       {/each}
+      <Legend/>
     </LeafletMap>
+    
   {/if}
 
 </div>

@@ -1,6 +1,7 @@
 <script>
     import {datalaag} from "$lib/stores.js";
     import {scenario} from "$lib/stores.js";
+    import Legend from '$lib/components/Legend.svelte'
 
     import { createEventDispatcher } from 'svelte';
 
@@ -9,7 +10,7 @@
     // export let w;
     // export let h;
 
-    const options = ['Maximum temperature', 'Maximum rainfall in 24h', 'Sea level rise',]
+    const options = ['Maximum temperature', 'Minimum temperature', 'Annual precipitation',]
     const options2= [{ id: 0, name: 'Current' }, { id: 1, name: '2050 low' }, { id: 2, name: '2050 high' }]
 
     export let selected = 0
@@ -61,6 +62,7 @@
     <p class = "source">
         Source: IPCC atlas
     </p>
+    <Legend/>
 </section>
 
 <style>

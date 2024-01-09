@@ -11,9 +11,7 @@
 	<div class = 'sidepanel'>
 		<Sidepanel/>
 	</div>
-	<div class='map' bind:clientWidth={w} bind:clientHeight={h} >
-		<Map {w} {h} />
-	</div>
+	
 </div>
 
 
