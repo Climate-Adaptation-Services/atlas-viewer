@@ -1,6 +1,4 @@
 import { writable, derived } from 'svelte/store';
-import * as esri from "esri-leaflet";
-
 
 export const buurtGrenzen = writable(0);
 export const leafletMap = writable(null);
