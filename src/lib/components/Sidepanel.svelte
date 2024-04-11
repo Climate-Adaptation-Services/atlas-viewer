@@ -62,7 +62,7 @@
     <p class = "source">
         Source: IPCC atlas
     </p>
-    <Legend/>
+    
 </section>
 
 <style>

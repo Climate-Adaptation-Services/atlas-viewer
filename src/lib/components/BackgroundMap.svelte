@@ -62,6 +62,7 @@
       {/each}
       <Legend/>
     </LeafletMap>
+    <Legend/>
     
   {/if}
 
