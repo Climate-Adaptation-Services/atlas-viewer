@@ -1,6 +1,7 @@
 <script>
     import {datalaag} from "$lib/stores.js";
     import {scenario} from "$lib/stores.js";
+    import Legend from '$lib/components/Legend.svelte'
 
     import { createEventDispatcher } from 'svelte';
 
@@ -61,10 +62,7 @@
     <p class = "source">
         Source: IPCC atlas
     </p>
-<<<<<<< Updated upstream
     
-=======
->>>>>>> Stashed changes
 </section>
 
 <style>

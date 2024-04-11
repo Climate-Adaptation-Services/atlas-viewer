@@ -59,13 +59,11 @@
       <TileLayer url={tileUrl} options={tileLayerOptions}/>
       {#each featureLayer as feature, i}
         <Shape {feature} />
-      {/each}     
+      {/each}
+      <Legend/>
     </LeafletMap>
     <Legend/>
-<<<<<<< Updated upstream
     
-=======
->>>>>>> Stashed changes
   {/if}
 
 </div>
