@@ -8,7 +8,6 @@
 
   $: colorScale = d3.scaleSequential([25, 40], d3.interpolateYlOrRd)
 
-  $: console.log(colorScale)
 </script>
   <Polygon
     latLngs={flip(feature).geometry.coordinates}

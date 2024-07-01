@@ -1,14 +1,41 @@
 <script>
   import { browser } from '$app/environment'
-  import { LeafletMap, TileLayer } from 'svelte-leafletjs?client';
+  import { LeafletMap, TileLayer  } from 'svelte-leafletjs?client';
   import Shape from '$lib/components/Shape.svelte'
   import { onMount } from 'svelte'
-  import { leafletMap } from '$lib/stores.js';
+  import { tileLayer, leafletMap } from '$lib/stores.js';
   import {scenario, datalaag} from "$lib/stores.js";
   import * as d3 from 'd3';
   import Legend from '$lib/components/Legend.svelte'
-  
+                               
   export let datajson
+ 
+
+let map;
+
+let L;
+onMount(async () => {
+  if (typeof window !== 'undefined') {
+    L = await import('leaflet');
+  }
+
+  // Initialize the map
+  map = L.map($leafletMap).setView([52.3702157, 4.895167899999933], 8);
+
+  // Add a base layer (optional)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+    // Add the WMS layer
+  L.tileLayer.wms('https://apps.geodan.nl/public/data/org/gws/YWFMLMWERURF/kea_public/wms?', {
+      layers: 'ghg_huidig',
+      format: 'image/png',
+      transparent: true,
+      attribution: '&copy; terrestris'
+    }).addTo(map);
+  });
+ 
   
   $: featureLayer = $datalaag === 'Empty' ? '0' :
     $scenario === 'Current' && $datalaag === 'Maximum temperature' ? datajson[0].features :
@@ -22,48 +49,13 @@
     $scenario === '2050 low' && $datalaag === 'Annual precipitation' ? datajson[8].features :
     datajson[8].features
 
-  $: console.log($datalaag)
-
-  const mapOptions = {
-    center: [8, -1],
-    zoom: 6.5,
-  };
-
-  const tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-
-  const tileLayerOptions = {
-      minZoom: 2,
-      maxZoom: 20,
-      maxNativeZoom: 19,
-      attribution: "© OpenStreetMap contributors",
-      maxBounds: [[51.263871, 3.892372],[52.263871, 4.892372]],
-  };
-
-  onMount(() => {
-
-    leafletMap.set($leafletMap.getMap())
-
-  })
-
   $: colorScale = d3.scaleSequential([25, 40], d3.interpolateYlOrRd)
-
-  // $: var legend = d3.legendColor()
-  //   .scale(colorScale);
-
-
+  
 </script>
 
 <div class="backgroundMap">
-    {#if browser}
-    <LeafletMap bind:this={$leafletMap} options={mapOptions}>
-      <TileLayer url={tileUrl} options={tileLayerOptions}/>
-      {#each featureLayer as feature, i}
-        <Shape {feature} />
-      {/each}
-      <Legend/>
-    </LeafletMap>
-    <Legend/>
-    
+  {#if browser}
+    <div id="map" bind:this={$leafletMap}></div>    
   {/if}
 
 </div>

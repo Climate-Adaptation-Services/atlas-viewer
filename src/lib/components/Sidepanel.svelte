@@ -7,8 +7,6 @@
 
     const dispatch = createEventDispatcher()
 
-    // export let w;
-    // export let h;
 
     const options = ['Maximum temperature', 'Minimum temperature', 'Annual precipitation',]
     const options2= [{ id: 0, name: 'Current' }, { id: 1, name: '2050 low' }, { id: 2, name: '2050 high' }]
