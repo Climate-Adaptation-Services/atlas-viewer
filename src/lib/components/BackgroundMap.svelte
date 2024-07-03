@@ -34,6 +34,14 @@ onMount(async () => {
       transparent: true,
       attribution: '&copy; terrestris'
     }).addTo(map);
+  
+
+  L.tileLayer.wms('http://185.62.58.53:8082/geoserver/zim/ows?SERVICE=WMS', {
+      layers: 'zim_shp',
+      format: 'image/png',
+      transparent: true,
+      attribution: '&copy; terrestris'
+    }).addTo(map);
   });
  
   
