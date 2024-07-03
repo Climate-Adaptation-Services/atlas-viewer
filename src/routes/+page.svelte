@@ -1,27 +1,45 @@
 <script>
 	import Sidepanel from '$lib/components/Sidepanel.svelte'
 	import Map from '$lib/components/Map.svelte'
+	import { onMount } from 'svelte';
+	import { panelOpen } from "$lib/stores.js"
 
 	let w;
 	let h;
+
+	let open = true;
+
+	$: console.log($panelOpen)
 	
-	let isSidepanelVisible = true;
 
-	function toggleSidepanel() {
-		isSidepanelVisible = !isSidepanelVisible;
-	}
+	// Subscribe to the store
+  onMount(() => {
+    const unsubscribe = panelOpen.subscribe(value => {
+      open = value;
+    });
 
+    return () => {
+      unsubscribe();
+    };
+  });
+
+  function togglePanel() {
+    panelOpen.update(value => !value);
+  }
 </script>
 
 <div class='container'>
-	{#if isSidepanelVisible}
-		<div class='sidepanel {isSidepanelVisible ? 'visible' : 'hidden'}' >
-			<Sidepanel/>
+	<div class:open={open} class="sidepanel" >
+		<Sidepanel/>
+		<div class="toggle-arrow" on:click={togglePanel}>
+			<span class="tooltip">{open ? "Close panel" : "Open panel"}</span>
+			{#if open}
+				&larr; 
+			{:else}
+				&rarr; 
+			{/if}
 		</div>
-	{/if}
-	<button class='toggle-button' on:click={toggleSidepanel}>
-		{isSidepanelVisible ? 'Hide Sidepanel' : 'Show Sidepanel'}
-	</button>
+	</div>	
 	<div class='map' bind:clientWidth={w} bind:clientHeight={h} >
 		<Map {w} {h} />
 	</div>
@@ -44,7 +62,6 @@
 	height:100%;	
 	transition: margin-left 0.3s ease;
 	margin-left: 0;
-	
 }
 
 .sidepanel{
@@ -52,48 +69,58 @@
 	flex-direction:column;
 	padding-left:2vw;
 	padding-right:2vw;
-	padding-top:4vh;
-	transition: transform 5s ease;
-	position: absolute;
+	position: fixed;
 	width: 25vw;
 	left: 0;
-	top: 1vh;
-	height: 94vh;
+	top:1vh;
+	height: 98vh;
 	background-color: white;
 	box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-	z-index: 1000
-	
+	z-index: 1000;	
+	transform: translateX(-100%);
+    transition: transform 0.3s ease;
 }
 
-.sidepanel.visible {
-		transform: translateX(0);
-		box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2);
-		background-color: #fafafa; /* Slightly different color for better visual effect */
+.sidepanel.open {
+	transform: translateX(0);
+	background-color: #fafafa; /* Slightly different color for better visual effect */
 	}
 
-.sidepanel.hidden {
-	transform: translateX(-100%);
-}
-
-.toggle-button {
+.toggle-arrow {
 	position: absolute;
-	top: 10px;
-	right: 10px;
-	padding: 10px;
-	background-color: #007bff;
-	color: white;
-	border: none;
-	border-radius: 5px;
+	top: 10px; 
+	right: -30px; 
 	cursor: pointer;
-	z-index: 1001; /* Ensure the button is above other elements */
-	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-	transition: background-color 0.3s ease, box-shadow 0.3s ease;
+	background-color: #fff;
+	border: 1px solid #ccc;
+	padding: 5px;
+	border-radius: 50%;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	z-index: 1001; /* Ensure it is above the sidepanel */
+	transition: transform 0.3s ease; /* Ensure it transitions with the sidepanel */
 }
 
-.toggle-button:hover {
-	background-color: #0056b3;
-	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+.tooltip {
+	visibility: visible;
+	width: 100px;
+	background-color: #555;
+	color: #fff;
+	text-align: center;
+	border-radius: 6px;
+	padding: 5px;
+	position: absolute;
+	z-index: 10002;
+	top: -5px; /* Position above the arrow */
+	left: 90px;
+	transform: translateX(-50%);
+	margin-top: 5px; /* Space between the arrow and the tooltip */
+	opacity: 0;
+	transition: opacity 0.3s;
 }
 
+.toggle-arrow:hover .tooltip {
+	visibility: visible;
+	opacity: 1;
+}
 
 </style>

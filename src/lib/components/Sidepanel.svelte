@@ -1,33 +1,68 @@
 <script>
     import {datalaag} from "$lib/stores.js";
     import {scenario} from "$lib/stores.js";
+    import {time} from "$lib/stores.js";
     import Legend from '$lib/components/Legend.svelte'
-
+    import {theme} from "$lib/stores.js";
     import { createEventDispatcher } from 'svelte';
 
     const dispatch = createEventDispatcher()
 
-
     const options = ['Maximum temperature', 'Minimum temperature', 'Annual precipitation',]
-    const options2= [{ id: 0, name: 'Current' }, { id: 1, name: '2050 low' }, { id: 2, name: '2050 high' }]
+    const options2= [{ id: 0, name: 'Current' }, { id: 1, name: '2050' }, { id: 2, name: '2100' }]
+    const options3= [{ id: 0, name: 'Low' }, { id: 1, name: 'High' }]
 
-    export let selected = 0
-    
+    export let selectedTime = 0;
+    export let selectedScenario = 0;    
 
-    function setSelected(e){
-        const newValue = Number(e.target.value)
-        selected = newValue
-        dispatch('change', {value: newValue})
-        $scenario = options2.find(x => x.id === selected).name
+    function handleClickTheme(event) {
+		$theme = event.target.id 
+        console.log(event.target.id)
+        let selectedTheme = document.getElementsByClassName($theme)
+        let prevTheme = document.querySelector('.active')
+        let prevCaption= document.querySelector('.activecaption')
+        console.log(selectedTheme)
+        if(prevTheme) {
+            prevTheme.classList.remove('active');
+            prevCaption.classList.remove('activecaption');
+        }
+        selectedTheme[0].classList.add('active');
+        selectedTheme[1].classList.add('activecaption');
     }
+
+    function setSelectedTime(e){
+        const newValue = Number(e.target.value)
+        selectedTime = newValue
+        dispatch('change', {value: newValue})
+        $time = options2.find(x => x.id === selectedTime).name
+    }
+
+    function setSelectedScenario(e){
+        const newValue = Number(e.target.value)
+        selectedScenario = newValue
+        dispatch('change', {value: newValue})
+        $scenario = options3.find(x => x.id === selectedScenario).name
+    }
+
+    $: console.log($time, $scenario)
 
 </script>
 
-<section>  
-    
-
-    <img class = 'logo' id = 'logo' src="https://raw.githubusercontent.com/sophievanderhorst/data/main/logo%20ghana.png">
-    <h4>Select a layer:</h4>
+<section> 
+    <h2 class = 'first'>Choose theme</h2>
+    <div class="item">
+        <img class = 'themelogo heter active' id = 'heter' src="https://raw.githubusercontent.com/sophievanderhorst/data/main/hitte_carib.png" on:click={handleClickTheme}>
+        <p class="caption heter activecaption">It's getting hotter</p>
+    </div>
+    <div class="item">
+        <img class = 'themelogo droger' id = 'droger' src="https://raw.githubusercontent.com/sophievanderhorst/data/main/droogte_carib.png" on:click={handleClickTheme}> 
+        <p class="caption droger">It's getting dryer</p>
+    </div>
+    <div class="item">
+        <img class = 'themelogo wind' id = 'wind' src="https://raw.githubusercontent.com/sophievanderhorst/data/main/wind_carib.png" on:click={handleClickTheme}> 
+        <p class="caption wind ">There will be more wind</p>
+    </div>
+    <h2>Select layer</h2>
     {#each options as option}
         <label class='keuzes'>
             <input
@@ -40,27 +75,36 @@
             {option}
         </label>
     {/each}
-    <h4>Select a scenario:</h4>
+    <h2>Select time period</h2>
     <div class="buttons-wrapper">
         <div class="buttons">
             {#each options2 as option, index}
                 <button 
-                    class={selected === index ? 'selected' : ''} 
+                    class={selectedTime === index ? 'selected' : ''} 
                     value={option.id}
                     name={option.name}
-                    on:click={setSelected}>
+                    on:click={setSelectedTime}>
                         {option.name}
                 </button>
             {/each}
         </div>
-    </div>
-    <p class = "description">
-        The map shows the {$datalaag} for the {$scenario} timeperiod
-    </p>
-    <p class = "source">
-        Source: IPCC atlas
-    </p>
-    
+    </div>  
+    {#if $time === '2050' || $time === '2100'}
+        <h2>Select scenario</h2>
+        <div class="buttons-wrapper">
+            <div class="buttons">
+                {#each options3 as option, index}
+                    <button 
+                        class={selectedScenario === index ? 'selected' : ''} 
+                        value={option.id}
+                        name={option.name}
+                        on:click={setSelectedScenario}>
+                            {option.name}
+                    </button>
+                {/each}
+            </div>
+        </div> 
+    {/if}    
 </section>
 
 <style>
@@ -84,7 +128,14 @@
         border-width: 0.3vh;
         font-size: 1.8vh;       
         background-color: 'lightgrey';
-        margin-bottom: 4vh;
+        margin-bottom: 2vh;
+        cursor: pointer;
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    button:hover {
+        background-color: #017E9F;
+        color: white;
     }
 
     button.selected {
@@ -101,6 +152,46 @@
         font-style: italic;
         bottom: 2vh;
     }
+
+    .first{
+        margin-top: 6vh; 
+    }
+    
+    h2{
+        margin-top: 3vh; 
+        font-size: 2.8vh;
+    }
+
+    div.item {
+        vertical-align: top;
+        display: inline-block;
+        text-align: center;
+        width: 6vw;
+        margin:0vw;
+        margin-bottom: 0vh; 
+    }
+
+    .themelogo{
+        width:4vw;     
+    }
+
+    .caption{
+        font-size:1.7vh;
+        display: block;   
+    }
+
+    .themelogo:not(.active) {
+        opacity: 0.3;
+    }
+
+    .caption:not(.activecaption) {
+        opacity: 0;
+    }
+
+    .countrylogo:not(.activecountry) {
+        opacity: 0.3;
+    }
+
 
 
 </style>

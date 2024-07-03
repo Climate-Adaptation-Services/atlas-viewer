@@ -20,12 +20,18 @@ onMount(async () => {
   }
 
   // Initialize the map
-  map = L.map($leafletMap).setView([52.3702157, 4.895167899999933], 8);
+  map = L.map($leafletMap, {
+      zoomControl: false  
+    }).setView([-19, 27], 7);
 
   // Add a base layer (optional)
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
+
+  L.control.zoom({
+      position: 'topright'
+    }).addTo(map);
 
     // Add the WMS layer
   L.tileLayer.wms('https://apps.geodan.nl/public/data/org/gws/YWFMLMWERURF/kea_public/wms?', {
@@ -43,21 +49,6 @@ onMount(async () => {
       attribution: '&copy; terrestris'
     }).addTo(map);
   });
- 
-  
-  $: featureLayer = $datalaag === 'Empty' ? '0' :
-    $scenario === 'Current' && $datalaag === 'Maximum temperature' ? datajson[0].features :
-    $scenario === '2050 high' && $datalaag === 'Maximum temperature' ? datajson[1].features :
-    $scenario === '2050 low' && $datalaag === 'Maximum temperature' ? datajson[2].features :
-    $scenario === 'Current' && $datalaag === 'Minimum temperature' ? datajson[3].features :
-    $scenario === '2050 high' && $datalaag === 'Minimum temperature' ? datajson[4].features :
-    $scenario === '2050 low' && $datalaag === 'Minimum temperature' ? datajson[5].features :
-    $scenario === 'Current' && $datalaag === 'Annual precipitation' ? datajson[6].features :
-    $scenario === '2050 high' && $datalaag === 'Annual precipitation' ? datajson[7].features :
-    $scenario === '2050 low' && $datalaag === 'Annual precipitation' ? datajson[8].features :
-    datajson[8].features
-
-  $: colorScale = d3.scaleSequential([25, 40], d3.interpolateYlOrRd)
   
 </script>
 
