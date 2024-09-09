@@ -10,22 +10,24 @@
   export let datajson
  
 
-let map;
-let esri;
+  let map;
+  let esri;
+  let tiledLayer
 
-let L;
+  let L;
 
-$:console.log($datalaag)
+  $:console.log($datalaag)
 
 
-onMount(async () => {  
+  onMount(async () => {  
     // Load Leaflet and Esri-Leaflet dynamically to avoid SSR issues
     L = await import("leaflet");
     await import("leaflet/dist/leaflet.css");
     esri = await import("esri-leaflet");
+  });
 
-    console.log(esri)
-
+  $: if(esri && L){
+    
     // Initialize the Leaflet map
     map = L.map("map").setView([-19, 27], 7); // Center on Zimbabwe with zoom level 6
 
@@ -33,15 +35,14 @@ onMount(async () => {
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap contributors"
     }).addTo(map);
-   
-  });
 
-   //Add the ArcGIS Max Temp Yearly Layer using L.esri.tiledMapLayer
-   $: tiledLayer = (esri)
-    ? new esri.tiledMapLayer({url: "https://tiles.arcgis.com/tiles/7SEV6TvwRD5jzR74/arcgis/rest/services/Zimbabwe_Max_Temp_Yearly/MapServer"})
-    : null
-    
+    //Add the ArcGIS Max Temp Yearly Layer using L.esri.tiledMapLayer
+    tiledLayer = new esri.tiledMapLayer({url: "https://tiles.arcgis.com/tiles/7SEV6TvwRD5jzR74/arcgis/rest/services/Zimbabwe_Max_Temp_Yearly/MapServer"})  
+
+  }
+
   $: if(tiledLayer !== null & $datalaag === 'Maximum temperature' ){tiledLayer.addTo(map)} // Add the tiled layer to the map
+
   
 </script>
 
