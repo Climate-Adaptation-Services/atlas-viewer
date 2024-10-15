@@ -13,6 +13,7 @@
   let map;
   let esri;
   let tiledLayer
+  let wmsLayer
 
   let L;
 
@@ -39,9 +40,20 @@
     //Add the ArcGIS Max Temp Yearly Layer using L.esri.tiledMapLayer
     tiledLayer = new esri.tiledMapLayer({url: "https://tiles.arcgis.com/tiles/7SEV6TvwRD5jzR74/arcgis/rest/services/Zimbabwe_Max_Temp_Yearly/MapServer"})  
 
+    // Add WMS layer
+    wmsLayer = L.tileLayer.wms("https://dev.cas-zimbabwe.predictia.es/wms?request=GetMap&srs=EPSG%3A4326&service=WMS&bbox=24.87%2C-23.12%2C33.62%2C-15.37&width=800&VERSION=1.1.1&layers=tmax&format=png&height=600&styles=dynamic&styleMin=25&styleMax=30&mask=zimbabwe", {
+      layers: "tmax",   // Replace with the specific layer name
+      format: 'image/png',
+      transparent: true,
+      attribution: "WMS Layer"
+    });
   }
 
-  $: if(tiledLayer !== null & $datalaag === 'Maximum temperature' ){tiledLayer.addTo(map)} // Add the tiled layer to the map
+  // $: if(tiledLayer !== null & $datalaag === 'Maximum temperature' ){tiledLayer.addTo(map)} // Add the tiled layer to the map
+
+  $: if (tiledLayer !== null & $datalaag === 'Maximum temperature') {
+    wmsLayer.addTo(map); // Add WMS layer to the map if the condition matches
+  }
 
   
 </script>
