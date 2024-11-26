@@ -8,15 +8,28 @@
 
     const dispatch = createEventDispatcher()
 
-    const options = ['Maximum temperature', 'Minimum temperature', 'Annual precipitation',]
+    const optionsTemperature = ['Maximum temperature', 'Minimum temperature', 'Average temperature',]
+    const optionsDrought = ['Dry days']
+    const optionsPrecipitation = ['Total precipitation', 'Days above 20 mm']
     const options2= [{ id: 0, name: 'Current' }, { id: 1, name: '2050' }, { id: 2, name: '2100' }]
     const options3= [{ id: 0, name: 'Low' }, { id: 1, name: 'High' }]
+
+    $: options = ($theme === 'heter')
+        ? optionsTemperature 
+        : ($theme === 'precipitation')
+            ? optionsPrecipitation
+            : optionsDrought
+    
+    $: if ($theme){
+        datalaag.set(options[0])
+    }
+
 
     export let selectedTime = 0;
     export let selectedScenario = 0;    
 
     function handleClickTheme(event) {
-		$theme = event.target.id 
+		theme.set(event.target.id)
         console.log(event.target.id)
         let selectedTheme = document.getElementsByClassName($theme)
         let prevTheme = document.querySelector('.active')
@@ -59,8 +72,8 @@
         <p class="caption droger">It's getting dryer</p>
     </div>
     <div class="item">
-        <img class = 'themelogo wind' id = 'wind' src="https://raw.githubusercontent.com/sophievanderhorst/data/main/wind_carib.png" on:click={handleClickTheme}> 
-        <p class="caption wind ">There will be more wind</p>
+        <img class = 'themelogo precipitation' id = 'precipitation' src="https://raw.githubusercontent.com/sophievanderhorst/data/main/wind_carib.png" on:click={handleClickTheme}> 
+        <p class="caption precipitation ">It's getting wetter</p>
     </div>
     <h2>Select layer</h2>
     {#each options as option}
@@ -75,7 +88,7 @@
             {option}
         </label>
     {/each}
-    <h2>Select time period</h2>
+    <!-- <h2>Select time period</h2>
     <div class="buttons-wrapper">
         <div class="buttons">
             {#each options2 as option, index}
@@ -104,7 +117,7 @@
                 {/each}
             </div>
         </div> 
-    {/if}    
+    {/if}     -->
 </section>
 
 <style>

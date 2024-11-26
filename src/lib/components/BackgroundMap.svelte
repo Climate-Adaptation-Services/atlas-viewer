@@ -13,11 +13,14 @@
   let map;
   let esri;
   let tiledLayer
-  let wmsLayer
+  let wmsLayers = {}
+
 
   let L;
 
   $:console.log($datalaag)
+
+  const variableNames = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"]
 
 
   onMount(async () => {  
@@ -38,11 +41,14 @@
     }).addTo(map);
 
     //Add the ArcGIS Max Temp Yearly Layer using L.esri.tiledMapLayer
-    tiledLayer = new esri.tiledMapLayer({url: "https://tiles.arcgis.com/tiles/7SEV6TvwRD5jzR74/arcgis/rest/services/Zimbabwe_Max_Temp_Yearly/MapServer"})  
+    //tiledLayer = new esri.tiledMapLayer({url: "https://tiles.arcgis.com/tiles/7SEV6TvwRD5jzR74/arcgis/rest/services/Zimbabwe_Max_Temp_Yearly/MapServer"})  
 
-    // Add WMS layer
-    wmsLayer = L.tileLayer.wms("https://dev.cas-zimbabwe.predictia.es/wms", {
-      layers: "tmax", // Ensure this is the correct layer name
+    
+
+    variableNames.forEach(layer=> {
+      
+      wmsLayers[layer] = L.tileLayer.wms("https://dev.cas-zimbabwe.predictia.es/wms", {
+      layers: layer, // Ensure this is the correct layer name
       format: 'image/png',
       transparent: true,
       attribution: "WMS Layer",
@@ -51,15 +57,37 @@
       srs: 'EPSG:3857', // Use the CRS compatible with Leaflet (usually EPSG:3857)
       mask: 'zimbabwe'
     });
-  }
+  })
 
-  // $: if(tiledLayer !== null & $datalaag === 'Maximum temperature' ){tiledLayer.addTo(map)} // Add the tiled layer to the map
 
-  $: if (tiledLayer !== null & $datalaag === 'Maximum temperature') {
-    wmsLayer.addTo(map); // Add WMS layer to the map if the condition matches
+
   }
+    // Add WMS layer
 
   
+  const getDataLayerName = {
+    'Maximum temperature': 'tmax',
+    'Minimum temperature': 'tmin',
+    'Average temperature': 'tavg',
+    'Total precipitation': 'precip_total', 
+    'Days above 20 mm': 'daysabove20',
+    'Dry days': 'drydays',
+  }
+
+  $: console.log(wmsLayers)
+
+  
+    
+  //$: if(tiledLayer !== null & $datalaag === 'Maximum temperature' ){tiledLayer.addTo(map)} // Add the tiled layer to the map
+  $: if ($datalaag && Object.keys(wmsLayers).length !== 0){
+    variableNames.forEach(variableName => {
+      map.removeLayer(wmsLayers[variableName])
+    });
+
+    wmsLayers[getDataLayerName[$datalaag]].addTo(map); // Add WMS layer to the map if the condition matches
+  }
+
+
 
   
 </script>
