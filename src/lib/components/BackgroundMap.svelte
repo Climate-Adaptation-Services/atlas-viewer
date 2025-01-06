@@ -67,7 +67,14 @@
     'Dry days': 'drydays',
   }
 
-  $: console.log(wmsLayers)
+  const getLegendTitle = {
+    'Maximum temperature': 'Temp. (°C)',
+    'Minimum temperature': 'tmin',
+    'Average temperature': 'tavg',
+    'Total precipitation': 'precip_total', 
+    'Days above 20 mm': 'daysabove20',
+    'Dry days': 'drydays',
+  }
 
   
     
@@ -87,6 +94,7 @@
   {#if browser && $datalaag}
     <div class="map" id = "map" bind:this={$leafletMap}></div>    
     <div class = 'legend'>
+      <p class = 'legend-title'> {[getLegendTitle[$datalaag]]}</p>
       <img src="https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=400&request=GetLegendGraphic&layer={getDataLayerName[$datalaag]}&style={getDataLayerName[$datalaag]}&service=WMS&width=60&format=png">
     </div>
   {/if}
@@ -114,7 +122,7 @@
 
   .legend{
     position:fixed;
-    top: 30px;
+    bottom: 30px;
     right: 30px;
     z-index: 1000000;
     /* width: 5%;
@@ -124,6 +132,10 @@
     padding: 10px;
     border-radius: 25px;
     
+  }
+
+  .legend-title{
+    font-size: 2vh;
   }
 
 </style>
