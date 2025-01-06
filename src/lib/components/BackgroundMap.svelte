@@ -4,17 +4,13 @@
   import { onMount } from 'svelte'
   import { tileLayer, leafletMap } from '$lib/stores.js';
   import {scenario, datalaag} from "$lib/stores.js";
-  
-  
-                               
+                                 
   export let datajson
  
-
   let map;
   let esri;
   let tiledLayer
   let wmsLayers = {}
-
 
   let L;
 
@@ -33,7 +29,7 @@
   $: if(esri && L){
     
     // Initialize the Leaflet map
-    map = L.map("map").setView([-19, 27], 7); // Center on Zimbabwe with zoom level 6
+    map = L.map("map").setView([-19, 27], 6); // Center on Zimbabwe with zoom level 6
 
     //Add a basic OpenStreetMap tile layer as the base layer
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -43,10 +39,7 @@
     //Add the ArcGIS Max Temp Yearly Layer using L.esri.tiledMapLayer
     //tiledLayer = new esri.tiledMapLayer({url: "https://tiles.arcgis.com/tiles/7SEV6TvwRD5jzR74/arcgis/rest/services/Zimbabwe_Max_Temp_Yearly/MapServer"})  
 
-    
-
-    variableNames.forEach(layer=> {
-      
+    variableNames.forEach(layer=> {    
       wmsLayers[layer] = L.tileLayer.wms("https://dev.cas-zimbabwe.predictia.es/wms", {
       layers: layer, // Ensure this is the correct layer name
       format: 'image/png',
@@ -59,7 +52,7 @@
     });
   })
 
-
+  //https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=400&request=GetLegendGraphic&layer=tmax&style=tmax&service=WMS&width=60&format=png
 
   }
     // Add WMS layer
@@ -87,14 +80,15 @@
     wmsLayers[getDataLayerName[$datalaag]].addTo(map); // Add WMS layer to the map if the condition matches
   }
 
-
-
   
 </script>
 
-<div class="backgroundMap">
-  {#if browser}
-    <div id="map" bind:this={$leafletMap}></div>    
+<div class="backgroundmap">
+  {#if browser && $datalaag}
+    <div class="map" id = "map" bind:this={$leafletMap}></div>    
+    <div class = 'legend'>
+      <img src="https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=400&request=GetLegendGraphic&layer={getDataLayerName[$datalaag]}&style={getDataLayerName[$datalaag]}&service=WMS&width=60&format=png">
+    </div>
   {/if}
 
 </div>
@@ -108,9 +102,28 @@
     font-size:14px; 
   }
 
-	div{
-		height:100%;
+  .backgroundmap{
+    height:100%;
     width:100%;
-	}
+  }
+
+  .map{
+    height:100%;
+    width:100%;
+  }
+
+  .legend{
+    position:fixed;
+    top: 30px;
+    right: 30px;
+    z-index: 1000000;
+    /* width: 5%;
+    height: 70%; */
+    display: inline-block;
+    background-color: rgba(255,255,255,0.5);
+    padding: 10px;
+    border-radius: 25px;
+    
+  }
 
 </style>
