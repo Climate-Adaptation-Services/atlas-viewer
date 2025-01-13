@@ -8,6 +8,7 @@ export const datalaag = writable('Maximum temperature');
 export const time = writable('Current');
 export const theme = writable('heter');
 export const scenario = writable('Low');
+export const opacityMap = writable(1);
 
 
 export const panelOpen = writable(true)
