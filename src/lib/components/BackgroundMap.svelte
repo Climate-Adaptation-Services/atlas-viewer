@@ -10,6 +10,8 @@
   let wmsLayers = {}
   let L;
 
+  console.log('hoi')
+
   const variableNames = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"]
 
   const getDataLayerName = {
