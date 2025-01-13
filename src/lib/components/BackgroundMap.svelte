@@ -42,7 +42,17 @@
   $: if(esri && L){
     
     // Initialize the Leaflet map
-    map = L.map("map").setView([-19, 27], 6); // Center on Zimbabwe with zoom level 6
+    map = L.map("map", {
+      zoomControl: false, // Disable default zoom control
+    }).setView([-19, 27], 6); // Center on Zimbabwe with zoom level 6
+ 
+
+    // Add a custom zoom control at the bottom-right
+    L.control
+      .zoom({
+        position: "topright",
+      })
+      .addTo(map);
 
     //Add a basic OpenStreetMap tile layer as the base layer
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -134,7 +144,7 @@
   .opacity-slider {
     position:fixed;
     top:10px;
-    right:10px;
+    right:50px;
     z-index: 1000000;
     background-color: rgba(255,255,255,0.5);
     border-radius: 20px;
@@ -152,5 +162,6 @@
   .opacity-slider input {
     width: 100%;
   }
+
 
 </style>

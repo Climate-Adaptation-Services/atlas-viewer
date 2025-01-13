@@ -88,7 +88,7 @@
             {option}
         </label>
     {/each}
-    <!-- <h2>Select time period</h2>
+    <h2>Select time period</h2>
     <div class="buttons-wrapper">
         <div class="buttons">
             {#each options2 as option, index}
@@ -117,7 +117,7 @@
                 {/each}
             </div>
         </div> 
-    {/if}     -->
+    {/if}    
 </section>
 
 <style>
