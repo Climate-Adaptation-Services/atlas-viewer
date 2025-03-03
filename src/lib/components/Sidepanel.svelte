@@ -2,7 +2,6 @@
     import {datalaag} from "$lib/stores.js";
     import {scenario} from "$lib/stores.js";
     import {time} from "$lib/stores.js";
-    import Legend from '$lib/components/Legend.svelte'
     import {theme} from "$lib/stores.js";
     import { createEventDispatcher } from 'svelte';
 

@@ -10,8 +10,6 @@
   let wmsLayers = {}
   let L;
 
-  console.log('hoi')
-
   const variableNames = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"]
 
   const getDataLayerName = {
@@ -24,7 +22,7 @@
   }
 
   const getLegendTitle = {
-    'Maximum temperature': 'Temp. (°C)',
+    'Maximum temperature': '°C',
     'Minimum temperature': 'tmin',
     'Average temperature': 'tavg',
     'Total precipitation': 'precip_total', 
@@ -72,7 +70,8 @@
     });
   })
   }
-  
+
+    
   $: if ($datalaag && Object.keys(wmsLayers).length !== 0){
     variableNames.forEach(variableName => {
       map.removeLayer(wmsLayers[variableName])
@@ -82,7 +81,6 @@
     wmsLayers[getDataLayerName[$datalaag]].setOpacity($opacityMap)
   }
 
-
   
 </script>
 
@@ -91,7 +89,7 @@
     <div class="map" id = "map" bind:this={$leafletMap}></div>    
     <div class = 'legend'>
       <p class = 'legend-title'> {[getLegendTitle[$datalaag]]}</p>
-      <img src="https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=400&request=GetLegendGraphic&layer={getDataLayerName[$datalaag]}&style={getDataLayerName[$datalaag]}&service=WMS&width=60&format=png">
+      <img class = 'legend-image' src="https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=400&request=GetLegendGraphic&layer={getDataLayerName[$datalaag]}&style={getDataLayerName[$datalaag]}&service=WMS&width=60&format=png">
     </div>
     <div class="opacity-slider">
       <label for="opacity">Map transparency</label>
@@ -133,7 +131,7 @@
     z-index: 1000000;
     display: inline-block;
     background-color: rgba(255,255,255,0.5);
-    padding: 10px;
+    padding: 5px;
     border-radius: 25px;
   }
 
@@ -162,6 +160,11 @@
   .opacity-slider input {
     width: 100%;
   }
+
+  .legend-image{
+    height: 50vh;
+  }
+
 
 
 </style>
