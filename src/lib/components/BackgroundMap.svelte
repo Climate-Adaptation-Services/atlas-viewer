@@ -81,7 +81,6 @@
     wmsLayers[getDataLayerName[$datalaag]].setOpacity($opacityMap)
   }
 
-  
 </script>
 
 <div class="backgroundmap">
@@ -90,17 +89,6 @@
     <div class = 'legend'>
       <p class = 'legend-title'> {[getLegendTitle[$datalaag]]}</p>
       <img class = 'legend-image' src="https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=400&request=GetLegendGraphic&layer={getDataLayerName[$datalaag]}&style={getDataLayerName[$datalaag]}&service=WMS&width=60&format=png">
-    </div>
-    <div class="opacity-slider">
-      <label for="opacity">Map transparency</label>
-      <input
-        type="range"
-        id="opacity"
-        min="0"
-        max="1"
-        step="0.1"
-        bind:value={$opacityMap}
-      />
     </div>
   {/if}
 </div>
@@ -126,44 +114,28 @@
 
   .legend{
     position:fixed;
-    bottom: 30px;
-    right: 10px;
+    bottom: 4vh;
+    right: 1vw;
     z-index: 1000000;
     display: inline-block;
     background-color: rgba(255,255,255,0.5);
-    padding: 5px;
+    padding-left: 10px;
+    padding-bottom:10px;
+    padding-right:10px;
     border-radius: 25px;
+    width: 2vw;
   }
 
   .legend-title{
     font-size: 2vh;
   }
 
-  .opacity-slider {
-    position:fixed;
-    top:10px;
-    right:50px;
-    z-index: 1000000;
-    background-color: rgba(255,255,255,0.5);
-    border-radius: 20px;
-    padding-top: 2vh;
-    padding-left: 2vh;
-    padding-right: 2vh;
-  }
+  .legend-image {
+  object-fit: cover; /* Ensures image fills the box */
+  height: 50vh;
 
-  .opacity-slider label {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 2.4vh;
-  }
+}
 
-  .opacity-slider input {
-    width: 100%;
-  }
-
-  .legend-image{
-    height: 50vh;
-  }
 
 
 

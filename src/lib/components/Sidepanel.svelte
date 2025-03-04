@@ -1,16 +1,13 @@
 <script>
-    import {datalaag} from "$lib/stores.js";
-    import {scenario} from "$lib/stores.js";
-    import {time} from "$lib/stores.js";
-    import {theme} from "$lib/stores.js";
-    import { createEventDispatcher } from 'svelte';
+    import {datalaag, scenario, time, theme, opacityMap} from "$lib/stores.js";
+    import { createEventDispatcher } from 'svelte';   
 
     const dispatch = createEventDispatcher()
 
     const optionsTemperature = ['Maximum temperature', 'Minimum temperature', 'Average temperature',]
     const optionsDrought = ['Dry days']
     const optionsPrecipitation = ['Total precipitation', 'Days above 20 mm']
-    const options2= [{ id: 0, name: 'Current' }, { id: 1, name: '2050' }, { id: 2, name: '2100' }]
+    const options2= [{ id: 0, name: 'Now' }, { id: 1, name: '2050' }, { id: 2, name: '2100' }]
     const options3= [{ id: 0, name: 'Low' }, { id: 1, name: 'High' }]
 
     $: options = ($theme === 'heter')
@@ -61,20 +58,24 @@
 </script>
 
 <section> 
-    <h2 class = 'first'>Choose theme</h2>
+    <h2 class = 'first'>Choose a climate theme</h2>
     <div class="item">
-        <img class = 'themelogo heter active' id = 'heter' src="https://raw.githubusercontent.com/sophievanderhorst/data/main/hitte_carib.png" on:click={handleClickTheme}>
-        <p class="caption heter activecaption">It's getting hotter</p>
+        <img class = 'themelogo heter active' id = 'heter' src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/heat.svg" on:click={handleClickTheme}>
+        <p class="caption heter activecaption">Heat</p>
     </div>
     <div class="item">
-        <img class = 'themelogo droger' id = 'droger' src="https://raw.githubusercontent.com/sophievanderhorst/data/main/droogte_carib.png" on:click={handleClickTheme}> 
-        <p class="caption droger">It's getting dryer</p>
+        <img class = 'themelogo droger' id = 'droger' src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/drought.svg" on:click={handleClickTheme}> 
+        <p class="caption droger">Drought</p>
     </div>
     <div class="item">
-        <img class = 'themelogo precipitation' id = 'precipitation' src="https://raw.githubusercontent.com/sophievanderhorst/data/main/wind_carib.png" on:click={handleClickTheme}> 
-        <p class="caption precipitation ">It's getting wetter</p>
+        <img class = 'themelogo precipitation' id = 'precipitation' src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/rain.svg" on:click={handleClickTheme}> 
+        <p class="caption precipitation ">Extreme rain</p>
     </div>
-    <h2>Select layer</h2>
+    <div class="item">
+        <img class = 'themelogo precipitation' id = 'flood' src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/flood.svg" on:click={handleClickTheme}> 
+        <p class="caption precipitation ">Flood</p>
+    </div>
+    <h2>Select a map layer</h2>
     {#each options as option}
         <label class='keuzes'>
             <input
@@ -102,7 +103,7 @@
         </div>
     </div>  
     {#if $time === '2050' || $time === '2100'}
-        <h2>Select scenario</h2>
+        <h2>Select a scenario</h2>
         <div class="buttons-wrapper">
             <div class="buttons">
                 {#each options3 as option, index}
@@ -116,15 +117,65 @@
                 {/each}
             </div>
         </div> 
-    {/if}    
+    {/if} 
+    <h2>Map transparency</h2>
+        <div class="opacity-slider">
+            <input
+            type="range"
+            id="opacity"
+            min="0"
+            max="1"
+            step="0.1"
+            bind:value={$opacityMap}
+            style="background: linear-gradient(to right, #017E9F 0%, #017E9F {$opacityMap * 100}%, #ddd 0%);"
+            />
+        </div>   
 </section>
 
 <style>
-    .keuzes{
-        margin-top:1vh;
-        font-size: 2vh;
-        display:block;
-    }  
+.keuzes {
+    display: flex;
+    align-items: center;
+    gap: 0.8vw;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    font-size: 1.9vh;
+}
+
+/* Style the square option box */
+.option {
+    appearance: none;
+    width: 2vh;  /* Adjusted for a square look */
+    height: 2vh; /* Equal width & height */
+    border: 2px solid #017E9F;
+    border-radius: 4px; /* Slightly rounded corners */
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.8vh;
+}
+
+/* Add checkmark on selection */
+.option:checked {
+    background-color: #017E9F;
+    border-color: #017E9F;
+}
+
+.option:checked::after {
+    content: '✔'; /* Unicode checkmark */
+    color: white;
+    font-size: 1.4vh;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
 
     .logo{
         width:23vw;
@@ -133,14 +184,14 @@
   
 
     button{
-        margin:0.5vw;
+        margin-right:0.5vw;
         height: 6vh;
-        width: 6vw;
+        width: 4.5vw;
         border-radius: 30px;
         border-width: 0.3vh;
-        font-size: 1.8vh;       
+        font-size: 1.9vh;       
         background-color: 'lightgrey';
-        margin-bottom: 2vh;
+        margin-bottom: 1vh;
         cursor: pointer;
         transition: background-color 0.3s, color 0.3s;
     }
@@ -170,26 +221,33 @@
     }
     
     h2{
-        margin-top: 3vh; 
-        font-size: 2.8vh;
+        margin-top: 2vh; 
+        font-size: 2vh;
     }
 
     div.item {
         vertical-align: top;
         display: inline-block;
         text-align: center;
-        width: 6vw;
-        margin:0vw;
+        width: 3vw;
+        margin: 0vw;
         margin-bottom: 0vh; 
+        font-size: 3vh;
+        margin-right: 0.5vw;
+        /* border: 1px solid #017E9F;
+        border-radius: 10px; */
     }
 
     .themelogo{
-        width:4vw;     
+        width:2.7vw;
+             
     }
 
     .caption{
         font-size:1.7vh;
-        display: block;   
+        margin-top: 0.1vh;
+        margin-bottom: 0vh
+
     }
 
     .themelogo:not(.active) {
@@ -203,6 +261,41 @@
     .countrylogo:not(.activecountry) {
         opacity: 0.3;
     }
+
+    .opacity-slider {
+    z-index: 1000000;
+    padding-top: 0vh;
+  }
+
+  .opacity-slider input { 
+		-webkit-appearance: none;
+		width: 100%;
+		padding: 0px;
+	    border-radius: 9999px;
+        height: 1.5vh;
+	}
+
+     /* Custom thumb (slider handle) */
+  .opacity-slider input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 3vh;
+    height: 3vh;
+    background-color: var(--thumb-color, #017E9F); /* Dynamic color */
+    border-radius: 50%;
+    border: 2px solid white;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+  }
+
+
+
+
+	
+
+
+ 
+
 
 
 

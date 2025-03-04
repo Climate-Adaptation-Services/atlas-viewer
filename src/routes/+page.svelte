@@ -71,15 +71,16 @@
 	padding-left:2vw;
 	padding-right:2vw;
 	position: fixed;
-	width: 25vw;
-	left: 0;
-	top:1vh;
-	height: 98vh;
-	background-color: white;
+	width: 16vw;
+	left: 1vw;
+	top:10vh;
+	height: 80vh;
+	background-color: #F8F3EE;
 	box-shadow: 2px 0 5px rgba(0,0,0,0.1);
 	z-index: 1000;	
 	transform: translateX(-100%);
     transition: transform 0.3s ease;
+	border-radius: 15px; /* Add rounded corners */
 }
 
 .sidepanel.open {
