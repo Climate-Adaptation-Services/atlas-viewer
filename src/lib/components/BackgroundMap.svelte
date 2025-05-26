@@ -10,8 +10,7 @@
   let wmsLayers = {}
   let L
 
-  const variableBases = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"];
-const periods = ["hist", "2050", "2080"];
+const variableBases = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"];
 const scenarios = ["low", "high"];
 
 const variableNames = [
@@ -23,38 +22,31 @@ const variableNames = [
   )
 ];
 
-  // const getDataLayerName = {
-  //   "Maximum temperature": "tmax_hist",
-  //   "Minimum temperature": "tmin_hist",
-  //   "Average temperature": "tavg_hist",
-  //   "Total precipitation": "precip_total_hist",
-  //   "Days above 20 mm": "daysabove20_hist",
-  //   "Dry days": "drydays_hist",
-  // }
+// Layer code lookup
+const baseLayerCodes = {
+  "Maximum temperature": "tmax",
+  "Minimum temperature": "tmin",
+  "Average temperature": "tavg",
+  "Total precipitation": "precip_total",
+  "Days above 20 mm": "daysabove20",
+  "Dry days": "drydays"
+}
 
-    const baseLayerCodes = {
-    "Maximum temperature": "tmax",
-    "Minimum temperature": "tmin",
-    "Average temperature": "tavg",
-    "Total precipitation": "precip_total",
-    "Days above 20 mm": "daysabove20",
-    "Dry days": "drydays"
-    }
+// Create the actual layer name dynamically
+function getLayerId(datalaag, time, scenario) {
+  const base = baseLayerCodes[datalaag];
+  if (!base) return null;
 
-  // Create the actual layer name dynamically
-  function getLayerId(datalaag, time, scenario) {
-    const base = baseLayerCodes[datalaag]
-    if (!base) return null
-
-    if (time === "hist") {
-      return `${base}_hist`
-    } else {
-      const year = time === "2050" ? "2050" : "2080"
-      const scenarioCode = scenario === "Low" ? "low" : "high"
-      console.log('hoi', `${base}_${year}_${scenarioCode}`)
-      return `${base}_${year}_${scenarioCode}`
-    }
+  // Accept both "hist", "Now", and "Current" for historical
+  if (time === "hist" || time === "Now" || time === "Current") {
+    return `${base}_hist`;
+  } else if (time === "2050" || time === "2080") {
+    // Accept both "Low"/"low" and "High"/"high"
+    const scenarioCode = (scenario || "high").toLowerCase();
+    return `${base}_${time}_${scenarioCode}`;
   }
+  return null;
+}
 
   const getLegendTitle = {
     "Maximum temperature": "°C",
@@ -114,12 +106,14 @@ const variableNames = [
     Object.values(wmsLayers).forEach((layer) => map.removeLayer(layer))
 
     const layerId = getLayerId($datalaag, $time, $scenario)
+    console.log('BackgroundMap DEBUG:', { $datalaag, $time, $scenario, layerId });
     if (layerId && wmsLayers[layerId]) {
       wmsLayers[layerId].addTo(map)
       wmsLayers[layerId].setOpacity($opacityMap)
     }
   }
 }
+
 </script>
 
 <div class="backgroundmap">
