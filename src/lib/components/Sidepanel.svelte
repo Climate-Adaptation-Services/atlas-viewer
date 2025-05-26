@@ -10,7 +10,7 @@
   const options2 = [
     { id: 0, name: "Now" },
     { id: 1, name: "2050" },
-    { id: 2, name: "2100" },
+    { id: 2, name: "2080" },
   ]
   const options3 = [
     { id: 0, name: "Low" },
@@ -109,7 +109,7 @@
       {/each}
     </div>
   </div>
-  {#if $time === "2050" || $time === "2100"}
+  {#if $time === "2050" || $time === "2080"}
     <h2>Select a scenario</h2>
     <div class="buttons-wrapper">
       <div class="buttons">
