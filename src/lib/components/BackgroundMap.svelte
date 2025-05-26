@@ -48,17 +48,25 @@ function getLayerId(datalaag, time, scenario) {
   return null;
 }
 
-  const getLegendTitle = {
-    "Maximum temperature": "°C",
-    "Minimum temperature": "°C",
-    "Average temperature": "°C",
-    "Total precipitation": "mm/year",
-    "Days above 20 mm": "daysabove20",
-    "Dry days": "drydays"
+  // Function to safely get the legend unit based on the data layer
+  function getLegendUnit(dataLayer) {
+    const units = {
+      "Maximum temperature": "°C",
+      "Minimum temperature": "°C",
+      "Average temperature": "°C",
+      "Total precipitation": "mm/year",
+      "Days above 20 mm": "days/year",
+      "Dry days": "days/year"
+    };
+    
+    return units[dataLayer] || '';
   }
 
   // Reactive legend layer name
   $: legendLayerId = getLayerId($datalaag, $time, $scenario);
+  
+  // Determine if we're showing a change from historical data
+  $: isShowingChange = $time === "2050" || $time === "2080";
 
   onMount(async () => {
     // Load Leaflet and Esri-Leaflet dynamically to avoid SSR issues
@@ -119,12 +127,22 @@ function getLayerId(datalaag, time, scenario) {
   {#if browser && $datalaag}
     <div class="map" id="map" bind:this={$leafletMap}></div>
     <div class="legend">
-      <p class="legend-title">{[getLegendTitle[$datalaag]]}</p>
-      {#if legendLayerId}
-        <img
-          class="legend-image"
-          src={`https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=400&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=60&format=png`} />
-      {/if} 
+      <div class="legend-content">
+        <div class="legend-header">
+          <p class="legend-title">
+            {#if isShowingChange}
+              Change in {$datalaag.toLowerCase()} ({getLegendUnit($datalaag)})
+            {:else}
+              {$datalaag} ({getLegendUnit($datalaag)})
+            {/if}
+          </p>
+        </div>
+        {#if legendLayerId}
+          <img
+            class="legend-image"
+          src={`https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=200&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=40&format=png`} />
+        {/if}
+      </div>
     </div>
   {/if}
 </div>
@@ -151,7 +169,7 @@ function getLayerId(datalaag, time, scenario) {
   .legend {
     position: fixed;
     bottom: 4vh;
-    right: 1vw;
+    right: 4vw;
     z-index: 1000000;
     display: inline-block;
     background-color: rgba(255, 255, 255, 0.5);
@@ -167,7 +185,9 @@ function getLayerId(datalaag, time, scenario) {
   }
 
   .legend-image {
-    object-fit: cover; /* Ensures image fills the box */
-    height: 50vh;
+    object-fit: contain; /* Maintains aspect ratio */
+    height: 40vh;
+    max-height: 200px;
+    width: auto;
   }
 </style>
