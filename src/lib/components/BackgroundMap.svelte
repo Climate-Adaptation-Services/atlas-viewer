@@ -38,7 +38,7 @@ function getLayerId(datalaag, time, scenario) {
   if (!base) return null;
 
   // Accept both "hist", "Now", and "Current" for historical
-  if (time === "hist" || time === "Now" || time === "Current") {
+  if (time === "hist" || time === "Past" || time === "Current") {
     return `${base}_hist`;
   } else if (time === "2050" || time === "2080") {
     // Accept both "Low"/"low" and "High"/"high"
@@ -51,8 +51,8 @@ function getLayerId(datalaag, time, scenario) {
   const getLegendTitle = {
     "Maximum temperature": "°C",
     "Minimum temperature": "°C",
-    "Average temperature": "tavg°C",
-    "Total precipitation": "precip_total",
+    "Average temperature": "°C",
+    "Total precipitation": "mm/year",
     "Days above 20 mm": "daysabove20",
     "Dry days": "drydays"
   }

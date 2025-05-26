@@ -8,7 +8,7 @@
   const optionsDrought = ["Dry days"]
   const optionsPrecipitation = ["Total precipitation", "Days above 20 mm"]
   const options2 = [
-    { id: 0, name: "Now" },
+    { id: 0, name: "Past" },
     { id: 1, name: "2050" },
     { id: 2, name: "2080" },
   ]
@@ -99,7 +99,22 @@
       {option}
     </label>
   {/each}
-  <h2>Select time period</h2>
+  <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
+    Select time period
+    <span class="info-icon-wrapper">
+      <svg class="info-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12" cy="12" r="10" stroke="#0077b6" stroke-width="2" fill="#e9f5fb"/>
+  <text x="12" y="12" text-anchor="middle" alignment-baseline="central" dominant-baseline="central" font-size="12" fill="#0077b6">i</text>
+</svg>
+      <span class="tooltip">
+        <ul class="tooltip-list">
+          <li><strong>Past:&nbsp;</strong>observed data for 1981–2010</li>
+          <li><strong>2050:&nbsp;</strong>projected data for 2036–2065</li>
+          <li><strong>2080:&nbsp;</strong>projected data for 2066–2095</li>
+       </ul>
+      </span>
+    </span>
+  </h2>
   <div class="buttons-wrapper">
     <div class="buttons">
       {#each options2 as option, index}
@@ -110,7 +125,21 @@
     </div>
   </div>
   {#if $time === "2050" || $time === "2080"}
-    <h2>Select a scenario</h2>
+    <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
+      Select a scenario
+      <span class="info-icon-wrapper">
+        <svg class="info-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" stroke="#0077b6" stroke-width="2" fill="#e9f5fb"/>
+          <text x="12" y="12" text-anchor="middle" alignment-baseline="central" dominant-baseline="central" font-size="12" fill="#0077b6">i</text>
+        </svg>
+        <span class="tooltip">
+          <ul class="tooltip-list">
+            <li><strong>Low:&nbsp;</strong> Low emissions (SSP1-2.6)</li>
+            <li><strong>High:&nbsp;</strong> High emissions (SSP5-8.5)</li>
+          </ul>
+        </span>
+      </span>
+    </h2>
     <div class="buttons-wrapper">
       <div class="buttons">
         {#each options3 as option, index}
@@ -135,6 +164,76 @@
 </section>
 
 <style>
+  .info-icon-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+  .info-icon {
+    cursor: pointer;
+    vertical-align: middle;
+  }
+  .tooltip {
+    visibility: hidden;
+    width: auto;
+    min-width: 200px;
+    max-width: 260px;
+    background-color: #333;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
+    padding: 12px 14px;
+    position: absolute;
+    z-index: 1;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.95em;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  
+  .tooltip-list {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+  }
+  
+  .tooltip-list li {
+    position: relative;
+    padding-left: 12px;
+    margin-bottom: 0;
+    line-height: 1.5;
+    display: flex;
+    align-items: baseline;
+  }
+  
+  .tooltip-list li:first-child {
+    margin-top: 0;
+  }
+  
+  .tooltip-list li:last-child {
+    margin-bottom: 0;
+  }
+  
+  .tooltip-list li:before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: white;
+    font-size: 14px;
+    line-height: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .info-icon-wrapper:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .keuzes {
     display: flex;
     align-items: center;
@@ -288,3 +387,4 @@
     transition: background-color 0.3s ease-in-out;
   }
 </style>
+
