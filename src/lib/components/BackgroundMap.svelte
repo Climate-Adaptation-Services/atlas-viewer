@@ -1,7 +1,7 @@
 <script>
   import { browser } from "$app/environment"
   import { onMount } from "svelte"
-  import { leafletMap, datalaag, opacityMap } from "$lib/stores.js"
+  import { leafletMap, datalaag, opacityMap, time, scenario } from "$lib/stores.js"
 
   export let datajson
 
@@ -10,15 +10,50 @@
   let wmsLayers = {}
   let L
 
-  const variableNames = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"]
+  const variableBases = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"];
+const periods = ["hist", "2050", "2080"];
+const scenarios = ["low", "high"];
 
-  const getDataLayerName = {
+const variableNames = [
+  ...variableBases.map(v => `${v}_hist`),
+  ...variableBases.flatMap(v =>
+    ["2050", "2080"].flatMap(year =>
+      scenarios.map(scenario => `${v}_${year}_${scenario}`)
+    )
+  )
+];
+
+  // const getDataLayerName = {
+  //   "Maximum temperature": "tmax_hist",
+  //   "Minimum temperature": "tmin_hist",
+  //   "Average temperature": "tavg_hist",
+  //   "Total precipitation": "precip_total_hist",
+  //   "Days above 20 mm": "daysabove20_hist",
+  //   "Dry days": "drydays_hist",
+  // }
+
+    const baseLayerCodes = {
     "Maximum temperature": "tmax",
     "Minimum temperature": "tmin",
     "Average temperature": "tavg",
     "Total precipitation": "precip_total",
     "Days above 20 mm": "daysabove20",
-    "Dry days": "drydays",
+    "Dry days": "drydays"
+    }
+
+  // Create the actual layer name dynamically
+  function getLayerId(datalaag, time, scenario) {
+    const base = baseLayerCodes[datalaag]
+    if (!base) return null
+
+    if (time === "hist") {
+      return `${base}_hist`
+    } else {
+      const year = time === "2050" ? "2050" : "2080"
+      const scenarioCode = scenario === "Low" ? "low" : "high"
+      console.log('hoi', `${base}_${year}_${scenarioCode}`)
+      return `${base}_${year}_${scenarioCode}`
+    }
   }
 
   const getLegendTitle = {
@@ -28,7 +63,11 @@
     "Total precipitation": "precip_total",
     "Days above 20 mm": "daysabove20",
     "Dry days": "drydays",
+    "Days above 20 mm projection": "fie",
   }
+
+  // Reactive legend layer name
+  $: legendLayerId = getLayerId($datalaag, $time, $scenario);
 
   onMount(async () => {
     // Load Leaflet and Esri-Leaflet dynamically to avoid SSR issues
@@ -58,25 +97,29 @@
     variableNames.forEach((layer) => {
       wmsLayers[layer] = L.tileLayer.wms("https://dev.cas-zimbabwe.predictia.es/wms", {
         layers: layer, // Ensure this is the correct layer name
-        format: "image/png",
-        transparent: true,
-        attribution: "WMS Layer",
+      format: "image/png",
+      transparent: true,
+      attribution: "WMS Layer",
         version: "1.1.1", // Ensure version matches your WMS service
-        styles: "dynamic",
+      styles: "dynamic",
         srs: "EPSG:3857", // Use the CRS compatible with Leaflet (usually EPSG:3857)
-        mask: "zimbabwe",
+      mask: "zimbabwe",
       })
     })
   }
 
-  $: if ($datalaag && Object.keys(wmsLayers).length !== 0) {
-    variableNames.forEach((variableName) => {
-      map.removeLayer(wmsLayers[variableName])
-    })
+  $: {
+  if ($datalaag && $time && wmsLayers) {
+    // Clear existing layers
+    Object.values(wmsLayers).forEach((layer) => map.removeLayer(layer))
 
-    wmsLayers[getDataLayerName[$datalaag]].addTo(map) // Add WMS layer to the map if the condition matches
-    wmsLayers[getDataLayerName[$datalaag]].setOpacity($opacityMap)
+    const layerId = getLayerId($datalaag, $time, $scenario)
+    if (layerId && wmsLayers[layerId]) {
+      wmsLayers[layerId].addTo(map)
+      wmsLayers[layerId].setOpacity($opacityMap)
+    }
   }
+}
 </script>
 
 <div class="backgroundmap">
@@ -84,11 +127,11 @@
     <div class="map" id="map" bind:this={$leafletMap}></div>
     <div class="legend">
       <p class="legend-title">{[getLegendTitle[$datalaag]]}</p>
-      <img
-        class="legend-image"
-        src="https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=400&request=GetLegendGraphic&layer={getDataLayerName[
-          $datalaag
-        ]}&style={getDataLayerName[$datalaag]}&service=WMS&width=60&format=png" />
+      {#if legendLayerId}
+        <img
+          class="legend-image"
+          src={`https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=400&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=60&format=png`} />
+      {/if} 
     </div>
   {/if}
 </div>
