@@ -50,12 +50,11 @@ function getLayerId(datalaag, time, scenario) {
 
   const getLegendTitle = {
     "Maximum temperature": "°C",
-    "Minimum temperature": "tmin",
-    "Average temperature": "tavg",
+    "Minimum temperature": "°C",
+    "Average temperature": "tavg°C",
     "Total precipitation": "precip_total",
     "Days above 20 mm": "daysabove20",
-    "Dry days": "drydays",
-    "Days above 20 mm projection": "fie",
+    "Dry days": "drydays"
   }
 
   // Reactive legend layer name
