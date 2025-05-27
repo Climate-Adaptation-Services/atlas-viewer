@@ -168,7 +168,7 @@
   @media (max-width: 768px) {
     h2 {
       font-size: 2.5vh !important;
-      margin-top: 3vh !important;
+      margin-top: 1vh !important;
     }
     
     .keuzes {
