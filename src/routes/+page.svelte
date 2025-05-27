@@ -111,6 +111,13 @@
 	transition: transform 0.3s ease; /* Ensure it transitions with the sidepanel */
 }
 
+/* Position the toggle arrow lower on mobile to avoid overlap with zoom controls */
+@media (max-width: 768px) {
+	.toggle-arrow {
+		top: 80px; /* Move it down on mobile devices */
+	}
+}
+
 .tooltip {
 	visibility: visible;
 	width: 100px;
