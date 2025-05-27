@@ -164,6 +164,49 @@
 </section>
 
 <style>
+  /* Mobile responsive styles */
+  @media (max-width: 768px) {
+    h2 {
+      font-size: 2.5vh !important;
+      margin-top: 3vh !important;
+    }
+    
+    .keuzes {
+      font-size: 2.4vh !important;
+      gap: 2vw !important;
+      margin-bottom: 1.5vh !important;
+    }
+    
+    .option {
+      width: 3vh !important;
+      height: 3vh !important;
+    }
+    
+    .option:checked::after {
+      font-size: 2vh !important;
+    }
+    
+    button {
+      height: 7vh !important;
+      width: 20vw !important;
+      font-size: 2.4vh !important;
+      margin-right: 2vw !important;
+    }
+    
+    .caption {
+      font-size: 2.2vh !important;
+    }
+    
+    .themelogo {
+      width: 8vw !important;
+    }
+    
+    div.item {
+      width: 10vw !important;
+      margin-right: 2vw !important;
+    }
+  }
+  
   .info-icon-wrapper {
     position: relative;
     display: inline-block;
@@ -241,6 +284,7 @@
     cursor: pointer;
     transition: all 0.3s ease-in-out;
     font-size: 1.9vh;
+    margin-bottom: 0.8vh;
   }
 
   /* Style the square option box */
@@ -295,6 +339,7 @@
     transition:
       background-color 0.3s,
       color 0.3s;
+    touch-action: manipulation; /* Improves touch experience */
   }
 
   button:hover {

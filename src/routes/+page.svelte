@@ -72,16 +72,24 @@
 	padding-left:2vw;
 	padding-right:2vw;
 	position: fixed;
-	width: 16vw;
+	width: 16vw; /* Default width for desktop */
 	left: 1vw;
-	top:10vh;
-	height: 80vh;
+	top:5vh;
+	height: 90vh;
 	background-color: #F8F3EE;
 	box-shadow: 2px 0 5px rgba(0,0,0,0.1);
 	z-index: 1000;	
 	transform: translateX(-100%);
     transition: transform 0.3s ease;
 	border-radius: 15px; /* Add rounded corners */
+}
+
+/* Responsive width for mobile devices */
+@media (max-width: 768px) {
+	.sidepanel {
+		width: 80vw; /* Wider panel on mobile */
+		left: 0;
+	}
 }
 
 .sidepanel.open {

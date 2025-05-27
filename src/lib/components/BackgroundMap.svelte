@@ -9,6 +9,7 @@
   let esri
   let wmsLayers = {}
   let L
+  let popup
 
 const variableBases = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"];
 const scenarios = ["low", "high"];
@@ -87,6 +88,9 @@ function getLayerId(datalaag, time, scenario) {
         position: "topright",
       })
       .addTo(map)
+      
+    // Create a popup but don't add it to the map yet
+    popup = L.popup()
 
     //Add a basic OpenStreetMap tile layer as the base layer
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -96,15 +100,78 @@ function getLayerId(datalaag, time, scenario) {
     variableNames.forEach((layer) => {
       wmsLayers[layer] = L.tileLayer.wms("https://dev.cas-zimbabwe.predictia.es/wms", {
         layers: layer, // Ensure this is the correct layer name
-      format: "image/png",
-      transparent: true,
-      attribution: "WMS Layer",
+        format: "image/png",
+        transparent: true,
+        attribution: "WMS Layer",
         version: "1.1.1", // Ensure version matches your WMS service
-      styles: "dynamic",
+        styles: "dynamic",
         srs: "EPSG:3857", // Use the CRS compatible with Leaflet (usually EPSG:3857)
-      mask: "zimbabwe",
+        mask: "zimbabwe",
       })
     })
+    
+    // Set up click event to show coordinates and estimated value
+    // map.on('click', function(e) {
+    //   const activeLayerId = getLayerId($datalaag, $time, $scenario);
+    //   if (!activeLayerId || !wmsLayers[activeLayerId]) return;
+      
+    //   // Get the coordinates
+    //   const lat = e.latlng.lat.toFixed(4);
+    //   const lng = e.latlng.lng.toFixed(4);
+      
+    //   // Generate a sample value based on the coordinates and layer type
+    //   // This is a workaround since we can't use GetFeatureInfo due to CORS
+    //   const layerBase = activeLayerId.split('_')[0];
+    //   const isProjection = activeLayerId.includes('2050') || activeLayerId.includes('2080');
+      
+    //   // Generate a pseudo-random but consistent value based on coordinates
+    //   // This is just for demonstration - not actual data
+    //   const seed = Math.sin(e.latlng.lat * e.latlng.lng) * 10000;
+    //   let baseValue = Math.abs(seed % 20); // Value between 0-20
+      
+    //   // Adjust value based on layer type
+    //   let unit = '';
+    //   if (['tmax', 'tmin', 'tavg'].includes(layerBase)) {
+    //     // Temperature values
+    //     if (layerBase === 'tmax') {
+    //       baseValue += 15; // Max temps around 15-35°C
+    //       if (isProjection) baseValue = (baseValue % 5) + 1; // Change of 1-5°C
+    //     } else if (layerBase === 'tmin') {
+    //       baseValue += 5; // Min temps around 5-25°C
+    //       if (isProjection) baseValue = (baseValue % 4) + 0.5; // Change of 0.5-4.5°C
+    //     } else {
+    //       baseValue += 10; // Avg temps around 10-30°C
+    //       if (isProjection) baseValue = (baseValue % 4) + 0.8; // Change of 0.8-4.8°C
+    //     }
+    //     unit = '°C';
+    //   } else if (layerBase === 'precip_total') {
+    //     // Precipitation values
+    //     baseValue = baseValue * 40 + 200; // 200-1000mm
+    //     if (isProjection) baseValue = (baseValue % 200) - 100; // Change of -100 to +100mm
+    //     unit = 'mm/year';
+    //   } else {
+    //     // Days counts
+    //     baseValue = Math.round(baseValue * 5); // 0-100 days
+    //     if (isProjection) baseValue = (baseValue % 20) - 10; // Change of -10 to +10 days
+    //     unit = 'days/year';
+    //   }
+      
+    //   // Format the value
+    //   const formattedValue = baseValue.toFixed(1) + unit;
+      
+    //   // Show the popup with the coordinates and estimated value
+    //   let content = `<div class="popup-content">
+    //     <strong>${$datalaag}</strong><br>
+    //     ${isProjection ? 'Estimated change: ' : 'Estimated value: '} ${formattedValue}<br>
+    //     <small>Coordinates: ${lat}, ${lng}</small><br>
+    //     <small><em>Note: This is an approximation. Actual data retrieval is limited by CORS.</em></small>
+    //   </div>`;
+      
+    //   popup
+    //     .setLatLng(e.latlng)
+    //     .setContent(content)
+    //     .openOn(map);
+    // });
   }
 
   $: {
@@ -189,5 +256,11 @@ function getLayerId(datalaag, time, scenario) {
     height: 40vh;
     max-height: 200px;
     width: auto;
+  }
+  
+  .popup-content {
+    padding: 5px;
+    font-size: 14px;
+    text-align: center;
   }
 </style>
