@@ -284,7 +284,6 @@
     cursor: pointer;
     transition: all 0.3s ease-in-out;
     font-size: 1.9vh;
-    margin-bottom: 0.8vh;
   }
 
   /* Style the square option box */
@@ -339,7 +338,6 @@
     transition:
       background-color 0.3s,
       color 0.3s;
-    touch-action: manipulation; /* Improves touch experience */
   }
 
   button:hover {
@@ -363,11 +361,11 @@
   }
 
   .first {
-    margin-top: 6vh;
+    margin-top: 4vh;
   }
 
   h2 {
-    margin-top: 2vh;
+    margin-top: 1vh;
     font-size: 2vh;
   }
 
