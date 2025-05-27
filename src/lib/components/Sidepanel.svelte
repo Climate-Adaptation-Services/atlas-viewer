@@ -171,6 +171,10 @@
       margin-top: 1vh !important;
     }
     
+    h2.first {
+      margin-top: 3vh !important;
+    }
+    
     .keuzes {
       font-size: 2.4vh !important;
       gap: 2vw !important;
