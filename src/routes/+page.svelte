@@ -150,15 +150,18 @@
 	.mobile-toggle {
 		display: block;
 		position: fixed;
-		top: 10px;
+		top: calc(5vh + 10px); /* Match the top position relative to the sidepanel */
 		left: 10px;
-		background-color: transparent;
-		border: none;
-		box-shadow: none;
-		padding: 8px;
+		background-color: #fff;
+		border: 1px solid #ccc;
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+		padding: 5px 10px;
 		font-size: 18px;
 		z-index: 1002;
 		cursor: pointer;
+		border-radius: 20px; /* Oval shape */
+		appearance: none;
+		line-height: 1;
 	}
 	
 	.mobile-toggle.hidden {
