@@ -6,7 +6,7 @@
 
   const optionsTemperature = ["Average temperature", "Minimum temperature", "Maximum temperature"]
   const optionsDrought = ["Dry spells"]
-  const optionsPrecipitation = ["Total precipitation", "Days above 20 mm"]
+  const optionsPrecipitation = ["Total rainfall", "Days above 20 mm"]
   const options2 = [
     { id: 0, name: "Past" },
     { id: 1, name: "2050" },
@@ -84,14 +84,7 @@
       on:click={handleClickTheme} />
     <p class="caption precipitation">Extreme rain</p>
   </div>
-  <div class="item">
-    <img
-      class="themelogo precipitation"
-      id="flood"
-      src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/flood.svg"
-      on:click={handleClickTheme} />
-    <p class="caption precipitation">Flood</p>
-  </div>
+  
   <h2>Select a map layer</h2>
   {#each options as option}
     <label class="keuzes">
@@ -102,9 +95,9 @@
   <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
     Select time period
     <span class="info-icon-wrapper">
-      <svg class="info-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg class="info-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
   <circle cx="12" cy="12" r="10" stroke="#0077b6" stroke-width="2" fill="#e9f5fb"/>
-  <text x="12" y="12" text-anchor="middle" alignment-baseline="central" dominant-baseline="central" font-size="12" fill="#0077b6">i</text>
+  <text x="12" y="16" text-anchor="middle" fill="#0077b6" font-weight="bold" style="font-family: serif;">i</text>
 </svg>
       <span class="tooltip">
         <ul class="tooltip-list">
@@ -128,9 +121,9 @@
     <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
       Select a scenario
       <span class="info-icon-wrapper">
-        <svg class="info-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg class="info-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="10" stroke="#0077b6" stroke-width="2" fill="#e9f5fb"/>
-          <text x="12" y="12" text-anchor="middle" alignment-baseline="central" dominant-baseline="central" font-size="12" fill="#0077b6">i</text>
+          <text x="12" y="16" text-anchor="middle" fill="#0077b6" font-weight="bold" style="font-family: serif;">i</text>
         </svg>
         <span class="tooltip">
           <ul class="tooltip-list">
@@ -218,12 +211,44 @@
   .info-icon {
     cursor: pointer;
     vertical-align: middle;
+    width: 3vh; /* Base size using viewport height */
+    height: 3vh;
+    min-width: 20px; /* Minimum size for small screens */
+    min-height: 20px;
+  }
+  
+  /* Font size for the 'i' character */
+  .info-icon text {
+    /* Ensure minimum font size of 14px */
+    font-size: max(14px, 1.6vh);
+    font-weight: bold;
+    font-family: serif;
+    transform: translateY(1px); /* Fine-tune vertical alignment */
+  }
+  
+  /* Font size adjustments for different screen sizes */
+  @media (min-width: 1200px) {
+    .tooltip {
+      font-size: 0.8em;
+    }
+  }
+  
+  /* Additional size guarantee for very small screens */
+  @media (max-height: 500px) {
+    .info-icon {
+      width: 24px;
+      height: 24px;
+    }
+    
+    .info-icon text {
+      font-size: 16px;
+    }
   }
   .tooltip {
     visibility: hidden;
-    width: auto;
+    width: max-content; /* Fit content width */
     min-width: 200px;
-    max-width: 260px;
+    max-width: 320px;
     background-color: #333;
     color: #fff;
     text-align: left;
@@ -236,10 +261,10 @@
     transform: translateX(-50%);
     opacity: 0;
     transition: opacity 0.3s;
-    font-size: 0.95em;
+    font-size: 0.85em;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     pointer-events: none;
-    white-space: nowrap;
+    white-space: normal; /* Allow text to wrap if needed */
   }
   
   .tooltip-list {

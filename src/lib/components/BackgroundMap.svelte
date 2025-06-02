@@ -28,13 +28,49 @@ const baseLayerCodes = {
   "Maximum temperature": "tmax",
   "Minimum temperature": "tmin",
   "Average temperature": "tavg",
-  "Total precipitation": "precip_total",
+  "Total rainfall": "precip_total",
   "Days above 20 mm": "daysabove20",
   "Dry spells": "drydays"
 }
 
+// Legend title mapping for custom display names
+const legendTitles = {
+  "Maximum temperature": "Maximum temp.",
+  "Minimum temperature": "Minimum temp.",
+  "Average temperature": "Average temp.",
+  "Total rainfall": "Total rainfall",
+  "Days above 20 mm": "Days above 20mm",
+  "Dry spells": "Dry spells"
+};
+
+// Format legend title using mapping or fallback to default formatting
+function formatLegendTitle(title) {
+  if (!title) return '';
+  
+  // Convert to string to ensure we can work with it
+  const titleStr = String(title);
+  
+  // Check if we have a custom mapping for this title
+  if (titleStr in legendTitles) {
+    return legendTitles[titleStr];
+  }
+  
+  // Fallback to default formatting
+  // First replace 'temperature' with 'temp'
+  let formattedTitle = String(title).replace('temperature', 'temp');
+  // Convert everything to lowercase
+  formattedTitle = formattedTitle.toLowerCase();
+  // Capitalize only the very first letter of the entire string
+  return formattedTitle.charAt(0).toUpperCase() + formattedTitle.slice(1);
+}
+
 // Create the actual layer name dynamically
 function getLayerId(datalaag, time, scenario) {
+  // Check if datalaag is a valid key in our lookup object
+  if (!datalaag || typeof datalaag !== 'string') {
+    return null;
+  }
+  
   const base = baseLayerCodes[datalaag];
   if (!base) return null;
 
@@ -55,7 +91,7 @@ function getLayerId(datalaag, time, scenario) {
       "Maximum temperature": "°C",
       "Minimum temperature": "°C",
       "Average temperature": "°C",
-      "Total precipitation": "mm/year",
+      "Total rainfall": "mm/year",
       "Days above 20 mm": "days/year",
       "Dry spells": "spells/year"
     };
@@ -198,9 +234,9 @@ function getLayerId(datalaag, time, scenario) {
         <div class="legend-header">
           <p class="legend-title">
             {#if isShowingChange}
-              Change in {$datalaag.toLowerCase()} ({getLegendUnit($datalaag)})
+              Change in {$datalaag.toLowerCase().replace('temperature', 'temp.')} ({getLegendUnit($datalaag)})
             {:else}
-              {$datalaag} ({getLegendUnit($datalaag)})
+              {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
             {/if}
           </p>
         </div>
@@ -235,8 +271,8 @@ function getLayerId(datalaag, time, scenario) {
 
   .legend {
     position: fixed;
-    bottom: 4vh;
-    right: 4vw;
+    bottom: 5vh;
+    right: 2vw;
     z-index: 1000000;
     display: inline-block;
     background-color: rgba(255, 255, 255, 0.5);
@@ -244,17 +280,20 @@ function getLayerId(datalaag, time, scenario) {
     padding-bottom: 10px;
     padding-right: 10px;
     border-radius: 25px;
-    width: 2vw;
+    width: 3vw;
+    min-width: 80px;
+    max-width: 180px;
   }
 
   .legend-title {
-    font-size: 2vh;
+    font-size: max(12px, 1.3vh);
+    font-weight: 500;
   }
 
   .legend-image {
     object-fit: contain; /* Maintains aspect ratio */
-    height: 40vh;
-    max-height: 200px;
+    height: 60vh;
+    max-height: 250px;
     width: auto;
   }
   
