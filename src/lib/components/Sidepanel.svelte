@@ -4,8 +4,8 @@
 
   const dispatch = createEventDispatcher()
 
-  const optionsTemperature = ["Maximum temperature", "Minimum temperature", "Average temperature"]
-  const optionsDrought = ["Dry days"]
+  const optionsTemperature = ["Average temperature", "Minimum temperature", "Maximum temperature"]
+  const optionsDrought = ["Dry spells"]
   const optionsPrecipitation = ["Total precipitation", "Days above 20 mm"]
   const options2 = [
     { id: 0, name: "Past" },

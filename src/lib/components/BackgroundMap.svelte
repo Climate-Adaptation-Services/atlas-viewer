@@ -30,7 +30,7 @@ const baseLayerCodes = {
   "Average temperature": "tavg",
   "Total precipitation": "precip_total",
   "Days above 20 mm": "daysabove20",
-  "Dry days": "drydays"
+  "Dry spells": "drydays"
 }
 
 // Create the actual layer name dynamically
@@ -57,7 +57,7 @@ function getLayerId(datalaag, time, scenario) {
       "Average temperature": "°C",
       "Total precipitation": "mm/year",
       "Days above 20 mm": "days/year",
-      "Dry days": "days/year"
+      "Dry spells": "spells/year"
     };
     
     return units[dataLayer] || '';
