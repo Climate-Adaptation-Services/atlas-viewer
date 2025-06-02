@@ -414,6 +414,24 @@
   .themelogo {
     width: 2.7vw;
   }
+  
+  /* Increase theme icon size on mobile devices */
+  @media (max-width: 768px) {
+    .themelogo {
+      width: 6vw;
+      min-width: 32px;
+    }
+    
+    div.item {
+      width: 6vw !important;
+      min-width: 32px;
+      margin-right: 3vw !important;
+    }
+    
+    .caption {
+      font-size: 2vh;
+    }
+  }
 
   .caption {
     font-size: 1.7vh;
