@@ -31,15 +31,32 @@
 <div class='container'>
 	<div class:open={open} class="sidepanel" >
 		<Sidepanel/>
-		<div class="toggle-arrow" on:click={togglePanel}>
+		<button 
+			class="toggle-arrow" 
+			on:click={togglePanel} 
+			on:keydown={(e) => e.key === 'Enter' && togglePanel()}
+			aria-label={open ? "Close panel" : "Open panel"}
+			type="button"
+		>
 			<span class="tooltip">{open ? "Close panel" : "Open panel"}</span>
 			{#if open}
 				&larr; 
 			{:else}
 				&rarr; 
 			{/if}
-		</div>
-	</div>	
+		</button>
+	</div>
+	<!-- Mobile-only toggle that appears when panel is closed -->
+	<button 
+		class="mobile-toggle" 
+		class:hidden={open} 
+		on:click={togglePanel}
+		on:keydown={(e) => e.key === 'Enter' && togglePanel()}
+		aria-label="Open panel"
+		type="button"
+	>
+		&rarr;
+	</button>	
 	<div class='map' bind:clientWidth={w} bind:clientHeight={h} >
 		<Map {w} {h} />
 	</div>
@@ -109,9 +126,11 @@
 	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 	z-index: 1001; /* Ensure it is above the sidepanel */
 	transition: transform 0.3s ease; /* Ensure it transitions with the sidepanel */
+	appearance: none;
+	line-height: 1;
 }
 
-/* Position the toggle arrow in the top corner of the sidepanel on mobile */
+/* Position the toggle arrow for mobile */
 @media (max-width: 768px) {
 	.toggle-arrow {
 		top: 10px;
@@ -125,6 +144,25 @@
 	
 	.toggle-arrow .tooltip {
 		display: none; /* Hide tooltip on mobile to save space */
+	}
+	
+	/* Mobile toggle button that appears when panel is closed */
+	.mobile-toggle {
+		display: block;
+		position: fixed;
+		top: 10px;
+		left: 10px;
+		background-color: transparent;
+		border: none;
+		box-shadow: none;
+		padding: 8px;
+		font-size: 18px;
+		z-index: 1002;
+		cursor: pointer;
+	}
+	
+	.mobile-toggle.hidden {
+		display: none;
 	}
 }
 
@@ -149,6 +187,13 @@
 .toggle-arrow:hover .tooltip {
 	visibility: visible;
 	opacity: 1;
+}
+
+/* Hide mobile toggle on desktop */
+@media (min-width: 769px) {
+	.mobile-toggle {
+		display: none;
+	}
 }
 
 </style>
