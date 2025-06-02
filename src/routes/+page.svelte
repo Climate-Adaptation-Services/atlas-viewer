@@ -102,7 +102,7 @@
 }
 
 /* Responsive width for mobile devices */
-@media (max-width: 768px) {
+@media (max-width: 800px) {
 	.sidepanel {
 		width: 80vw; /* Wider panel on mobile */
 		left: 0;
@@ -150,18 +150,15 @@
 	.mobile-toggle {
 		display: block;
 		position: fixed;
-		top: calc(5vh + 10px); /* Match the top position relative to the sidepanel */
+		top: 10px;
 		left: 10px;
-		background-color: #fff;
-		border: 1px solid #ccc;
-		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-		padding: 5px 10px;
+		background-color: transparent;
+		border: none;
+		box-shadow: none;
+		padding: 8px;
 		font-size: 18px;
 		z-index: 1002;
 		cursor: pointer;
-		border-radius: 20px; /* Oval shape */
-		appearance: none;
-		line-height: 1;
 	}
 	
 	.mobile-toggle.hidden {

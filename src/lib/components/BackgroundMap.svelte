@@ -234,7 +234,7 @@ function getLayerId(datalaag, time, scenario) {
         <div class="legend-header">
           <p class="legend-title">
             {#if isShowingChange}
-              Change in {$datalaag.toLowerCase().replace('temperature', 'temp.')} ({getLegendUnit($datalaag)})
+              Change in {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
             {:else}
               {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
             {/if}
@@ -271,8 +271,8 @@ function getLayerId(datalaag, time, scenario) {
 
   .legend {
     position: fixed;
-    bottom: 5vh;
-    right: 2vw;
+    bottom: 4vh;
+    right: 4vw;
     z-index: 1000000;
     display: inline-block;
     background-color: rgba(255, 255, 255, 0.5);
