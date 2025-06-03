@@ -146,68 +146,6 @@ function getLayerId(datalaag, time, scenario) {
       })
     })
     
-    // Set up click event to show coordinates and estimated value
-    // map.on('click', function(e) {
-    //   const activeLayerId = getLayerId($datalaag, $time, $scenario);
-    //   if (!activeLayerId || !wmsLayers[activeLayerId]) return;
-      
-    //   // Get the coordinates
-    //   const lat = e.latlng.lat.toFixed(4);
-    //   const lng = e.latlng.lng.toFixed(4);
-      
-    //   // Generate a sample value based on the coordinates and layer type
-    //   // This is a workaround since we can't use GetFeatureInfo due to CORS
-    //   const layerBase = activeLayerId.split('_')[0];
-    //   const isProjection = activeLayerId.includes('2050') || activeLayerId.includes('2080');
-      
-    //   // Generate a pseudo-random but consistent value based on coordinates
-    //   // This is just for demonstration - not actual data
-    //   const seed = Math.sin(e.latlng.lat * e.latlng.lng) * 10000;
-    //   let baseValue = Math.abs(seed % 20); // Value between 0-20
-      
-    //   // Adjust value based on layer type
-    //   let unit = '';
-    //   if (['tmax', 'tmin', 'tavg'].includes(layerBase)) {
-    //     // Temperature values
-    //     if (layerBase === 'tmax') {
-    //       baseValue += 15; // Max temps around 15-35°C
-    //       if (isProjection) baseValue = (baseValue % 5) + 1; // Change of 1-5°C
-    //     } else if (layerBase === 'tmin') {
-    //       baseValue += 5; // Min temps around 5-25°C
-    //       if (isProjection) baseValue = (baseValue % 4) + 0.5; // Change of 0.5-4.5°C
-    //     } else {
-    //       baseValue += 10; // Avg temps around 10-30°C
-    //       if (isProjection) baseValue = (baseValue % 4) + 0.8; // Change of 0.8-4.8°C
-    //     }
-    //     unit = '°C';
-    //   } else if (layerBase === 'precip_total') {
-    //     // Precipitation values
-    //     baseValue = baseValue * 40 + 200; // 200-1000mm
-    //     if (isProjection) baseValue = (baseValue % 200) - 100; // Change of -100 to +100mm
-    //     unit = 'mm/year';
-    //   } else {
-    //     // Days counts
-    //     baseValue = Math.round(baseValue * 5); // 0-100 days
-    //     if (isProjection) baseValue = (baseValue % 20) - 10; // Change of -10 to +10 days
-    //     unit = 'days/year';
-    //   }
-      
-    //   // Format the value
-    //   const formattedValue = baseValue.toFixed(1) + unit;
-      
-    //   // Show the popup with the coordinates and estimated value
-    //   let content = `<div class="popup-content">
-    //     <strong>${$datalaag}</strong><br>
-    //     ${isProjection ? 'Estimated change: ' : 'Estimated value: '} ${formattedValue}<br>
-    //     <small>Coordinates: ${lat}, ${lng}</small><br>
-    //     <small><em>Note: This is an approximation. Actual data retrieval is limited by CORS.</em></small>
-    //   </div>`;
-      
-    //   popup
-    //     .setLatLng(e.latlng)
-    //     .setContent(content)
-    //     .openOn(map);
-    // });
   }
 
   $: {

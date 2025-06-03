@@ -219,11 +219,12 @@
   
   /* Font size for the 'i' character */
   .info-icon text {
-    /* Ensure minimum font size of 14px with maximum of 1.3vh */
-    font-size: min(max(14px, 1.2vh), 1.3vh);
+    /* Increased size for better visibility on normal screens with a max height */
+    font-size: max(16px, 1.3vh);
     font-weight: bold;
     font-family: serif;
     transform: translateY(1px); /* Fine-tune vertical alignment */
+    max-height: 20px; /* Maximum height to prevent excessive sizing */
   }
   
   /* Font size adjustments for different screen sizes */
@@ -247,8 +248,8 @@
   .tooltip {
     visibility: hidden;
     width: max-content; /* Fit content width */
-    min-width: 300px;
-    max-width: 400px;
+    min-width: 200px;
+    max-width: 320px;
     background-color: #333;
     color: #fff;
     text-align: left;
@@ -261,10 +262,19 @@
     transform: translateX(-50%);
     opacity: 0;
     transition: opacity 0.3s;
-    font-size: 0.7em;
+    font-size: 0.85em;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     pointer-events: none;
     white-space: normal; /* Allow text to wrap if needed */
+  }
+  
+  /* Apply wider tooltip and smaller text only on large screens */
+  @media (min-width: 1200px) {
+    .tooltip {
+      min-width: 300px;
+      max-width: 400px;
+      font-size: 0.7em;
+    }
   }
   
   .tooltip-list {
