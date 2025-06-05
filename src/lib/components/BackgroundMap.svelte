@@ -3,8 +3,6 @@
   import { onMount } from "svelte"
   import { leafletMap, datalaag, opacityMap, time, scenario } from "$lib/stores.js"
 
-  export let datajson
-
   let map
   let esri
   let wmsLayers = {}
@@ -105,62 +103,127 @@ function getLayerId(datalaag, time, scenario) {
   // Determine if we're showing a change from historical data
   $: isShowingChange = $time === "2050" || $time === "2080";
 
+  // Cleanup function to remove existing map when component is destroyed
+  function cleanupMap() {
+    if (map) {
+      map.remove();
+      map = null;
+    }
+  }
+  
   onMount(async () => {
     // Load Leaflet and Esri-Leaflet dynamically to avoid SSR issues
     L = await import("leaflet")
     await import("leaflet/dist/leaflet.css")
     esri = await import("esri-leaflet")
+    
+    // Return cleanup function
+    return cleanupMap;
   })
 
-  $: if (esri && L) {
-    // Initialize the Leaflet map
-    map = L.map("map", {
-      zoomControl: false, // Disable default zoom control
-    }).setView([-19, 27], 6) // Center on Zimbabwe with zoom level 6
+  $: if (esri && L && !map) {
+    // Initialize the Leaflet map only if it doesn't already exist
+    const mapElement = document.getElementById("map");
+    if (mapElement) {
+      map = L.map("map", {
+        zoomControl: false, // Disable default zoom control
+      }).setView([-19, 27], 6); // Center on Zimbabwe with zoom level 6
 
-    // Add a custom zoom control at the bottom-right
-    L.control
-      .zoom({
-        position: "topright",
-      })
-      .addTo(map)
+      // Add a custom zoom control at the bottom-right
+      L.control
+        .zoom({
+          position: "topright",
+        })
+        .addTo(map);
       
-    // Create a popup but don't add it to the map yet
-    popup = L.popup()
-
-    //Add a basic OpenStreetMap tile layer as the base layer
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(map)
-
-    variableNames.forEach((layer) => {
-      wmsLayers[layer] = L.tileLayer.wms("https://dev.cas-zimbabwe.predictia.es/wms", {
-        layers: layer, // Ensure this is the correct layer name
-        format: "image/png",
-        transparent: true,
-        attribution: "WMS Layer",
-        version: "1.1.1", // Ensure version matches your WMS service
-        styles: "dynamic",
-        srs: "EPSG:3857", // Use the CRS compatible with Leaflet (usually EPSG:3857)
-        mask: "zimbabwe",
-      })
-    })
+      // Create a popup but don't add it to the map yet
+      popup = L.popup();
     
-  }
+      // Add click event to show lat/lon coordinates and WMS value
+      map.on('click', function(e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        
+        // Set initial content with loading state
+        popup
+          .setLatLng(e.latlng)
+          .setContent(`<div class="popup-content">Latitude: ${lat}<br>Longitude: ${lng}<br>Loading value...</div>`)
+          .openOn(map);
+      
+      // Get the current active layer ID
+      const layerId = getLayerId($datalaag, $time, $scenario);
+      
+        if (layerId && wmsLayers[layerId]) {
+          // Using direct longitude and latitude for GetFeatureInfo
+          // Construct the URL for GetFeatureInfo request
+          const url = `https://dev.cas-zimbabwe.predictia.es/wms?REQUEST=GetFeatureInfo&SERVICE=WMS&VERSION=1.1.1&lon=${lng}&lat=${lat}&layer=${layerId}`;
+          // Fetch the data value
+          fetch(url)
+            .then(response => response.json())
+            .then(data => {
+              let valueText = 'No data available';
+              console.log(data);
+              // Extract the value from the response
+            
+              const value = data[layerId];
+              valueText = `Value: ${Math.round(value*10)/10} ${getLegendUnit($datalaag)}`;
+              console.log(valueText);
+              
+              
+              // Update popup content
+              popup.setContent(
+                `<div class="popup-content">Latitude: ${lat}<br>Longitude: ${lng}<br>${valueText}</div>`
+              );
+            })
+            .catch(error => {
+              console.error('Error fetching WMS value:', error);
+              popup.setContent(
+                `<div class="popup-content">Latitude: ${lat}<br>Longitude: ${lng}<br>Error loading value</div>`
+              );
+            });
+        } else {
+          // No active layer
+          popup.setContent(
+            `<div class="popup-content">Latitude: ${lat}<br>Longitude: ${lng}<br>No active layer</div>`
+          );
+        }
+      });
 
-  $: {
-  if ($datalaag && $time && wmsLayers) {
-    // Clear existing layers
-    Object.values(wmsLayers).forEach((layer) => map.removeLayer(layer))
+      //Add a basic OpenStreetMap tile layer as the base layer
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
 
-    const layerId = getLayerId($datalaag, $time, $scenario)
-    console.log('BackgroundMap DEBUG:', { $datalaag, $time, $scenario, layerId });
-    if (layerId && wmsLayers[layerId]) {
-      wmsLayers[layerId].addTo(map)
-      wmsLayers[layerId].setOpacity($opacityMap)
+      variableNames.forEach((layer) => {
+        wmsLayers[layer] = L.tileLayer.wms("https://dev.cas-zimbabwe.predictia.es/wms", {
+          layers: layer, // Ensure this is the correct layer name
+          format: "image/png",
+          transparent: true,
+          attribution: "WMS Layer",
+          version: "1.1.1", // Ensure version matches your WMS service
+          styles: "dynamic",
+          srs: "EPSG:3857", // Use the CRS compatible with Leaflet (usually EPSG:3857)
+          mask: "zimbabwe",
+        });
+      });
     }
   }
-}
+
+  $: if (map && $datalaag && $time && wmsLayers) {
+    // Clear existing layers
+    Object.values(wmsLayers).forEach((layer) => {
+      if (map.hasLayer(layer)) {
+        map.removeLayer(layer);
+      }
+    });
+
+    const layerId = getLayerId($datalaag, $time, $scenario);
+    //console.log('BackgroundMap DEBUG:', { $datalaag, $time, $scenario, layerId });
+    if (layerId && wmsLayers[layerId]) {
+      wmsLayers[layerId].addTo(map);
+      wmsLayers[layerId].setOpacity($opacityMap);
+    }
+  }
 
 </script>
 
@@ -181,6 +244,7 @@ function getLayerId(datalaag, time, scenario) {
         {#if legendLayerId}
           <img
             class="legend-image"
+            alt="Legend for {$datalaag}"
           src={`https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=200&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=40&format=png`} />
         {/if}
       </div>
