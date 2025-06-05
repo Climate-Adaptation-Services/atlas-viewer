@@ -2,12 +2,12 @@
   import { browser } from "$app/environment"
   import { onMount } from "svelte"
   import { leafletMap, datalaag, opacityMap, time, scenario } from "$lib/stores.js"
+  import MapPopup from "./MapPopup.svelte"
 
   let map
   let esri
   let wmsLayers = {}
   let L
-  let popup
 
 const variableBases = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"];
 const scenarios = ["low", "high"];
@@ -136,58 +136,7 @@ function getLayerId(datalaag, time, scenario) {
         })
         .addTo(map);
       
-      // Create a popup but don't add it to the map yet
-      popup = L.popup();
-    
-      // Add click event to show lat/lon coordinates and WMS value
-      map.on('click', function(e) {
-        const lat = e.latlng.lat.toFixed(6);
-        const lng = e.latlng.lng.toFixed(6);
-        
-        // Set initial content with loading state
-        popup
-          .setLatLng(e.latlng)
-          .setContent(`<div class="popup-content">Latitude: ${lat}<br>Longitude: ${lng}<br>Loading value...</div>`)
-          .openOn(map);
-      
-      // Get the current active layer ID
-      const layerId = getLayerId($datalaag, $time, $scenario);
-      
-        if (layerId && wmsLayers[layerId]) {
-          // Using direct longitude and latitude for GetFeatureInfo
-          // Construct the URL for GetFeatureInfo request
-          const url = `https://dev.cas-zimbabwe.predictia.es/wms?REQUEST=GetFeatureInfo&SERVICE=WMS&VERSION=1.1.1&lon=${lng}&lat=${lat}&layer=${layerId}`;
-          // Fetch the data value
-          fetch(url)
-            .then(response => response.json())
-            .then(data => {
-              let valueText = 'No data available';
-              console.log(data);
-              // Extract the value from the response
-            
-              const value = data[layerId];
-              valueText = `Value: ${Math.round(value*10)/10} ${getLegendUnit($datalaag)}`;
-              console.log(valueText);
-              
-              
-              // Update popup content
-              popup.setContent(
-                `<div class="popup-content">Latitude: ${lat}<br>Longitude: ${lng}<br>${valueText}</div>`
-              );
-            })
-            .catch(error => {
-              console.error('Error fetching WMS value:', error);
-              popup.setContent(
-                `<div class="popup-content">Latitude: ${lat}<br>Longitude: ${lng}<br>Error loading value</div>`
-              );
-            });
-        } else {
-          // No active layer
-          popup.setContent(
-            `<div class="popup-content">Latitude: ${lat}<br>Longitude: ${lng}<br>No active layer</div>`
-          );
-        }
-      });
+      // Map popup will be handled by the MapPopup component
 
       //Add a basic OpenStreetMap tile layer as the base layer
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -228,8 +177,21 @@ function getLayerId(datalaag, time, scenario) {
 </script>
 
 <div class="backgroundmap">
+  <!-- Map container -->
+  <div class="map" id="map" bind:this={$leafletMap}></div>
+  
+  {#if map && L}
+    <MapPopup 
+      {map} 
+      {L} 
+      {wmsLayers} 
+      {getLayerId} 
+      {getLegendUnit}
+    />
+  {/if}
+  
+  <!-- Legend -->
   {#if browser && $datalaag}
-    <div class="map" id="map" bind:this={$leafletMap}></div>
     <div class="legend">
       <div class="legend-content">
         <div class="legend-header">
@@ -245,7 +207,7 @@ function getLayerId(datalaag, time, scenario) {
           <img
             class="legend-image"
             alt="Legend for {$datalaag}"
-          src={`https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=200&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=40&format=png`} />
+            src={`https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=200&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=40&format=png`} />
         {/if}
       </div>
     </div>
@@ -253,12 +215,9 @@ function getLayerId(datalaag, time, scenario) {
 </div>
 
 <style>
-  input[type="range"] {
-    /* fix for FF unable to apply focus style bug  */
-    border: 0.5px solid black;
-  }
-  label {
-    font-size: 14px;
+  /* Map controls styling */
+  .map-controls {
+    margin-bottom: 10px;
   }
 
   .backgroundmap {
@@ -299,9 +258,5 @@ function getLayerId(datalaag, time, scenario) {
     width: auto;
   }
   
-  .popup-content {
-    padding: 5px;
-    font-size: 14px;
-    text-align: center;
-  }
+  /* Map popup styling moved to the MapPopup component */
 </style>
