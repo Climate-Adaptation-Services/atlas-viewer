@@ -80,7 +80,7 @@ export function renderClimateChart(canvas, dataPoints, options = {}) {
     "tasmin_mean": "Change in min. temp. (°C)",
     "tas_mean": "Change in av. temp. (°C)",
     "pr_sum": "Change in total rainfall (mm)",
-    "pr_a20mm": "Change in days with >20mm (days/year)",
+    "pr_a20mm": "Change in days >20mm (days/year)",
     "pr_cdd5": "Change in dry spells (spells/year)"
   };
   
