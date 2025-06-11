@@ -24,6 +24,7 @@
 	"dependencies": {
 		"@turf/flip": "^6.5.0",
 		"all": "^0.0.0",
+		"chart.js": "^4.4.9",
 		"d3": "^7.8.5",
 		"d3-color-legend": "^1.4.1",
 		"esri-leaflet": "^3.0.12",

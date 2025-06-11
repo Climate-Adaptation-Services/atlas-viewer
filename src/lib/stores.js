@@ -11,3 +11,7 @@ export const scenario = writable("Low")
 export const opacityMap = writable(1)
 
 export const panelOpen = writable(true)
+
+// Store for CSV data from Zimbabwe climate data
+// Initialize with proper type definition to avoid errors
+export const csvData = writable(/** @type {Array<Record<string, string|number>>} */ ([]))
