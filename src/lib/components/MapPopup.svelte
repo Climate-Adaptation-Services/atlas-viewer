@@ -1,8 +1,7 @@
 <script>
-  import { onMount, onDestroy, afterUpdate } from 'svelte';
+  import { onMount } from 'svelte';
   import { datalaag, time, scenario, csvData } from '$lib/stores.js';
   import { renderClimateChart } from '$lib/utils/chart.js';
-  import Chart from 'chart.js/auto';
   
   // Track the current map parameters to detect changes
   let currentDataLayer;
@@ -48,13 +47,11 @@
       const currentScenarioKey = $scenario || '';
       const sspCode = scenarioMap[currentScenarioKey] || 'ssp126';
       
-      console.log(`Loading data for layer: ${layerCode}, scenario: ${sspCode}`);
-      
       // Dynamically construct the CSV file name
       const csvFile = `${layerCode}_${sspCode}.csv`;
       
-      // Use our proxy endpoint to avoid CORS issues
-      const response = await fetch(`/api/csv/${csvFile}`);
+      // Fetch directly from S3 bucket instead of using a proxy
+      const response = await fetch(`https://zimbabwe-csv-data.s3.eu-north-1.amazonaws.com/${csvFile}`);
       if (!response.ok) throw new Error('Failed to fetch CSV data');
       
       const text = await response.text();
@@ -85,7 +82,6 @@
       
       // Update the store
       csvData.set(filteredData);
-      console.log(`CSV data loaded and filtered: ${filteredData.length} rows for layer ${layerCode} and scenario ${sspCode}`);
     } catch (error) {
       console.error('Error loading CSV data:', error);
     }
@@ -98,8 +94,6 @@
   
   // Reactive statement to reload data when datalaag, time, or scenario changes
   $: if ($datalaag !== previousDatalaag || $scenario !== previousScenario || $time !== previousTime) {
-    console.log(`Change detected: datalaag ${previousDatalaag} -> ${$datalaag}, scenario ${previousScenario} -> ${$scenario}, time ${previousTime} -> ${$time}`);
-    
     previousDatalaag = $datalaag;
     previousScenario = $scenario;
     previousTime = $time;
@@ -108,7 +102,6 @@
       // Clear existing CSV data before loading new data
       csvData.set([]);
       loadCsvData();
-      console.log('Reloading CSV data due to parameter change');
       
       // If popup is open, update it with the new data layer information
       if (popup && popup.isOpen()) {
@@ -236,13 +229,6 @@
           // Take the closest point
           const closestPoint = nearbyPoints[0];
           
-          // Log the full data from the closest point
-          console.log('Nearest CSV data point:', closestPoint);
-          console.log('Distance (degrees):', Math.sqrt(
-            Math.pow(parseFloat(typeof closestPoint.lat === 'string' ? closestPoint.lat : String(closestPoint.lat)) - parseFloat(lat), 2) + 
-            Math.pow(parseFloat(typeof closestPoint.lon === 'string' ? closestPoint.lon : String(closestPoint.lon)) - parseFloat(lng), 2)
-          ));
-          
           // Filter all data points at the same location (same lat/lon) as the closest point
           const closestLat = typeof closestPoint.lat === 'string' ? closestPoint.lat : String(closestPoint.lat);
           const closestLon = typeof closestPoint.lon === 'string' ? closestPoint.lon : String(closestPoint.lon);
@@ -253,17 +239,10 @@
             return pointLat === closestLat && pointLon === closestLon;
           });
           
-          console.log('All data points at this location:', sameLocationPoints);
-          console.log('Number of data points at this location:', sameLocationPoints.length);
-          
-          // Debug the structure of the first point to identify available fields
-          if (sameLocationPoints.length > 0) {
-            console.log('CSV data point structure:', sameLocationPoints[0]);
-          }
+
           
           // Get points with the same scenario for the line graph and ensure they have the expected type structure
           const typedPoints = sameLocationPoints.map(point => {
-            // For debugging
             const fieldNames = Object.keys(point);
             const pointName = String(point.name || '');
             
@@ -274,8 +253,6 @@
             const maxField = fieldNames.find(f => 
               f.includes('max') || f.includes('_max') || f.includes('high') || f.includes('_high')
             );
-            
-            console.log(`Point name: ${pointName}, found min field: ${minField}, max field: ${maxField}`);
             
             // Extract min/max values if available
             const minValue = minField && point[minField] !== undefined ? 
@@ -298,18 +275,13 @@
             };
           });
           
-          console.log('Processed points with min/max values:', typedPoints);
-          
+          // Filter points by scenario
           sameScenarioPoints = typedPoints.filter(point => {
-            const pointScenario = point.sceno;
-            return pointScenario ;
+            return point.sceno; // Keep points with a valid scenario value
           });
-          
-          console.log('Filtered scenario points:', sameScenarioPoints);
           
           // Set a unique chart ID
           chartId = 'chart-' + Date.now();
-          console.log('Generated chart ID:', chartId);
           
           const sceno = typeof closestPoint.sceno === 'string' ? closestPoint.sceno : String(closestPoint.sceno);
           const year = typeof closestPoint.year === 'string' ? closestPoint.year : String(closestPoint.year);
@@ -337,7 +309,6 @@
           const showChart = ['2050', '2080'].includes(currentTime);
           
           if (showChart) {
-            console.log('Showing chart for time period:', currentTime);
             csvContent = `<div class="csv-data">
               <div class="chart-title">${dataLayerName} Projection</div>
               <div class="chart-subtitle">${$scenario} emissions scenario</div>
@@ -351,7 +322,6 @@
             </div>`;
           } else {
             // For other time periods, just show a message
-            console.log('Not showing chart for time period:', currentTime);
             csvContent = `<div class="csv-data">
               <div style="padding: 10px; font-style: italic;">Explore the data for 2050 and 2080 to find out more about projected changes.</div>
             </div>`;
@@ -407,7 +377,6 @@
               setTimeout(() => {
                 const chartElement = document.getElementById(chartId);
                 if (chartElement) {
-                  console.log('Rendering chart with data for ' + sameScenarioPoints.length + ' points');
                   try {
                     renderLineChart(
                       /** @type {HTMLCanvasElement} */ (chartElement), 
@@ -416,8 +385,6 @@
                   } catch (error) {
                     console.error('Error rendering chart:', error);
                   }
-                } else {
-                  console.error('Chart element not found with ID:', chartId);
                 }
               }, 200);
             }
@@ -481,9 +448,10 @@
   }
   
   :global(.chart-container) {
-    margin: 10px auto;
-    width: 300px !important; /* Fixed width */
-    height: 250px !important; /* Fixed height */
+    width: 380px; /* Fixed width */
+    height: 250px; /* Fixed height */
+    margin: 10px auto 5px;
+    position: relative;
   }
   
   :global(.popup-content) {
@@ -547,12 +515,6 @@
     padding-top: 10px;
     border-top: 1px solid #ddd;
     font-size: 13px;
-  }
-  
-  :global(.chart-container) {
-    margin-top: 15px;
-    width: 250px;
-    height: 200px;
   }
   
   :global(.csv-data h4) {

@@ -152,10 +152,10 @@ export function renderClimateChart(canvas, dataPoints, options = {}) {
               precision: 0, // Force integers only
               stepSize: 1, // Step by whole numbers
               callback: function(value) {
-                // Format as integer and add unit
+                // Format as integer without unit (unit is already in the axis label)
                 // Convert value to number before rounding (fixes TypeScript error)
                 const numValue = Number(value);
-                return Math.round(numValue) + (dataUnit ? ` ${dataUnit}` : '');
+                return Math.round(numValue);
               }
             }
           },

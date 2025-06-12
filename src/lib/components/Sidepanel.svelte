@@ -323,40 +323,68 @@
     cursor: pointer;
     transition: all 0.3s ease-in-out;
     font-size: 1.9vh;
+    padding: 0.5vh 0;
+    position: relative;
   }
 
-  /* Style the square option box */
+  .keuzes:hover {
+    transform: translateX(2px);
+  }
+
+  /* Style the radio button with a fancy modern look */
   .option {
     appearance: none;
-    width: 2vh; /* Adjusted for a square look */
-    height: 2vh; /* Equal width & height */
-    border: 2px solid #017e9f;
-    border-radius: 4px; /* Slightly rounded corners */
+    width: 2.2vh;
+    height: 2.2vh;
+    border: 1.5px solid #017e9f;
+    border-radius: 50%;
     position: relative;
     cursor: pointer;
-    transition: all 0.2s ease-in-out;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: flex;
     align-items: center;
     justify-content: center;
     margin-top: 0.8vh;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    background-color: white;
   }
 
-  /* Add checkmark on selection */
+  /* Hover effect */
+  .option:hover {
+    border-color: #015e78;
+    transform: scale(1.05);
+    box-shadow: 0 2px 5px rgba(1, 126, 159, 0.15);
+  }
+
+  /* Style for selected radio button with animation */
   .option:checked {
     background-color: #017e9f;
     border-color: #017e9f;
+    box-shadow: 0 0 8px rgba(1, 126, 159, 0.4);
+    animation: pulse 1s;
   }
 
+  /* Subtle ripple effect when clicked */
+  .option:active {
+    transform: scale(0.95);
+  }
+
+  /* No after pseudo-element needed since we're using a filled background */
   .option:checked::after {
-    content: "✔"; /* Unicode checkmark */
-    color: white;
-    font-size: 1.4vh;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
+    content: none;
+  }
+
+  /* Pulse animation for selection */
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(1, 126, 159, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 6px rgba(1, 126, 159, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(1, 126, 159, 0);
+    }
   }
 
   .logo {
@@ -464,14 +492,31 @@
   .opacity-slider {
     z-index: 1000000;
     padding-top: 0vh;
+    margin-bottom: 2vh;
   }
 
   .opacity-slider input {
     -webkit-appearance: none;
+    appearance: none;
     width: 100%;
     padding: 0px;
     border-radius: 9999px;
     height: 1.5vh;
+    background: #e0e0e0;
+    outline: none;
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  /* Add hover effects */
+  .opacity-slider input:hover {
+    background: #d0d0d0;
+  }
+  
+  /* Active state */
+  .opacity-slider input:active {
+    background: #c0c0c0;
   }
 
   /* Custom thumb (slider handle) */
@@ -480,10 +525,46 @@
     appearance: none;
     width: 3vh;
     height: 3vh;
-    background-color: var(--thumb-color, #017e9f); /* Dynamic color */
+    background-color: #017e9f;
     border-radius: 50%;
     border: 2px solid white;
     cursor: pointer;
-    transition: background-color 0.3s ease-in-out;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  
+  /* Thumb hover effect */
+  .opacity-slider input::-webkit-slider-thumb:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(1, 126, 159, 0.4);
+  }
+  
+  /* Thumb active effect */
+  .opacity-slider input::-webkit-slider-thumb:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  
+  /* Firefox specific styles */
+  .opacity-slider input::-moz-range-thumb {
+    width: 3vh;
+    height: 3vh;
+    background-color: #017e9f;
+    border-radius: 50%;
+    border: 2px solid white;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  
+  .opacity-slider input::-moz-range-thumb:hover {
+    transform: scale(1.05);
+  }
+  
+  .opacity-slider input::-moz-range-track {
+    height: 1.5vh;
+    border-radius: 9999px;
+    background: #e0e0e0;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
   }
 </style>

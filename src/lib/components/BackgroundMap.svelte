@@ -229,6 +229,11 @@ function getLayerId(datalaag, time, scenario) {
     height: 100%;
     width: 100%;
   }
+  
+  /* Apply smooth transitions to map layers */
+  :global(.leaflet-layer) {
+    transition: opacity 0.5s ease-in-out !important;
+  }
 
   .legend {
     position: fixed;
