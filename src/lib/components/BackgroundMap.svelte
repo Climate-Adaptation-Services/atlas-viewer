@@ -207,7 +207,7 @@ function getLayerId(datalaag, time, scenario) {
           <img
             class="legend-image"
             alt="Legend for {$datalaag}"
-            src={`https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=200&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=40&format=png`} />
+            src={`https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=300&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=40&format=png`} />
         {/if}
       </div>
     </div>
