@@ -174,22 +174,6 @@ function getLayerId(datalaag, time, scenario) {
       wmsLayers[layerId].addTo(map);
       wmsLayers[layerId].setOpacity($opacityMap);
     }
-    
-    // Remove previous Zimbabwe boundary layer if it exists
-    if (zimbabweLayer && map.hasLayer(zimbabweLayer)) {
-      map.removeLayer(zimbabweLayer);
-    }
-    
-    // Add Zimbabwe GeoJSON boundary to the map
-    zimbabweLayer = L.geoJSON(zimbabweGeoJSON, {
-      style: {
-        color: '#3388ff',
-        weight: 2,
-        opacity: 0.8,
-        fillColor: 'transparent',
-        fillOpacity: 0
-      }
-    }).addTo(map);
   }
 
 </script>
