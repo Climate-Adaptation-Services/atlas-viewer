@@ -3,12 +3,10 @@
   import { onMount } from "svelte"
   import { leafletMap, datalaag, opacityMap, time, scenario } from "$lib/stores.js"
   import MapPopup from "./MapPopup.svelte"
-  import zimbabweGeoJSON from "$lib/data/zimbabwe.json"
 
   let map
   let esri
   let wmsLayers = {}
-  let zimbabweLayer
   let L
 
 const variableBases = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"];
@@ -209,7 +207,7 @@ function getLayerId(datalaag, time, scenario) {
           <img
             class="legend-image"
             alt="Legend for {$datalaag}"
-            src={`https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=300&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=40&format=png`} />
+            src={`https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=300&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=50&format=png`} />
         {/if}
       </div>
     </div>
