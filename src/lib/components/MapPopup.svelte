@@ -3,6 +3,7 @@
   import { datalaag, time, scenario, csvData } from '$lib/stores.js';
   import { renderClimateChart } from '$lib/utils/chart.js';
   import Chart from 'chart.js/auto';
+  import zimbabweGeoJSON from '$lib/data/zimbabwe.json';
   
   // Track the current map parameters to detect changes
   let currentDataLayer;
@@ -165,6 +166,63 @@
     renderClimateChart(canvas, dataPoints, {});
   }
   
+  /**
+   * Function to check if a point is within Zimbabwe's boundaries using GeoJSON
+   * @param {{ lat: number, lng: number }} latlng - The point to check
+   * @returns {boolean} - True if the point is inside Zimbabwe
+   */
+  function checkIfPointInZimbabwe(latlng) {
+    // First do a quick bounding box check for performance
+    const zimbabweBounds = {
+      north: -15.6, // Northern-most latitude
+      south: -22.4, // Southern-most latitude
+      east: 33.1,   // Eastern-most longitude
+      west: 25.2    // Western-most longitude
+    };
+    
+    // Quick check if the point is within the bounding box
+    if (!(latlng.lat >= zimbabweBounds.south && 
+          latlng.lat <= zimbabweBounds.north && 
+          latlng.lng >= zimbabweBounds.west && 
+          latlng.lng <= zimbabweBounds.east)) {
+      return false;
+    }
+    
+    // More accurate check using the GeoJSON polygon
+    // Get the Zimbabwe polygon from the GeoJSON
+    const zimbabweFeature = zimbabweGeoJSON.features[0];
+    const coordinates = zimbabweFeature.geometry.coordinates[0];
+    
+    return isPointInPolygon(latlng, coordinates);
+  }
+  
+  /**
+   * Helper function to check if a point is inside a polygon using ray casting algorithm
+   * @param {{ lat: number, lng: number }} point - The point to check
+   * @param {Array<Array<number>>} polygon - Array of [longitude, latitude] coordinates forming the polygon
+   * @returns {boolean} - True if the point is inside the polygon
+   */
+  function isPointInPolygon(point, polygon) {
+    // Ray casting algorithm
+    let inside = false;
+    const x = point.lng;
+    const y = point.lat;
+    
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      // GeoJSON coordinates are in [longitude, latitude] format
+      const xi = polygon[i][0];
+      const yi = polygon[i][1];
+      const xj = polygon[j][0];
+      const yj = polygon[j][1];
+      
+      const intersect = ((yi > y) !== (yj > y)) && 
+                        (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    
+    return inside;
+  }
+  
   function setupPopup() {
     if (!map) return;
 
@@ -180,10 +238,22 @@
       const lat = e.latlng.lat.toFixed(6);
       const lng = e.latlng.lng.toFixed(6);
       
+      // Check if the clicked point is within Zimbabwe's boundaries
+      const isPointInZimbabwe = checkIfPointInZimbabwe(e.latlng);
+      
+      // Only show popup if the point is within Zimbabwe
+      if (!isPointInZimbabwe) {
+        // If popup is currently open, close it
+        if (map.hasLayer(popup)) {
+          map.closePopup(popup);
+        }
+        return;
+      }
+      
       // Set initial content with loading state
       popup
         .setLatLng(e.latlng)
-        .setContent(`<div class="popup-content">Loading value...</div>`)
+        .setContent(`<div class="popup-content">Loading data...</div>`)
         .openOn(map);
       
       // Get the current active layer ID
