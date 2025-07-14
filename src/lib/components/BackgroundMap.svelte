@@ -3,10 +3,12 @@
   import { onMount } from "svelte"
   import { leafletMap, datalaag, opacityMap, time, scenario } from "$lib/stores.js"
   import MapPopup from "./MapPopup.svelte"
+  import zimbabweGeoJSON from "$lib/data/zimbabwe.json"
 
   let map
   let esri
   let wmsLayers = {}
+  let zimbabweLayer
   let L
 
 const variableBases = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"];
@@ -172,6 +174,22 @@ function getLayerId(datalaag, time, scenario) {
       wmsLayers[layerId].addTo(map);
       wmsLayers[layerId].setOpacity($opacityMap);
     }
+    
+    // Remove previous Zimbabwe boundary layer if it exists
+    if (zimbabweLayer && map.hasLayer(zimbabweLayer)) {
+      map.removeLayer(zimbabweLayer);
+    }
+    
+    // Add Zimbabwe GeoJSON boundary to the map
+    zimbabweLayer = L.geoJSON(zimbabweGeoJSON, {
+      style: {
+        color: '#3388ff',
+        weight: 2,
+        opacity: 0.8,
+        fillColor: 'transparent',
+        fillOpacity: 0
+      }
+    }).addTo(map);
   }
 
 </script>
