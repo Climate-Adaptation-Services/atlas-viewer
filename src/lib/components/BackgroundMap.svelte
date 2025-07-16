@@ -1,13 +1,16 @@
 <script>
   import { browser } from "$app/environment"
   import { onMount } from "svelte"
+  import { page } from "$app/stores"
   import { leafletMap, datalaag, opacityMap, time, scenario } from "$lib/stores.js"
   import MapPopup from "./MapPopup.svelte"
+  import { getCountryConfig } from "$lib/config/countries.js"
 
   let map
   let esri
   let wmsLayers = {}
   let L
+  let countryConfig
 
 const variableBases = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"];
 const scenarios = ["low", "high"];
@@ -97,6 +100,10 @@ function getLayerId(datalaag, time, scenario) {
     return units[dataLayer] || '';
   }
 
+  // Get country code from URL parameters
+  $: countryCode = $page.url.searchParams.get('country') || 'zimbabwe';
+  $: countryConfig = getCountryConfig(countryCode);
+
   // Reactive legend layer name
   $: legendLayerId = getLayerId($datalaag, $time, $scenario);
   
@@ -127,7 +134,7 @@ function getLayerId(datalaag, time, scenario) {
     if (mapElement) {
       map = L.map("map", {
         zoomControl: false, // Disable default zoom control
-      }).setView([-19, 27], 6); // Center on Zimbabwe with zoom level 6
+      }).setView(countryConfig.center, countryConfig.zoom); // Center on the selected country
 
       // Add a custom zoom control at the bottom-right
       L.control
@@ -144,7 +151,7 @@ function getLayerId(datalaag, time, scenario) {
       }).addTo(map);
 
       variableNames.forEach((layer) => {
-        wmsLayers[layer] = L.tileLayer.wms("https://dev.cas-zimbabwe.predictia.es/wms", {
+        wmsLayers[layer] = L.tileLayer.wms(countryConfig.wmsEndpoint, {
           layers: layer, // Ensure this is the correct layer name
           format: "image/png",
           transparent: true,
@@ -152,7 +159,7 @@ function getLayerId(datalaag, time, scenario) {
           version: "1.1.1", // Ensure version matches your WMS service
           styles: "dynamic",
           srs: "EPSG:3857", // Use the CRS compatible with Leaflet (usually EPSG:3857)
-          mask: "zimbabwe",
+          mask: countryConfig.mask,
         });
       });
     }
@@ -207,7 +214,7 @@ function getLayerId(datalaag, time, scenario) {
           <img
             class="legend-image"
             alt="Legend for {$datalaag}"
-            src={`https://dev.cas-zimbabwe.predictia.es/wms?VERSION=1.1.1&height=300&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=50&format=png`} />
+            src={`${countryConfig.wmsEndpoint}?VERSION=1.1.1&height=300&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=50&format=png`} />
         {/if}
       </div>
     </div>
