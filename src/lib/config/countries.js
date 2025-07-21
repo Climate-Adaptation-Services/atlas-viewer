@@ -4,8 +4,10 @@
  * @property {string} name - Display name of the country
  * @property {number[]} center - [latitude, longitude] coordinates for map center
  * @property {number} zoom - Default zoom level
- * @property {string} wmsEndpoint - URL for the WMS service
- * @property {string} mask - Country mask parameter for WMS
+ * @property {string} dataType - Data source type ('wms' or 'geojson')
+ * @property {string} wmsEndpoint - URL for the WMS service (when dataType is 'wms')
+ * @property {string} mask - Country mask parameter for WMS (when dataType is 'wms')
+ * @property {string} [geojsonBaseUrl] - Base URL for GeoJSON data files (when dataType is 'geojson')
  */
 
 /**
@@ -16,6 +18,7 @@ export const countryConfigs = {
     name: "Zimbabwe",
     center: [-19, 27],
     zoom: 6,
+    dataType: "wms",
     wmsEndpoint: "https://dev.cas-zimbabwe.predictia.es/wms",
     mask: "zimbabwe"
   },
@@ -23,7 +26,10 @@ export const countryConfigs = {
     name: "Kenya",
     center: [0.0236, 37.9062], // Kenya's geographic center
     zoom: 6,
-    wmsEndpoint: "https://dev.cas-zimbabwe.predictia.es/wms", // Update this when Kenya endpoint is available
+    dataType: "geojson",
+    geojsonBaseUrl: "https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/kenya/historical/", // GitHub repo with GeoJSON files
+    // Keep WMS settings as fallback
+    wmsEndpoint: "https://dev.cas-zimbabwe.predictia.es/wms",
     mask: "kenya"
   }
 };
