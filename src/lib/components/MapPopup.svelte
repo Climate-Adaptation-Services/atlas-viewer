@@ -432,7 +432,7 @@
       if (layerId && wmsLayers[layerId]) {
         // Using direct longitude and latitude for GetFeatureInfo
         // Construct the URL for GetFeatureInfo request
-        const url = `https://dev.cas-zimbabwe.predictia.es/wms?REQUEST=GetFeatureInfo&SERVICE=WMS&VERSION=1.1.1&lon=${lng}&lat=${lat}&layer=${layerId}`;
+        const url = `https://dev.cas-zimbabwe.predictia.es/wms?REQUEST=GetFeatureInfo&SERVICE=WMS&VERSION=1.1.1&lon=${lng}&lat=${lat}&layer=${layerId}_90_10`;
         
         // Fetch the data value
         fetch(url)

@@ -1,6 +1,6 @@
 <script>
 	import Sidepanel from '$lib/components/Sidepanel.svelte'
-	import Map from '$lib/components/Map.svelte'
+	import BackgroundMap from "$lib/components/BackgroundMap.svelte"
 	import { onMount } from 'svelte';
 	import { panelOpen } from "$lib/stores.js"
 
@@ -58,7 +58,7 @@
 		&rarr;
 	</button>	
 	<div class='map' bind:clientWidth={w} bind:clientHeight={h} >
-		<Map {w} {h} />
+		<BackgroundMap />
 	</div>
 	
 	

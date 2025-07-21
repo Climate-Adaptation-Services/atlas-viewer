@@ -2,24 +2,19 @@
  * Utility functions for styling GeoJSON layers
  */
 
+import { opacityMap } from '../stores.js';
+import { get } from 'svelte/store';
+
 /** @typedef {'temperature'|'temperatureProjection'|'drySpell'|'drySpellProjection'|'rainfall'|'rainfallProjection'|'daysAbove20mm'|'daysAbove20mmProjection'} ScaleType */
 
 /** @type {Record<string, ScaleType>} */
 const LAYER_TYPE_MAPPINGS = {
-  temperature: 'temperature',
+  'temperature': 'temperature',
   'dry spell': 'drySpell',
-  dryspell: 'drySpell',
-  rainfall: 'rainfall',
-  'total rain': 'rainfall',
-  'annual rain': 'rainfall',
-  'days above 20mm': 'daysAbove20mm',
+  'rainfall': 'rainfall',
   'days above 20': 'daysAbove20mm',
-  days_above_20: 'daysAbove20mm',
-  'kenya_past_temp': 'temperature',
-  '2050': 'temperatureProjection',
-  '2080': 'temperatureProjection'
 };
-
+console.log(get(opacityMap))
 /** @type {Record<ScaleType, {min: number, max: number, unit: string, colors: string[]}>} */
 const SCALES = {
   temperature: {
@@ -41,9 +36,17 @@ const SCALES = {
     max: 5,
     unit: "°C",
     colors: [
-      "#ffffe0", "#fff7b8", "#fef4a9", "#fef19a", "#fde98b", "#fcde7c", 
-      "#f9cb68", "#f7b859", "#f4a249", "#f1893a", "#ef7630", "#eb5524", 
-      "#e8311c", "#e61b1a", "#c4021c"
+      "#ffffe0", "#fff7b8", "#fef4a9", "#fef19a", "#fde98b", "#fcde7c", "#f9cb68", "#f7b859",
+      "#f4a249", "#f1893a", "#ef7630", "#eb5524", "#e8311c", "#e61b1a", "#c4021c"
+    ]
+  },
+  drySpell: {
+    min: 0,
+    max: 22,
+    unit: "days",
+    colors: [
+      "#fbf6f2", "#f0e1d0", "#e6cbae", "#deb98f", "#d6ab80", "#ce9e6e", "#c9925c", 
+      "#bf874e", "#b57d44", "#ab7239", "#a16930", "#96612b", "#8b5926", "#7e5221", "#784e1f"
     ]
   },
   drySpellProjection: {
@@ -57,28 +60,10 @@ const SCALES = {
       "#ab7239", "#a16930", "#96612b", "#8b5926", "#7e5221", "#784e1f"
     ]
   },
-  drySpell: {
-    min: 0,
-    max: 22,
-    unit: "days",
-    colors: [
-      "#fbf6f2", "#f0e1d0", "#e6cbae", "#deb98f", "#d6ab80", "#ce9e6e", "#c9925c", 
-      "#bf874e", "#b57d44", "#ab7239", "#a16930", "#96612b", "#8b5926", "#7e5221", "#784e1f"
-    ]
-  },
   rainfall: {
     min: 0,
     max: 2000,
     unit: "mm",
-    colors: [
-      "#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", 
-      "#2171b5", "#08519c", "#08306b", "#4b0082", "#2e004f"
-    ]
-  },
-  daysAbove20mm: {
-    min: 0,
-    max: 40,
-    unit: "days",
     colors: [
       "#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", 
       "#2171b5", "#08519c", "#08306b", "#4b0082", "#2e004f"
@@ -92,6 +77,15 @@ const SCALES = {
      "#deb98f", "#e6cbae", "#f0e1d0", "#fbf6f2", "#f1f7f5", 
       "#d2e5e0", "#b5d2cc", "#99c2bd", "#81bab2", "#6cb3ab", "#57aaa4", "#46a198", "#3a968b", 
       "#308c7f", "#248071", "#1e735e", "#19674e", "#14593c", "#115338"
+    ]
+  },
+  daysAbove20mm: {
+    min: 0,
+    max: 40,
+    unit: "days",
+    colors: [
+      "#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", 
+      "#2171b5", "#08519c", "#08306b", "#4b0082", "#2e004f"
     ]
   },
   daysAbove20mmProjection: {
@@ -138,7 +132,7 @@ export function getColorForScale(value, scaleName) {
 export function styleGeoJsonFeature(feature, layerType, opacityValue = 1, time = 'past') {
   // Extract value from properties using first matching property name
   const props = feature?.properties || {};
-  const propertyNames = ['value', 'Value', 'val', 'Val', 'v', 'V', 'rainfall', 'temperature', 'Total_Rain', 'Annual_Rain', 'dry_days'];
+  const propertyNames = ['value'];
   const propName = propertyNames.find(prop => props[prop] !== undefined);
   const value = propName ? props[propName] : null;
   
@@ -165,13 +159,6 @@ export function styleGeoJsonFeature(feature, layerType, opacityValue = 1, time =
     else if (layerLower.includes('days above 20mm') || layerLower.includes('days_above_20') || 
              layerLower.includes('days above 20')) {
       color = getColorForScale(value, 'daysAbove20mmProjection');
-    }
-    else {
-      const matchingKeyword = Object.keys(LAYER_TYPE_MAPPINGS).find(keyword => layerLower.includes(keyword));
-      if (matchingKeyword) {
-        const scaleName = /** @type {ScaleType} */ (LAYER_TYPE_MAPPINGS[matchingKeyword]);
-        color = getColorForScale(value, scaleName);
-      }
     }
   } else {
     const matchingKeyword = Object.keys(LAYER_TYPE_MAPPINGS).find(keyword => layerLower.includes(keyword));
