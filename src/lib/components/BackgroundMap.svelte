@@ -43,15 +43,7 @@ const baseLayerCodes = {
   "Dry spells": "drydays"
 }
 
-/** @type {Record<string, string>} */
-const legendTitles = {
-  "Maximum temperature": "Maximum temp.",
-  "Minimum temperature": "Minimum temp.",
-  "Average temperature": "Average temp.",
-  "Total rainfall": "Total rainfall",
-  "Days above 20 mm": "Days above 20mm",
-  "Dry spells": "Dry spells"
-};
+
 
 // Format legend title using mapping or fallback to default formatting
 /**

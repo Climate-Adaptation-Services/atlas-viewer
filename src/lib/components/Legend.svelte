@@ -19,15 +19,17 @@
    */
   const formatLegendTitle = (title) => {
     const titleMap = {
-      "temperature": "Temperature",
-      "rainfall": "Rainfall",
-      "total_rainfall": "Total Rainfall",
-      "annual_rainfall": "Annual Rainfall",
-      "dryspell": "Dry Spell",
-      "dry_spell": "Dry Spell",
-      "days_above_20mm": "Days Above 20mm"
+      "Maximum temperature": "Maximum temp.",
+  "Minimum temperature": "Minimum temp.",
+  "Average temperature": "Average temp.",
+  "Total rainfall": "Total rainfall",
+  "Days above 20 mm": "Days above 20mm",
+  "Dry spells": "Dry spells"
     }
     
+ 
+
+
     // Try to find a match in the titleMap
     for (const [key, value] of Object.entries(titleMap)) {
       if (title.toLowerCase().includes(key)) {
