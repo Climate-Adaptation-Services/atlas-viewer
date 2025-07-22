@@ -43,36 +43,6 @@ const baseLayerCodes = {
   "Dry spells": "drydays"
 }
 
-
-
-// Format legend title using mapping or fallback to default formatting
-/**
- * Format legend title using mapping or fallback to default formatting
- * @param {string} title - The legend title to format
- * @returns {string} Formatted legend title
- */
- const formatLegendTitle = (title) => {
-  const titleMap = {
-    "temperature": "Temperature",
-    "rainfall": "Rainfall",
-    "total_rainfall": "Total Rainfall",
-    "annual_rainfall": "Annual Rainfall",
-    "dryspell": "Dry Spell",
-    "dry_spell": "Dry Spell",
-    "days_above_20mm": "Days Above 20mm"
-  }
-  
-  // Try to find a match in the titleMap
-  for (const [key, value] of Object.entries(titleMap)) {
-    if (title.toLowerCase().includes(key)) {
-      return value
-    }
-  }
-  
-  // If no match found, return the original with first letter capitalized
-  return title.charAt(0).toUpperCase() + title.slice(1)
-}
-
 /**
  * Create the actual layer name dynamically
  * @param {string} datalaag - Selected data layer
@@ -89,13 +59,16 @@ function getLayerId(datalaag, time, scenario) {
   const base = baseLayerCodes[datalaag];
   if (!base) return null;
 
-  // Accept both "hist", "Now", and "Current" for historical
-  if (time === "hist" || time === "Past" || time === "Current") {
+  // Normalize time value for consistent handling
+  const timeNormalized = time ? time.toLowerCase() : '';
+  
+  // Accept various terms for historical data
+  if (timeNormalized === "hist" || timeNormalized === "past" || timeNormalized === "current") {
     return `${base}_hist`;
-  } else if (time === "2050" || time === "2080") {
+  } else if (timeNormalized === "2050" || timeNormalized === "2080") {
     // Accept both "Low"/"low" and "High"/"high"
     const scenarioCode = (scenario || "high").toLowerCase();
-    return `${base}_${time}_${scenarioCode}`;
+    return `${base}_${timeNormalized}_${scenarioCode}`;
   }
   return null;
 }
@@ -160,7 +133,7 @@ function getLayerId(datalaag, time, scenario) {
     let filename;
     
     // Convert time to filename format
-    if (time === "hist") {
+    if (time === "hist" || time === "Past" || time === "Current") {
       filename = `${baseCode}_hist.geojson`;
     } else if (time === "2050" || time === "2080") {
       const scenarioCode = (scenario || "high").toLowerCase();
@@ -178,7 +151,10 @@ function getLayerId(datalaag, time, scenario) {
    * @returns {Object} Leaflet path style object
    */
   function styleGeoJson(feature) {
-    return styleGeoJsonFeature(feature, $datalaag, $opacityMap, $time);
+    // Normalize time parameter to lowercase for consistent handling
+    const normalizedTime = $time ? $time.toLowerCase() : 'past';
+    console.log('styleGeoJson using time:', normalizedTime);
+    return styleGeoJsonFeature(feature, $datalaag, $opacityMap, normalizedTime);
   }
 
   /**
@@ -230,10 +206,17 @@ function getLayerId(datalaag, time, scenario) {
   $: {
     if (map && countryConfig && countryConfig.dataType === "geojson" && 
         (Object.keys(geojsonLayers).length > 0)) {
-      console.log("Updating layer opacity to:", $opacityMap);
+      // Force style update when time, datalaag, or opacity changes
+      const normalizedTime = $time ? $time.toLowerCase() : 'past';
+      console.log("Updating layer styles with time:", normalizedTime, "and opacity:", $opacityMap);
+      
+      // Update all visible GeoJSON layers
       Object.values(geojsonLayers).forEach(/**@type {any}*/ layer => {
         if (layer && map.hasLayer(layer)) {
-          layer.setStyle(styleGeoJson);
+          // Use setStyle with a new function instance to ensure re-evaluation
+          layer.setStyle((feature) => {
+            return styleGeoJsonFeature(feature, $datalaag, $opacityMap, normalizedTime);
+          });
         }
       });
     }
@@ -281,6 +264,8 @@ function getLayerId(datalaag, time, scenario) {
   }
 
   $: if (map && $datalaag && $time && $scenario) {
+    const normalizedTime = $time ? $time.toLowerCase() : 'past';
+    console.log("Time changed to:", $time, "(normalized: " + normalizedTime + ") - Updating map layers");
     // Clear all existing layers
     Object.values(wmsLayers).forEach((layer) => {
       if (map.hasLayer(layer)) {
@@ -334,8 +319,6 @@ function getLayerId(datalaag, time, scenario) {
       dataType={countryConfig?.dataType}
       {legendLayerId}
       wmsEndpoint={countryConfig?.wmsEndpoint}
-      {formatLegendTitle}
-      {getLegendUnit}
     />
   {/if}
 </div>

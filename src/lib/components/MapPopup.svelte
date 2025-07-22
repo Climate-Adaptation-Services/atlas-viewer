@@ -52,7 +52,7 @@
       console.log(`Loading data for layer: ${layerCode}, scenario: ${sspCode}`);
       
       // Dynamically construct the CSV file name
-      const csvFile = `${layerCode}_${sspCode}.csv`;
+      const csvFile = `${layerCode}_${sspCode}_90-10.csv`;
       
       // Use our proxy endpoint to avoid CORS issues
       const response = await fetch(`/api/csv/${csvFile}`);
@@ -339,10 +339,10 @@
             
             // Look for min/max fields which may have different naming patterns
             const minField = fieldNames.find(f => 
-              f.includes('min') || f.includes('_min') || f.includes('low') || f.includes('_low')
+              f.includes('10') 
             );
             const maxField = fieldNames.find(f => 
-              f.includes('max') || f.includes('_max') || f.includes('high') || f.includes('_high')
+              f.includes('90') 
             );
             
             console.log(`Point name: ${pointName}, found min field: ${minField}, max field: ${maxField}`);
@@ -432,7 +432,7 @@
       if (layerId && wmsLayers[layerId]) {
         // Using direct longitude and latitude for GetFeatureInfo
         // Construct the URL for GetFeatureInfo request
-        const url = `https://dev.cas-zimbabwe.predictia.es/wms?REQUEST=GetFeatureInfo&SERVICE=WMS&VERSION=1.1.1&lon=${lng}&lat=${lat}&layer=${layerId}_90_10`;
+        const url = `https://dev.cas-zimbabwe.predictia.es/wms?REQUEST=GetFeatureInfo&SERVICE=WMS&VERSION=1.1.1&lon=${lng}&lat=${lat}&layer=${layerId}`;
         
         // Fetch the data value
         fetch(url)

@@ -129,7 +129,7 @@ export function getColorForScale(value, scaleName) {
  * @param {string} [time] - Time period ('past', '2050', or '2080')
  * @returns {Object} Leaflet style object
  */
-export function styleGeoJsonFeature(feature, layerType, opacityValue = 1, time = 'past') {
+export function styleGeoJsonFeature(feature, layerType, opacityValue = 1, time = 'Past') {
   // Extract value from properties using first matching property name
   const props = feature?.properties || {};
   const propertyNames = ['value'];
@@ -140,8 +140,12 @@ export function styleGeoJsonFeature(feature, layerType, opacityValue = 1, time =
   let color = "#ffffff";
   const layerLower = layerType?.toLowerCase() || '';
   
-  // Check if this is a projection (2050 or 2080)
-  if (time === '2050' || time === '2080') {
+  // Normalize time parameter for consistent handling
+  const timeNormalized = time ? time.toLowerCase() : 'past';
+  console.log(`styleGeoJsonFeature using normalized time: ${timeNormalized}`);
+  
+  // Check if this is a projection (2050 or 2080) or past/historical
+  if (timeNormalized === '2050' || timeNormalized === '2080') {
     // Temperature projections
     if (layerLower.includes('temperature')) {
       color = getColorForScale(value, 'temperatureProjection');

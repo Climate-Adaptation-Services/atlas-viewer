@@ -7,10 +7,7 @@
 	let w;
 	let h;
 
-	let open = true;
-
-	$: console.log($panelOpen)
-	
+	let open = true;	
 
 	// Subscribe to the store
   onMount(() => {

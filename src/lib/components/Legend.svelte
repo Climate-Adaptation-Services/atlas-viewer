@@ -1,6 +1,6 @@
 <script>
   import { browser } from "$app/environment"
-  import { datalaag, time} from "$lib/stores.js"
+  import { datalaag, time } from "$lib/stores.js"
   import { getLegendItems } from "$lib/utils/geojsonStyles.js"
   
   // Props
@@ -11,7 +11,9 @@
   /** @type {string|null} */
   export let wmsEndpoint = null
   
-  // Internal functions for legend formatting
+  // Derived state
+  $: isShowingChange = $time === "2050" || $time === "2080"
+  
   /**
    * Format the legend title for display
    * @param {string} title - The data layer title to format
@@ -20,19 +22,16 @@
   const formatLegendTitle = (title) => {
     const titleMap = {
       "Maximum temperature": "Maximum temp.",
-  "Minimum temperature": "Minimum temp.",
-  "Average temperature": "Average temp.",
-  "Total rainfall": "Total rainfall",
-  "Days above 20 mm": "Days above 20mm",
-  "Dry spells": "Dry spells"
+      "Minimum temperature": "Minimum temp.",
+      "Average temperature": "Average temp.",
+      "Total rainfall": "Total rainfall",
+      "Days above 20 mm": "Days above 20mm",
+      "Dry spells": "Dry spells"
     }
-    
- 
-
 
     // Try to find a match in the titleMap
     for (const [key, value] of Object.entries(titleMap)) {
-      if (title.toLowerCase().includes(key)) {
+      if (title.toLowerCase().includes(key.toLowerCase())) {
         return value
       }
     }
@@ -48,18 +47,19 @@
    */
   const getLegendUnit = (dataLayer) => {
     const unitMap = {
-      "temperature": "°C",
-      "rainfall": "mm",
-      "total_rainfall": "mm",
-      "annual_rainfall": "mm",
-      "dry_spell": "days",
-      "dryspell": "days",
-      "days_above_20mm": "days"
+      "Maximum temperature": "°C",
+      "Minimum temperature": "°C", 
+      "Average temperature": "°C",
+      "Total rainfall": "mm",
+      "Days above 20 mm": "days",
+      "Dry spells": "days"
     }
+
+    
     
     // Try to find a match in the unitMap
     for (const [key, value] of Object.entries(unitMap)) {
-      if (dataLayer.toLowerCase().includes(key)) {
+      if (dataLayer && dataLayer.toLowerCase().includes(key.toLowerCase())) {
         return value
       }
     }
@@ -68,105 +68,65 @@
     return ""
   }
   
-  // Derived state
-  $: isShowingChange = $time === "2050" || $time === "2080"
 </script>
 
 <div class="legend">
   <div class="legend-content">
-    {#if dataType !== "geojson"}
-      <div class="legend-header">
-        <p class="legend-title">
-          {#if isShowingChange}
-            Change in {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
-          {:else}
-            {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
-          {/if}
-        </p>
-      </div>
-    {/if}
+    <!-- Legend Header (Common for all legend types) -->
+    <div class="legend-header">
+      <p class="legend-title">
+        {#if isShowingChange}
+          Change in {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
+        {:else}
+          {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
+        {/if}
+      </p>
+    </div>
     
+    <!-- WMS Legend Image -->
     {#if legendLayerId && dataType === "wms" && wmsEndpoint}
-      <!-- WMS Legend Image -->
       <img
         class="legend-image"
         alt="Legend for {$datalaag}"
         src={`${wmsEndpoint}?VERSION=1.1.1&height=300&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=50&format=png`} />
     {/if}
     
-    {#if dataType === "geojson" && browser}
-      <!-- GeoJSON Custom Legend -->
+    <!-- GeoJSON Custom Legend -->
+    {#if typeof dataType === "string" && dataType === "geojson" && browser === true}
       {#key $datalaag}
-        {#if $datalaag && ($datalaag.toLowerCase().includes('temperature') || 
-            $datalaag.toLowerCase().includes('rainfall') || 
-            $datalaag.toLowerCase().includes('total rain') || 
-            $datalaag.toLowerCase().includes('annual rain') || 
-            $datalaag.toLowerCase().includes('dry spell') || 
-            $datalaag.toLowerCase().includes('dryspell') ||
-            $datalaag.toLowerCase().includes('days above 20mm') ||
-            $datalaag.toLowerCase().includes('days above 20') ||
-            $datalaag.toLowerCase().includes('days_above_20'))}
-          {#each [getLegendItems($datalaag, $time)] as legendData}
-            {#if legendData && typeof legendData === 'object' && 'type' in legendData && legendData.type === "scalebar"}
-              <!-- Vertical Scalebar Legend -->
-              <div class="legend-header">
-                <p class="legend-title">
-                  {#if isShowingChange}
-                    Change in {formatLegendTitle($datalaag)}
-                  {:else}
-                    {formatLegendTitle($datalaag)}
-                  {/if}
-                </p>
-              </div>
-              <div class="scalebar-legend">
-                {#if 'colors' in legendData && Array.isArray(legendData.colors)}
-                  <!-- Type assertion for colors array -->
-                  {@const colors = /** @type {string[]} */ (legendData.colors)}
-                  <!-- Gradient bar -->
-                  {#each [colors.map((color, i) => 
-                    `${color} ${Math.round(i / (colors.length - 1) * 100)}%`).join(', ')] as gradientStops}
-                    <div class="gradient-bar" style="background: linear-gradient(to top, {gradientStops});"></div>
-                  {/each}
-                {/if}
-                
-                <!-- Labels on the right side -->
-                {#if 'labels' in legendData && Array.isArray(legendData.labels) && 'min' in legendData && 'max' in legendData}
-                  <!-- Type assertions for min and max values -->
-                  {@const min = /** @type {number} */ (legendData.min)}
-                  {@const max = /** @type {number} */ (legendData.max)}
-                  <div class="scalebar-labels">
-                    {#each legendData.labels as labelItem}
-                      {#if 'value' in labelItem && 'label' in labelItem}
-                        <div class="scalebar-label" style="bottom: {((labelItem.value - min) / (max - min)) * 100}%">
-                          {labelItem.label}
-                        </div>
-                      {/if}
+        
+        {#each [getLegendItems($datalaag, $time)] as legendData}
+        {#if legendData && typeof legendData === 'object' && 'type' in legendData && legendData.type === "scalebar"}
+            <!-- Vertical Scalebar Legend -->
+            <div class="scalebar-legend">
+            <!-- Gradient Bar -->
+            {#if 'colors' in legendData && Array.isArray(legendData.colors)}
+                {@const colors = /** @type {string[]} */ (legendData.colors)}
+                <div class="sequential-bars">
+                    {#each [...colors].reverse() as color, i}
+                        <div class="color-block" style="background-color: {color};"></div>
                     {/each}
-                  </div>
-                {/if}
-                
-                <!-- Unit label -->
-                {#if 'unit' in legendData}
-                  <div class="unit-label">{legendData.unit}</div>
-                {/if}
-              </div>
-            {:else}
-              <!-- Standard Legend (Fallback) -->
-              <div class="custom-legend">
-                {#if Array.isArray(legendData)}
-                  {#each legendData as item}
-                    {#if item && typeof item === 'object' && 'color' in item && 'label' in item}
-                      {@const typedItem = /** @type {{color: string, label: string}} */ (item)}
-                      <div class="legend-item">
-                        <span class="color-box" style="background-color: {typedItem.color};"></span> {typedItem.label}
-                      </div>
-                    {/if}
-                  {/each}
-                {/if}
-              </div>
+                </div>
             {/if}
-          {/each}
+            
+            <!-- Labels on the right side -->
+            {#if 'labels' in legendData && Array.isArray(legendData.labels) && 'min' in legendData && 'max' in legendData}
+                {@const min = /** @type {number} */ (legendData.min)}
+                {@const max = /** @type {number} */ (legendData.max)}
+                <div class="scalebar-labels">
+                {#each legendData.labels as labelItem}
+                    {#if 'value' in labelItem && 'label' in labelItem}
+                    <div class="scalebar-label" style="bottom: {((labelItem.value - min) / (max - min)) * 100}%">
+                        {labelItem.label}
+                    </div>
+                    {/if}
+                {/each}
+                </div>
+            {/if}
+            </div>
         {/if}
+        {/each}
+        
       {/key}
     {/if}
   </div>
@@ -228,11 +188,19 @@
     padding: 0 15px;
   }
 
-  .gradient-bar {
-    width: 30px;
+  .sequential-bars {
+    display: flex;
+    flex-direction: column;
     height: 100%;
-    border-radius: 3px;
+    width: 20px;
     border: 1px solid #ccc;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .color-block {
+    flex: 1;
+    width: 100%;
   }
 
   .scalebar-labels {
