@@ -100,16 +100,7 @@ function getLayerId(datalaag, time, scenario) {
   // Reactive legend layer name
   $: legendLayerId = getLayerId($datalaag, $time, $scenario);
   
-  // Determine if we're showing a change from historical data
-  $: isShowingChange = $time === "2050" || $time === "2080";
 
-  // Cleanup function to remove existing map when component is destroyed
-  function cleanupMap() {
-    if (map) {
-      map.remove();
-      map = null;
-    }
-  }
   
   onMount(async () => {
     try {
@@ -170,7 +161,7 @@ function getLayerId(datalaag, time, scenario) {
     const baseCode = parts[0];
     //const scenario = parts.length > 2 ? parts[2] : 'high';
     //console.log('scenario', scenario, parts, layerId)
-
+    console.log('printtime', $time)
     const url = getGeoJsonUrl(baseCode, $time, $scenario);
 
     if (!url) return null;
@@ -266,6 +257,7 @@ function getLayerId(datalaag, time, scenario) {
   $: if (map && $datalaag && $time && $scenario) {
     const normalizedTime = $time ? $time.toLowerCase() : 'past';
     console.log("Time changed to:", $time, "(normalized: " + normalizedTime + ") - Updating map layers");
+    
     // Clear all existing layers
     Object.values(wmsLayers).forEach((layer) => {
       if (map.hasLayer(layer)) {
@@ -273,11 +265,19 @@ function getLayerId(datalaag, time, scenario) {
       }
     });
     
-    Object.values(geojsonLayers).forEach((layer) => {
-      if (map && layer && map.hasLayer(layer)) {
-        map.removeLayer(layer);
-      }
-    });
+    // Track all layers currently on the map for better cleanup
+    if (map) {
+      map.eachLayer(layer => {
+        // Only remove GeoJSON layers, not the base tile layer
+        if (layer instanceof L.GeoJSON) {
+          map.removeLayer(layer);
+        }
+      });
+    }
+    
+    // Clear the GeoJSON cache to force full reload with new styles
+    geojsonLayers = {};
+    console.log('Cleared all GeoJSON layers and cache');
 
     const layerId = getLayerId($datalaag, $time, $scenario);
     
