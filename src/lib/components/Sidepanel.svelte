@@ -28,11 +28,10 @@
 
   function handleClickTheme(event) {
     theme.set(event.target.id)
-    console.log(event.target.id)
     let selectedTheme = document.getElementsByClassName($theme)
     let prevTheme = document.querySelector(".active")
     let prevCaption = document.querySelector(".activecaption")
-    console.log(selectedTheme)
+
     if (prevTheme) {
       prevTheme.classList.remove("active")
       prevCaption.classList.remove("activecaption")
@@ -55,7 +54,6 @@
     $scenario = options3.find((x) => x.id === selectedScenario).name
   }
 
-  $: console.log($time, $scenario)
 </script>
 
 <section>

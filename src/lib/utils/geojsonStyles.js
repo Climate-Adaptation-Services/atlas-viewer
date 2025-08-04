@@ -142,7 +142,6 @@ export function styleGeoJsonFeature(feature, layerType, opacityValue = 1, time =
   
   // Normalize time parameter for consistent handling
   const timeNormalized = time ? time.toLowerCase() : 'past';
-  console.log(`styleGeoJsonFeature using normalized time: ${timeNormalized}`);
   
   // Check if this is a projection (2050 or 2080) or past/historical
   if (timeNormalized === '2050' || timeNormalized === '2080') {

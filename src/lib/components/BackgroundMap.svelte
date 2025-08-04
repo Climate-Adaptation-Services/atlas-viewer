@@ -144,7 +144,6 @@ function getLayerId(datalaag, time, scenario) {
   function styleGeoJson(feature) {
     // Normalize time parameter to lowercase for consistent handling
     const normalizedTime = $time ? $time.toLowerCase() : 'past';
-    console.log('styleGeoJson using time:', normalizedTime);
     return styleGeoJsonFeature(feature, $datalaag, $opacityMap, normalizedTime);
   }
 
@@ -159,9 +158,6 @@ function getLayerId(datalaag, time, scenario) {
     // Get base code from layerId
     const parts = layerId.split('_');
     const baseCode = parts[0];
-    //const scenario = parts.length > 2 ? parts[2] : 'high';
-    //console.log('scenario', scenario, parts, layerId)
-    console.log('printtime', $time)
     const url = getGeoJsonUrl(baseCode, $time, $scenario);
 
     if (!url) return null;
@@ -171,9 +167,7 @@ function getLayerId(datalaag, time, scenario) {
       if (!geojsonLayers[layerId]) {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Failed to fetch GeoJSON: ${response.status}`);
-        
         const data = await response.json();
-        
         geojsonLayers[layerId] = L.geoJSON(data, {
           style: styleGeoJson,
           onEachFeature: (/**@type {any}*/ feature, /**@type {any}*/ layer) => {
@@ -199,7 +193,6 @@ function getLayerId(datalaag, time, scenario) {
         (Object.keys(geojsonLayers).length > 0)) {
       // Force style update when time, datalaag, or opacity changes
       const normalizedTime = $time ? $time.toLowerCase() : 'past';
-      console.log("Updating layer styles with time:", normalizedTime, "and opacity:", $opacityMap);
       
       // Update all visible GeoJSON layers
       Object.values(geojsonLayers).forEach(/**@type {any}*/ layer => {
@@ -256,7 +249,6 @@ function getLayerId(datalaag, time, scenario) {
 
   $: if (map && $datalaag && $time && $scenario) {
     const normalizedTime = $time ? $time.toLowerCase() : 'past';
-    console.log("Time changed to:", $time, "(normalized: " + normalizedTime + ") - Updating map layers");
     
     // Clear all existing layers
     Object.values(wmsLayers).forEach((layer) => {
@@ -277,7 +269,6 @@ function getLayerId(datalaag, time, scenario) {
     
     // Clear the GeoJSON cache to force full reload with new styles
     geojsonLayers = {};
-    console.log('Cleared all GeoJSON layers and cache');
 
     const layerId = getLayerId($datalaag, $time, $scenario);
     

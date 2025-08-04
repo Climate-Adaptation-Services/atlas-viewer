@@ -52,11 +52,9 @@
       "Average temperature": "°C",
       "Total rainfall": "mm",
       "Days above 20 mm": "days",
-      "Dry spells": "days"
+      "Dry spells": "5 dry days in a row"
     }
 
-    
-    
     // Try to find a match in the unitMap
     for (const [key, value] of Object.entries(unitMap)) {
       if (dataLayer && dataLayer.toLowerCase().includes(key.toLowerCase())) {
