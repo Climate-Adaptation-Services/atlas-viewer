@@ -170,10 +170,13 @@ function getLayerId(datalaag, time, scenario) {
         const data = await response.json();
         geojsonLayers[layerId] = L.geoJSON(data, {
           style: styleGeoJson,
+          interactive: false, // Make layer non-interactive to allow clicks to pass through
           onEachFeature: (/**@type {any}*/ feature, /**@type {any}*/ layer) => {
             if (feature?.properties?.value !== undefined) {
               const unit = getLegendUnit($datalaag);
-              layer.bindPopup(`<b>${$datalaag}</b>: ${feature.properties.value} ${unit}`);
+              // Don't use bindPopup since we want MapPopup to handle clicks
+              // instead, store the value in the feature properties
+              feature._value = feature.properties.value;
             }
           }
 });
@@ -301,6 +304,7 @@ function getLayerId(datalaag, time, scenario) {
       {wmsLayers} 
       {getLayerId} 
       {getLegendUnit}
+      {countryCode}
     />
   {/if}
   
