@@ -27,7 +27,7 @@ export const countryConfigs = {
     center: [0.0236, 37.9062], // Kenya's geographic center
     zoom: 6,
     dataType: "geojson",
-    geojsonBaseUrl: "https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/kenya/historical/", // GitHub repo with GeoJSON files
+    geojsonBaseUrl: "https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/kenya/", // GitHub repo with GeoJSON files
     // Keep WMS settings as fallback
     wmsEndpoint: "https://dev.cas-zimbabwe.predictia.es/wms",
     mask: "kenya"
