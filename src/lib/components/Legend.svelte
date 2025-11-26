@@ -2,7 +2,7 @@
   import { browser } from "$app/environment"
   import { datalaag, time } from "$lib/stores.js"
   import { getLegendItems } from "$lib/utils/geojsonStyles.js"
-  
+
   // Props
   /** @type {string} */
   export let dataType = "geojson"
@@ -10,6 +10,8 @@
   export let legendLayerId = null
   /** @type {string|null} */
   export let wmsEndpoint = null
+  /** @type {string} */
+  export let layerName = ""
   
   // Derived state
   $: isShowingChange = $time === "2050" || $time === "2080"
@@ -48,11 +50,12 @@
   const getLegendUnit = (dataLayer) => {
     const unitMap = {
       "Maximum temperature": "°C",
-      "Minimum temperature": "°C", 
+      "Minimum temperature": "°C",
       "Average temperature": "°C",
       "Total rainfall": "mm",
       "Days above 20 mm": "days",
-      "Dry spells": "5 dry days in a row"
+      "Dry spells": "5 dry days in a row",
+      "Population": "people"
     }
 
     // Try to find a match in the unitMap
@@ -61,11 +64,27 @@
         return value
       }
     }
-    
+
     // Default unit
     return ""
   }
-  
+
+  /**
+   * Get population legend items
+   * @returns {Array<{color: string, label: string, range: string}>}
+   */
+  const getPopulationLegendItems = () => {
+    return [
+      { color: '#FFF4CC', label: 'Above 10M', range: '>10M' },
+      { color: '#FFE699', label: '3-10M', range: '3-10M' },
+      { color: '#FFD966', label: '1-3M', range: '1-3M' },
+      { color: '#F4B183', label: '300K-1M', range: '300K-1M' },
+      { color: '#E07C7C', label: '100K-300K', range: '100K-300K' },
+      { color: '#C55A5A', label: '30K-100K', range: '30K-100K' },
+      { color: '#8B3A3A', label: '10K-30K', range: '10K-30K' }
+    ];
+  }
+
 </script>
 
 <div class="legend">
@@ -73,14 +92,28 @@
     <!-- Legend Header (Common for all legend types) -->
     <div class="legend-header">
       <p class="legend-title">
-        {#if isShowingChange}
+        {#if dataType === 'context'}
+          {layerName} ({getLegendUnit(layerName)})
+        {:else if isShowingChange}
           Change in {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
         {:else}
           {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
         {/if}
       </p>
     </div>
-    
+
+    <!-- Population Context Layer Legend -->
+    {#if dataType === 'context' && layerName === 'Population'}
+      <div class="categorical-legend">
+        {#each getPopulationLegendItems() as item}
+          <div class="legend-item">
+            <div class="circle-symbol" style="background-color: {item.color};"></div>
+            <span class="legend-label">{item.range}</span>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
     <!-- WMS Legend Image -->
     {#if legendLayerId && dataType === "wms" && wmsEndpoint}
       <img
@@ -88,11 +121,11 @@
         alt="Legend for {$datalaag}"
         src={`${wmsEndpoint}?VERSION=1.1.1&height=300&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=50&format=png`} />
     {/if}
-    
+
     <!-- GeoJSON Custom Legend -->
     {#if typeof dataType === "string" && dataType === "geojson" && browser === true}
       {#key $datalaag}
-        
+
         {#each [getLegendItems($datalaag, $time)] as legendData}
         {#if legendData && typeof legendData === 'object' && 'type' in legendData && legendData.type === "scalebar"}
             <!-- Vertical Scalebar Legend -->
@@ -106,7 +139,7 @@
                     {/each}
                 </div>
             {/if}
-            
+
             <!-- Labels on the right side -->
             {#if 'labels' in legendData && Array.isArray(legendData.labels) && 'min' in legendData && 'max' in legendData}
                 {@const min = /** @type {number} */ (legendData.min)}
@@ -124,7 +157,7 @@
             </div>
         {/if}
         {/each}
-        
+
       {/key}
     {/if}
   </div>
@@ -224,5 +257,25 @@
     text-align: center;
     font-weight: bold;
     font-size: 14px;
+  }
+
+  .categorical-legend {
+    margin-top: 10px;
+    padding: 5px 0;
+  }
+
+  .circle-symbol {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 1px solid #333;
+    flex-shrink: 0;
+  }
+
+  .legend-label {
+    font-size: 11px;
+    white-space: nowrap;
   }
 </style>

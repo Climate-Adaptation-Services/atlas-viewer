@@ -1,5 +1,8 @@
 <script>
-  import { datalaag, scenario, time, theme, opacityMap } from "$lib/stores.js"
+  import { datalaag, scenario, time, theme, opacityMap, selectedLayer } from "$lib/stores.js"
+  import { page } from "$app/stores"
+  import { getCountryConfig } from "$lib/config/countries.js"
+  import { getContextLayerNames } from "$lib/config/contextLayers.js"
   import { createEventDispatcher } from "svelte"
 
   const dispatch = createEventDispatcher()
@@ -7,6 +10,8 @@
   const optionsTemperature = ["Average temperature", "Minimum temperature", "Maximum temperature"]
   const optionsDrought = ["Dry spells"]
   const optionsPrecipitation = ["Total rainfall", "Days above 20 mm"]
+  const allContextLayerOptions = getContextLayerNames()
+
   const options2 = [
     { id: 0, name: "Past" },
     { id: 1, name: "2050" },
@@ -17,10 +22,49 @@
     { id: 1, name: "High" },
   ]
 
+  // Get country configuration
+  $: countryCode = $page.url.searchParams.get('country') || 'zimbabwe'
+  $: countryConfig = getCountryConfig(countryCode)
+
   $: options = $theme === "heter" ? optionsTemperature : $theme === "precipitation" ? optionsPrecipitation : optionsDrought
 
+  // Filter context layers to only show those available for this country
+  $: contextLayerOptions = allContextLayerOptions.filter(layer =>
+    countryConfig?.layerAvailability?.[layer] !== undefined
+  )
+
+  // Get availability for current layer
+  $: layerAvailability = countryConfig?.layerAvailability?.[$selectedLayer] || {
+    times: ["Past", "2050", "2080"],
+    hasScenarios: true
+  }
+
+  // Check if a time period is available for current layer
+  $: isTimeAvailable = (timeName) => {
+    return layerAvailability.times.includes(timeName)
+  }
+
+  // Check if scenarios should be shown for current layer
+  $: showScenarios = layerAvailability.hasScenarios && ($time === "2050" || $time === "2080")
+
+  // Auto-adjust time if current selection is not available
+  $: if ($selectedLayer && !isTimeAvailable($time)) {
+    // Set to first available time
+    const firstAvailable = layerAvailability.times[0]
+    const timeOption = options2.find(opt => opt.name === firstAvailable)
+    if (timeOption) {
+      selectedTime = timeOption.id
+      time.set(firstAvailable)
+    }
+  }
+
+  // Sync datalaag with selectedLayer for backward compatibility
+  $: if ($selectedLayer && !contextLayerOptions.includes($selectedLayer)) {
+    datalaag.set($selectedLayer)
+  }
+
   $: if ($theme) {
-    datalaag.set(options[0])
+    selectedLayer.set(options[0])
   }
 
   export let selectedTime = 0
@@ -86,10 +130,21 @@
   <h2>Select a map layer</h2>
   {#each options as option}
     <label class="keuzes">
-      <input class="option" type="radio" name="laag" value={option} bind:group={$datalaag} />
+      <input class="option" type="radio" name="laag" value={option} bind:group={$selectedLayer} />
       {option}
     </label>
   {/each}
+
+  {#if contextLayerOptions.length > 0}
+    <h2>Context layers</h2>
+    {#each contextLayerOptions as option}
+      <label class="keuzes">
+        <input class="option" type="radio" name="laag" value={option} bind:group={$selectedLayer} />
+        {option}
+      </label>
+    {/each}
+  {/if}
+
   <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
     Select time period
     <span class="info-icon-wrapper">
@@ -109,13 +164,19 @@
   <div class="buttons-wrapper">
     <div class="buttons">
       {#each options2 as option, index}
-        <button class={selectedTime === index ? "selected" : ""} value={option.id} name={option.name} on:click={setSelectedTime}>
+        <button
+          class={selectedTime === index ? "selected" : ""}
+          class:disabled={!isTimeAvailable(option.name)}
+          disabled={!isTimeAvailable(option.name)}
+          value={option.id}
+          name={option.name}
+          on:click={setSelectedTime}>
           {option.name}
         </button>
       {/each}
     </div>
   </div>
-  {#if $time === "2050" || $time === "2080"}
+  {#if showScenarios}
     <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
       Select a scenario
       <span class="info-icon-wrapper">
@@ -387,6 +448,19 @@
     color: white;
   }
 
+  button:disabled,
+  button.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background-color: #e0e0e0;
+  }
+
+  button:disabled:hover,
+  button.disabled:hover {
+    background-color: #e0e0e0;
+    color: initial;
+  }
+
   .description {
     font-size: 2vh;
   }
@@ -483,5 +557,46 @@
     border: 2px solid white;
     cursor: pointer;
     transition: background-color 0.3s ease-in-out;
+  }
+
+  .context-layer {
+    display: flex;
+    align-items: center;
+    gap: 0.8vw;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    font-size: 1.9vh;
+    margin-bottom: 1vh;
+  }
+
+  .checkbox {
+    appearance: none;
+    width: 2vh;
+    height: 2vh;
+    border: 2px solid #017e9f;
+    border-radius: 4px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .checkbox:checked {
+    background-color: #017e9f;
+    border-color: #017e9f;
+  }
+
+  .checkbox:checked::after {
+    content: "✔";
+    color: white;
+    font-size: 1.4vh;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
   }
 </style>

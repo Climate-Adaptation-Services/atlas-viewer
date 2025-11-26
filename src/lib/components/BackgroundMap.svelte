@@ -2,11 +2,12 @@
   import { browser } from "$app/environment"
   import { onMount } from "svelte"
   import { page } from "$app/stores"
-  import { datalaag, opacityMap, time, scenario } from "$lib/stores.js"
+  import { datalaag, opacityMap, time, scenario, selectedLayer } from "$lib/stores.js"
   import MapPopup from "./MapPopup.svelte"
   import Legend from "./Legend.svelte"
   import { getCountryConfig } from "$lib/config/countries.js"
   import { styleGeoJsonFeature, getLegendItems } from "$lib/utils/geojsonStyles.js"
+  import { isContextLayer } from "$lib/config/contextLayers.js"
 
   /** @type {any} */
   let map
@@ -16,6 +17,8 @@
   let wmsLayers = {}
   /** @type {Record<string, any>} */
   let geojsonLayers = {}
+  /** @type {Record<string, any>} */
+  let contextLayerInstances = {}
   /** @type {any} */
   let L
   /** @type {any} */
@@ -154,14 +157,14 @@ function getLayerId(datalaag, time, scenario) {
    */
   async function loadGeoJsonLayer(layerId) {
     if (!layerId) return null;
-    
+
     // Get base code from layerId
     const parts = layerId.split('_');
     const baseCode = parts[0];
     const url = getGeoJsonUrl(baseCode, $time, $scenario);
 
     if (!url) return null;
-    
+
     try {
       // Check if we already have this layer cached
       if (!geojsonLayers[layerId]) {
@@ -182,10 +185,126 @@ function getLayerId(datalaag, time, scenario) {
 });
 
       }
-      
+
       return geojsonLayers[layerId];
     } catch (error) {
       console.error('Error loading GeoJSON:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Function to get the appropriate context layer filename based on time period
+   * @param {string} layerName - Base name of the context layer
+   * @param {string} time - Current time period
+   * @returns {string} Full filename for the context layer
+   */
+  function getContextLayerFilename(layerName, time) {
+    if (layerName === 'population') {
+      // Map time periods to population data years
+      const timeNormalized = time ? time.toLowerCase() : 'past';
+      if (timeNormalized === 'past' || timeNormalized === 'hist') {
+        return 'africapolis_agglomerations_ken_2025.geojson';
+      } else if (timeNormalized === '2050' || timeNormalized === '2080') {
+        return 'africapolis_agglomerations_ken_2050.geojson';
+      }
+      return 'africapolis_agglomerations_ken_2025.geojson'; // default
+    }
+    // For other context layers in the future
+    return `${layerName}.geojson`;
+  }
+
+  /**
+   * Get population circle style based on population value
+   * @param {number} population - Population value
+   * @returns {{color: string, radius: number}} Style object with color and radius
+   */
+  function getPopulationStyle(population) {
+    // Population ranges and colors matching Africapolis
+    // Based on the legend in the screenshot
+    if (population >= 10000000) {
+      return { color: '#FFF4CC', radius: 30 }; // Above 10M - lightest yellow
+    } else if (population >= 3000000) {
+      return { color: '#FFE699', radius: 26 }; // 3-10M
+    } else if (population >= 1000000) {
+      return { color: '#FFD966', radius: 22 }; // 1-3M
+    } else if (population >= 300000) {
+      return { color: '#F4B183', radius: 18 }; // 300K-1M - light orange
+    } else if (population >= 100000) {
+      return { color: '#E07C7C', radius: 14 }; // 100K-300K - salmon
+    } else if (population >= 30000) {
+      return { color: '#C55A5A', radius: 10 }; // 30K-100K - medium red
+    } else {
+      return { color: '#8B3A3A', radius: 6 }; // 10K-30K - dark red
+    }
+  }
+
+  /**
+   * Function to load a context layer (e.g., population)
+   * @param {string} layerName - Name of the context layer
+   * @param {string} time - Current time period
+   * @returns {Promise<any|null>} The loaded GeoJSON layer or null if there was an error
+   */
+  async function loadContextLayer(layerName, time) {
+    if (!layerName || !countryConfig) return null;
+
+    const filename = getContextLayerFilename(layerName, time);
+    const cacheKey = `${layerName}_${time}`;
+    const url = `${countryConfig.geojsonBaseUrl}${filename}`;
+
+    try {
+      // Check if we already have this layer cached
+      if (!contextLayerInstances[cacheKey]) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch context layer: ${response.status}`);
+        const data = await response.json();
+
+        if (layerName === 'population') {
+          // Use point-to-layer for population circles
+          contextLayerInstances[cacheKey] = L.geoJSON(data, {
+            pointToLayer: (feature, latlng) => {
+              // Get population based on time period
+              let popProperty = 'Population_2025'; // default
+              const timeNormalized = time ? time.toLowerCase() : 'past';
+
+              if (timeNormalized === '2050' || timeNormalized === '2080') {
+                popProperty = 'Population_2050';
+              } else if (timeNormalized === 'past' || timeNormalized === 'hist') {
+                popProperty = 'Population_2025';
+              }
+
+              const pop = feature.properties?.[popProperty] || 0;
+              const style = getPopulationStyle(pop);
+
+              return L.circleMarker(latlng, {
+                radius: style.radius,
+                fillColor: style.color,
+                color: '#333333',
+                weight: 0.5,
+                opacity: 0.8,
+                fillOpacity: 0.7
+              });
+            },
+            interactive: false
+          });
+        } else {
+          // Default styling for other context layers
+          contextLayerInstances[cacheKey] = L.geoJSON(data, {
+            style: {
+              fillColor: "#888888",
+              weight: 1,
+              opacity: 1,
+              color: '#666666',
+              fillOpacity: 0.3
+            },
+            interactive: false
+          });
+        }
+      }
+
+      return contextLayerInstances[cacheKey];
+    } catch (error) {
+      console.error(`Error loading context layer ${layerName}:`, error);
       return null;
     }
   }
@@ -250,44 +369,57 @@ function getLayerId(datalaag, time, scenario) {
     }
   }
 
-  $: if (map && $datalaag && $time && $scenario) {
+  // Check if selected layer is a context layer
+  $: isCurrentLayerContext = isContextLayer($selectedLayer);
+
+  $: if (map && $selectedLayer && $time && $scenario && countryConfig) {
     const normalizedTime = $time ? $time.toLowerCase() : 'past';
-    
-    // Clear all existing layers
+
+    // Clear all existing layers (both climate and context)
     Object.values(wmsLayers).forEach((layer) => {
       if (map.hasLayer(layer)) {
         map.removeLayer(layer);
       }
     });
-    
-    // Track all layers currently on the map for better cleanup
+
+    // Remove all GeoJSON layers
     if (map) {
       map.eachLayer(layer => {
-        // Only remove GeoJSON layers, not the base tile layer
         if (layer instanceof L.GeoJSON) {
           map.removeLayer(layer);
         }
       });
     }
-    
+
     // Clear the GeoJSON cache to force full reload with new styles
     geojsonLayers = {};
 
-    const layerId = getLayerId($datalaag, $time, $scenario);
-    
-    if (!layerId) { /* Skip if no valid layer ID */ }
-    else if (countryConfig.dataType === "wms" && wmsLayers[layerId]) {
-      // Add WMS layer for WMS-based countries
-      wmsLayers[layerId].addTo(map);
-      wmsLayers[layerId].setOpacity($opacityMap);
-    } 
-    else if (countryConfig.dataType === "geojson") {
-      // Load and add GeoJSON layer for GeoJSON-based countries
-      loadGeoJsonLayer(layerId).then(layer => {
-        if (layer && map) {
+    if (isCurrentLayerContext) {
+      // Load context layer (e.g., Population)
+      const layerName = $selectedLayer.toLowerCase();
+      loadContextLayer(layerName, $time).then(layer => {
+        if (layer && map && !map.hasLayer(layer)) {
           layer.addTo(map);
         }
-      }).catch(err => console.error('Error adding GeoJSON layer:', err));
+      }).catch(err => console.error(`Error adding context layer ${$selectedLayer}:`, err));
+    } else {
+      // Load climate layer
+      const layerId = getLayerId($selectedLayer, $time, $scenario);
+
+      if (!layerId) { /* Skip if no valid layer ID */ }
+      else if (countryConfig.dataType === "wms" && wmsLayers[layerId]) {
+        // Add WMS layer for WMS-based countries
+        wmsLayers[layerId].addTo(map);
+        wmsLayers[layerId].setOpacity($opacityMap);
+      }
+      else if (countryConfig.dataType === "geojson") {
+        // Load and add GeoJSON layer for GeoJSON-based countries
+        loadGeoJsonLayer(layerId).then(layer => {
+          if (layer && map) {
+            layer.addTo(map);
+          }
+        }).catch(err => console.error('Error adding GeoJSON layer:', err));
+      }
     }
   }
   
@@ -309,11 +441,12 @@ function getLayerId(datalaag, time, scenario) {
   {/if}
   
   <!-- Legend -->
-  {#if browser && $datalaag}
+  {#if browser && $selectedLayer}
     <Legend
-      dataType={countryConfig?.dataType}
+      dataType={isCurrentLayerContext ? 'context' : countryConfig?.dataType}
       {legendLayerId}
       wmsEndpoint={countryConfig?.wmsEndpoint}
+      layerName={$selectedLayer}
     />
   {/if}
 </div>

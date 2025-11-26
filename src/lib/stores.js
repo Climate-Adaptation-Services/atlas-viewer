@@ -15,3 +15,7 @@ export const panelOpen = writable(true)
 // Store for CSV data from Zimbabwe climate data
 // Initialize with proper type definition to avoid errors
 export const csvData = writable(/** @type {Array<Record<string, string|number>>} */ ([]))
+
+// Store for selected layer (can be either climate layer name or context layer name)
+// This replaces the separate datalaag and contextLayers to ensure single selection
+export const selectedLayer = writable(/** @type {string} */ ("Average temperature"))
