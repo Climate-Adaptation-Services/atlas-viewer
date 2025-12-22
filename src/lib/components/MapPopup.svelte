@@ -1,9 +1,12 @@
 <script>
   import { onMount } from 'svelte';
-  import { datalaag, time, scenario, csvData } from '$lib/stores.js';
+  import { datalaag, time, scenario, csvData, selectedLayer } from '$lib/stores.js';
   import { loadCsvData } from '$lib/utils/csv.js';
   import { isPointInCountry } from '$lib/utils/geo.js';
   import { prepareChartData, renderPopupChart } from '$lib/utils/popupChart.js';
+  import { isContextLayer, getContextLayerConfig } from '$lib/config/contextLayers.js';
+  import { getClimateLayerConfig } from '$lib/config/climateLayers.js';
+  import { isGeojsonLayer } from '$lib/config/geojsonLayers.js';
 
   // Track map parameter changes
   let currentDataLayer;
@@ -25,13 +28,18 @@
   let previousScenario = '';
   let previousTime = '';
 
-  // Watch for store changes to reload CSV
+  // Check if current layer is a context layer or GeoJSON layer
+  $: isCurrentLayerContext = isContextLayer($selectedLayer);
+  $: isCurrentLayerGeojson = isGeojsonLayer($datalaag);
+
+  // Watch for store changes to reload CSV (only for standard climate layers)
   $: if ($datalaag !== previousDatalaag || $scenario !== previousScenario || $time !== previousTime) {
     previousDatalaag = $datalaag;
     previousScenario = $scenario;
     previousTime = $time;
 
-    if (typeof document !== 'undefined' && document.readyState === 'complete') {
+    // Only load CSV for standard climate layers (not context layers or GeoJSON layers)
+    if (!isCurrentLayerContext && !isCurrentLayerGeojson && typeof document !== 'undefined' && document.readyState === 'complete') {
       csvData.set([]);
       loadCsvData($datalaag, $scenario, countryCode);
       if (popup && popup.isOpen()) {
@@ -44,7 +52,10 @@
   // Initialize popup on mount
   onMount(() => {
     if (L && map) setupPopup();
-    loadCsvData($datalaag, $scenario, countryCode);
+    // Only load CSV for standard climate layers
+    if (!isCurrentLayerContext && !isCurrentLayerGeojson) {
+      loadCsvData($datalaag, $scenario, countryCode);
+    }
 
     return () => {
       if (popup) popup.remove();
@@ -65,16 +76,72 @@
   /** Setup Leaflet popup and click handler */
   function setupPopup() {
     if (!map) return;
-    
+
+    // Create popup with default options (will be updated per layer)
     popup = L.popup({
-      maxWidth: 1000,
-      autoPan: true,
-      className: 'atlas-popup'
+      autoPan: true
     });
 
     map.on('click', async function (e) {
       const lat = e.latlng.lat.toFixed(6);
       const lng = e.latlng.lng.toFixed(6);
+
+      // Check if current layer is a context layer
+      const layerConfig = getContextLayerConfig($selectedLayer);
+
+      // For context layers, show different popup content
+      if (layerConfig) {
+        // Find the clicked feature based on layer type
+        let clickedFeature = null;
+        let minDistance = Infinity;
+
+        map.eachLayer(layer => {
+          if (layer.feature) {
+            // Handle point geometries
+            if (layerConfig.type === 'point' && layer.feature.geometry.type === 'Point') {
+              const featureLatlng = L.latLng(
+                layer.feature.geometry.coordinates[1],
+                layer.feature.geometry.coordinates[0]
+              );
+              const distance = e.latlng.distanceTo(featureLatlng);
+
+              // Check if click is within threshold
+              if (distance < layerConfig.clickThreshold && distance < minDistance) {
+                minDistance = distance;
+                clickedFeature = layer.feature;
+              }
+            }
+            // Future: Add support for polygon geometries here
+            // if (layerConfig.type === 'polygon' && ...) { ... }
+          }
+        });
+
+        if (clickedFeature) {
+          // Use the layer-specific popup content generator
+          const content = layerConfig.getPopupContent(clickedFeature, $time, $scenario);
+
+          if (content) {
+            // Position popup at the feature's actual location, not the click location
+            const featureLatlng = L.latLng(
+              clickedFeature.geometry.coordinates[1],
+              clickedFeature.geometry.coordinates[0]
+            );
+
+            // Apply layer-specific popup options
+            Object.assign(popup.options, layerConfig.popupOptions);
+
+            popup.setLatLng(featureLatlng).setContent(content).openOn(map);
+          }
+        } else {
+          // No feature clicked, close popup if open
+          if (popup && popup.isOpen()) {
+            popup.close();
+          }
+        }
+        // Always return early for context layers to prevent climate popup from showing
+        return;
+      }
+
       console.log('check')
       // Validate point inside selected country
       const isInside = isPointInCountry(e.latlng, countryCode);
@@ -83,6 +150,10 @@
         if (map.hasLayer(popup)) popup.closePopup(popup);
         return;
       }
+
+      // Apply climate layer popup options
+      const climateConfig = getClimateLayerConfig($selectedLayer);
+      Object.assign(popup.options, climateConfig.popupOptions);
 
       // Show loading popup
       popup
@@ -298,9 +369,31 @@
     margin: 5px 0;
   }
 
-  :global(.atlas-popup .leaflet-popup-content) {
+  /* Wide popup - for content that needs more space (e.g., charts) */
+  :global(.wide-popup .leaflet-popup-content) {
     margin: 8px 0;
     width: 370px !important;
+  }
+
+  /* Compact popup - for simple content */
+  :global(.compact-popup .leaflet-popup-content) {
+    margin: 8px 0;
+    width: auto !important;
+  }
+
+  /* Responsive width for mobile */
+  @media (max-width: 768px) {
+    /* Compact popup narrower on mobile */
+    :global(.compact-popup .leaflet-popup-content) {
+      max-width: 280px !important;
+      min-width: 180px !important;
+    }
+
+    /* Wide popup responsive on mobile but stays usable */
+    :global(.wide-popup .leaflet-popup-content) {
+      width: 90vw !important;
+      max-width: 370px !important;
+    }
   }
 
   :global(.atlas-popup) {
