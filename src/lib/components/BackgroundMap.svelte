@@ -8,6 +8,7 @@
   import { getCountryConfig } from "$lib/config/countries.js"
   import { styleGeoJsonFeature, getLegendItems } from "$lib/utils/geojsonStyles.js"
   import { isContextLayer } from "$lib/config/contextLayers.js"
+  import { isGeojsonLayer, getGeojsonLayerConfig, getGeojsonLayerUrl } from "$lib/config/geojsonLayers.js"
 
   /** @type {any} */
   let map
@@ -156,6 +157,36 @@ function getLayerId(datalaag, time, scenario) {
    * @returns {Promise<any|null>} The loaded GeoJSON layer or null if there was an error
    */
   async function loadGeoJsonLayer(layerId) {
+    // Check if this is a configured GeoJSON layer (like River Flood, Water Stress)
+    if (isGeojsonLayer($datalaag)) {
+      const config = getGeojsonLayerConfig($datalaag);
+      // Include time and scenario in cache key for layers that support it
+      const cacheKey = config?.supportsTimeScenario
+        ? `${$datalaag.toLowerCase().replace(/\s+/g, '_')}_${$time}_${$scenario}`
+        : $datalaag.toLowerCase().replace(/\s+/g, '_');
+
+      if (!geojsonLayers[cacheKey] && config) {
+        try {
+          const url = getGeojsonLayerUrl($datalaag, $time, $scenario);
+          if (!url) throw new Error(`No URL configured for ${$datalaag}`);
+
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Failed to fetch ${$datalaag}: ${response.status}`);
+          const data = await response.json();
+
+          geojsonLayers[cacheKey] = L.geoJSON(data, {
+            style: (feature) => config.getStyle(feature, $time, $scenario),
+            interactive: config.interactive
+          });
+        } catch (error) {
+          console.error(`Error loading ${$datalaag}:`, error);
+          return null;
+        }
+      }
+      return geojsonLayers[cacheKey];
+    }
+
+    // Standard climate layer handling
     if (!layerId) return null;
 
     // Get base code from layerId
@@ -197,9 +228,10 @@ function getLayerId(datalaag, time, scenario) {
    * Function to get the appropriate context layer filename based on time period
    * @param {string} layerName - Base name of the context layer
    * @param {string} time - Current time period
+   * @param {string} scenario - Scenario (low/high)
    * @returns {string} Full filename for the context layer
    */
-  function getContextLayerFilename(layerName, time) {
+  function getContextLayerFilename(layerName, time, scenario) {
     if (layerName === 'population') {
       // Map time periods to population data years
       const timeNormalized = time ? time.toLowerCase() : 'past';
@@ -240,22 +272,50 @@ function getLayerId(datalaag, time, scenario) {
   }
 
   /**
+   * Get water stress style based on stress category
+   * @param {number} bws_cat - Water stress category (0-4)
+   * @returns {string} Color for the stress level
+   */
+  function getWaterStressColor(bws_cat) {
+    // Aqueduct color scheme: yellow (low stress) to red (high stress)
+    const colors = {
+      '-1': '#d1d1d1', // Arid and low water use - light gray
+      0: '#ffffbe', // Low - pale yellow
+      1: '#fed976', // Low-Medium - darker yellow
+      2: '#f47b50', // Medium-High - orange
+      3: '#d8392c', // High - red
+      4: '#a41f35' // Extremely High - dark red
+    };
+    return colors[bws_cat] !== undefined ? colors[bws_cat] : '#d1d1d1';
+  }
+
+
+  /**
    * Function to load a context layer (e.g., population)
    * @param {string} layerName - Name of the context layer
    * @param {string} time - Current time period
+   * @param {string} scenario - Current scenario (low/high)
    * @returns {Promise<any|null>} The loaded GeoJSON layer or null if there was an error
    */
-  async function loadContextLayer(layerName, time) {
+  async function loadContextLayer(layerName, time, scenario) {
     if (!layerName || !countryConfig) return null;
 
-    const filename = getContextLayerFilename(layerName, time);
-    const cacheKey = `${layerName}_${time}`;
-    const url = `${countryConfig.geojsonBaseUrl}${filename}`;
+    const filename = getContextLayerFilename(layerName, time, scenario);
+    const cacheKey = `${layerName}_${time}_${scenario || 'none'}`;
 
     try {
       // Check if we already have this layer cached
       if (!contextLayerInstances[cacheKey]) {
-        const response = await fetch(url);
+        // Try local static folder first, then S3
+        let url = `/${filename}`;
+        let response = await fetch(url);
+
+        // If local fetch fails, try S3
+        if (!response.ok && countryConfig.geojsonBaseUrl) {
+          url = `${countryConfig.geojsonBaseUrl}${filename}`;
+          response = await fetch(url);
+        }
+
         if (!response.ok) throw new Error(`Failed to fetch context layer: ${response.status}`);
         const data = await response.json();
 
@@ -397,13 +457,20 @@ function getLayerId(datalaag, time, scenario) {
     if (isCurrentLayerContext) {
       // Load context layer (e.g., Population)
       const layerName = $selectedLayer.toLowerCase();
-      loadContextLayer(layerName, $time).then(layer => {
+      loadContextLayer(layerName, $time, $scenario).then(layer => {
         if (layer && map && !map.hasLayer(layer)) {
           layer.addTo(map);
         }
       }).catch(err => console.error(`Error adding context layer ${$selectedLayer}:`, err));
+    } else if (isGeojsonLayer($datalaag)) {
+      // Load GeoJSON-based map layer (e.g., River Flood)
+      loadGeoJsonLayer(null).then(layer => {
+        if (layer && map) {
+          layer.addTo(map);
+        }
+      }).catch(err => console.error(`Error adding GeoJSON layer ${$datalaag}:`, err));
     } else {
-      // Load climate layer
+      // Load standard climate layer
       const layerId = getLayerId($selectedLayer, $time, $scenario);
 
       if (!layerId) { /* Skip if no valid layer ID */ }

@@ -16,9 +16,10 @@
  * Get popup content for population layer
  * @param {Object} feature - GeoJSON feature
  * @param {string} time - Current time period ('Past' or '2050')
+ * @param {string} scenario - Current scenario (not used for population)
  * @returns {string|null} HTML content for popup
  */
-function getPopulationPopupContent(feature, time) {
+function getPopulationPopupContent(feature, time, scenario) {
   const props = feature.properties;
 
   // Map time period to population property - only 2025 and 2050 available
@@ -43,6 +44,47 @@ function getPopulationPopupContent(feature, time) {
   }
 
   return null;
+}
+
+/**
+ * Get popup content for water stress layer
+ * @param {Object} feature - GeoJSON feature
+ * @param {string} time - Current time period
+ * @param {string} scenario - Current scenario (low/high)
+ * @returns {string|null} HTML content for popup
+ */
+function getWaterStressPopupContent(feature, time, scenario) {
+  const props = feature.properties;
+  const basinName = props.name_1 || 'Water Basin';
+
+  let stressLabel, stressRaw;
+  const timeNormalized = time ? time.toLowerCase() : 'past';
+
+  if (timeNormalized === 'past' || timeNormalized === 'hist') {
+    // Baseline uses bws_label and bws_raw
+    stressLabel = props.bws_label || 'No data';
+    stressRaw = props.bws_raw;
+  } else {
+    // Future data (2050/2080) uses scenario-specific fields
+    const scenarioNormalized = scenario ? scenario.toLowerCase() : 'high';
+    const scenarioPrefix = scenarioNormalized === 'low' ? 'opt' : 'pes';
+    const year = timeNormalized === '2080' ? '80' : '50';
+    const labelField = `${scenarioPrefix}${year}_ws_x_l`;
+    const rawField = `${scenarioPrefix}${year}_ws_x_r`;
+
+    stressLabel = props[labelField] || 'No data';
+    stressRaw = props[rawField];
+  }
+
+  return `
+    <div class="popup-content">
+      <div class="value-text"><strong>${basinName}</strong></div>
+      <div style="text-align: center; margin-top: 5px;">
+        Water Stress: ${stressLabel}
+        ${stressRaw != null ? `<br><small>(${(stressRaw * 100).toFixed(1)}%)</small>` : ''}
+      </div>
+    </div>
+  `;
 }
 
 /**

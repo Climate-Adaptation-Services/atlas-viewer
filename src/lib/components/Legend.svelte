@@ -2,6 +2,7 @@
   import { browser } from "$app/environment"
   import { datalaag, time } from "$lib/stores.js"
   import { getLegendItems } from "$lib/utils/geojsonStyles.js"
+  import { isGeojsonLayer, getGeojsonLayerLegend } from "$lib/config/geojsonLayers.js"
 
   // Props
   /** @type {string} */
@@ -55,7 +56,8 @@
       "Total rainfall": "mm",
       "Days above 20 mm": "days",
       "Dry spells": "5 dry days in a row",
-      "Population": "people"
+      "Population": "people",
+      "River Flood": "Inundation depth"
     }
 
     // Try to find a match in the unitMap
@@ -85,6 +87,22 @@
     ];
   }
 
+  /**
+   * Get water stress legend items
+   * @returns {Array<{color: string, label: string, subtitle: string}>}
+   */
+  const getWaterStressLegendItems = () => {
+    return [
+      { color: '#a41f35', label: 'Extremely high', subtitle: '(>80%)' },
+      { color: '#d8392c', label: 'High', subtitle: '(40-80%)' },
+      { color: '#f47b50', label: 'Medium-high', subtitle: '(20-40%)' },
+      { color: '#fed976', label: 'Low-medium', subtitle: '(10-20%)' },
+      { color: '#ffffbe', label: 'Low', subtitle: '(<10%)' },
+      { color: '#d1d1d1', label: 'Arid and low water use', subtitle: '' }
+    ];
+  }
+
+
 </script>
 
 <div class="legend">
@@ -93,7 +111,17 @@
     <div class="legend-header">
       <p class="legend-title">
         {#if dataType === 'context'}
-          {layerName} ({getLegendUnit(layerName)})
+          {#if getLegendUnit(layerName)}
+            {layerName} ({getLegendUnit(layerName)})
+          {:else}
+            {layerName}
+          {/if}
+        {:else if isGeojsonLayer($datalaag)}
+          {#if getLegendUnit($datalaag)}
+            {$datalaag} ({getLegendUnit($datalaag)})
+          {:else}
+            {$datalaag}
+          {/if}
         {:else if isShowingChange}
           Change in {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
         {:else}
@@ -112,6 +140,43 @@
           </div>
         {/each}
       </div>
+    {/if}
+
+    <!-- Water Stress Context Layer Legend -->
+    {#if dataType === 'context' && layerName === 'Water Stress'}
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 4px 0;">
+        {#each getWaterStressLegendItems() as item}
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="color-box" style="background-color: {item.color}; flex-shrink: 0;"></div>
+            <span style="font-size: 13px; line-height: 1.2;">
+              {item.label}
+              {#if item.subtitle}
+                <span style="color: #666; margin-left: 4px;">{item.subtitle}</span>
+              {/if}
+            </span>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+    <!-- GeoJSON Layer Legends (generic handling for all configured GeoJSON layers) -->
+    {#if dataType !== 'context' && isGeojsonLayer($datalaag)}
+      {@const legendItems = getGeojsonLayerLegend($datalaag)}
+      {#if legendItems}
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 4px 0;">
+          {#each legendItems as item}
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div class="color-box" style="background-color: {item.color}; flex-shrink: 0;"></div>
+              <span style="font-size: 13px; line-height: 1.2;">
+                {item.label}
+                {#if item.subtitle}
+                  <span style="color: #666; margin-left: 4px;">{item.subtitle}</span>
+                {/if}
+              </span>
+            </div>
+          {/each}
+        </div>
+      {/if}
     {/if}
 
     <!-- WMS Legend Image -->
@@ -176,8 +241,8 @@
     padding-right: 10px;
     border-radius: 25px;
     width: 3vw;
-    min-width: 80px;
-    max-width: 180px;
+    min-width: 120px;
+    max-width: 220px;
   }
 
   .legend-title {

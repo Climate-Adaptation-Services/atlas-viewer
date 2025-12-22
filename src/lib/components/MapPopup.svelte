@@ -6,6 +6,7 @@
   import { prepareChartData, renderPopupChart } from '$lib/utils/popupChart.js';
   import { isContextLayer, getContextLayerConfig } from '$lib/config/contextLayers.js';
   import { getClimateLayerConfig } from '$lib/config/climateLayers.js';
+  import { isGeojsonLayer } from '$lib/config/geojsonLayers.js';
 
   // Track map parameter changes
   let currentDataLayer;
@@ -27,16 +28,18 @@
   let previousScenario = '';
   let previousTime = '';
 
-  // Check if current layer is a context layer
+  // Check if current layer is a context layer or GeoJSON layer
   $: isCurrentLayerContext = isContextLayer($selectedLayer);
+  $: isCurrentLayerGeojson = isGeojsonLayer($datalaag);
 
-  // Watch for store changes to reload CSV (only for climate layers)
+  // Watch for store changes to reload CSV (only for standard climate layers)
   $: if ($datalaag !== previousDatalaag || $scenario !== previousScenario || $time !== previousTime) {
     previousDatalaag = $datalaag;
     previousScenario = $scenario;
     previousTime = $time;
 
-    if (!isCurrentLayerContext && typeof document !== 'undefined' && document.readyState === 'complete') {
+    // Only load CSV for standard climate layers (not context layers or GeoJSON layers)
+    if (!isCurrentLayerContext && !isCurrentLayerGeojson && typeof document !== 'undefined' && document.readyState === 'complete') {
       csvData.set([]);
       loadCsvData($datalaag, $scenario, countryCode);
       if (popup && popup.isOpen()) {
@@ -49,7 +52,10 @@
   // Initialize popup on mount
   onMount(() => {
     if (L && map) setupPopup();
-    loadCsvData($datalaag, $scenario, countryCode);
+    // Only load CSV for standard climate layers
+    if (!isCurrentLayerContext && !isCurrentLayerGeojson) {
+      loadCsvData($datalaag, $scenario, countryCode);
+    }
 
     return () => {
       if (popup) popup.remove();
@@ -112,7 +118,7 @@
 
         if (clickedFeature) {
           // Use the layer-specific popup content generator
-          const content = layerConfig.getPopupContent(clickedFeature, $time);
+          const content = layerConfig.getPopupContent(clickedFeature, $time, $scenario);
 
           if (content) {
             // Position popup at the feature's actual location, not the click location

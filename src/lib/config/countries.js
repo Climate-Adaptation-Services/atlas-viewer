@@ -36,8 +36,9 @@ export const countryConfigs = {
       "Maximum temperature": { times: ["Past", "2050", "2080"], hasScenarios: true },
       "Total rainfall": { times: ["Past", "2050", "2080"], hasScenarios: true },
       "Days above 20 mm": { times: ["Past", "2050", "2080"], hasScenarios: true },
-      "Dry spells": { times: ["Past", "2050", "2080"], hasScenarios: true }
-      // No population data for Zimbabwe
+      "Dry spells": { times: ["Past", "2050", "2080"], hasScenarios: true },
+      // Context layers
+      "River Flood": { times: ["Past"], hasScenarios: false }
     }
   },
   kenya: {
@@ -57,8 +58,22 @@ export const countryConfigs = {
       "Total rainfall": { times: ["Past", "2050", "2080"], hasScenarios: true },
       "Days above 20 mm": { times: ["Past", "2050", "2080"], hasScenarios: true },
       "Dry spells": { times: ["Past", "2050", "2080"], hasScenarios: true },
+      // Regular map layers
+      "Water Stress": { times: ["Past", "2050", "2080"], hasScenarios: true },
       // Context layers - Population only has Past (2025) and 2050, no scenarios
-      "Population": { times: ["Past", "2050"], hasScenarios: false }
+      "Population": { times: ["Past", "2050"], hasScenarios: false },
+      "River Flood": { times: ["Past"], hasScenarios: false }
+    }
+  },
+  ghana: {
+    name: "Ghana",
+    center: [7.9465, -1.0232], // Ghana's geographic center
+    zoom: 7,
+    dataType: "geojson",
+    geojsonBaseUrl: "/", // Local files
+    layerAvailability: {
+      // Only River Flood for now
+      "River Flood": { times: ["Past"], hasScenarios: false }
     }
   }
 };

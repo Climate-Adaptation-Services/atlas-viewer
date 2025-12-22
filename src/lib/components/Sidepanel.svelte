@@ -8,8 +8,8 @@
   const dispatch = createEventDispatcher()
 
   const optionsTemperature = ["Average temperature", "Minimum temperature", "Maximum temperature"]
-  const optionsDrought = ["Dry spells"]
-  const optionsPrecipitation = ["Total rainfall", "Days above 20 mm"]
+  const optionsDrought = ["Dry spells", "Water Stress"]
+  const optionsPrecipitation = ["Total rainfall", "Days above 20 mm", "River Flood"]
   const allContextLayerOptions = getContextLayerNames()
 
   const options2 = [
