@@ -4,6 +4,7 @@
 
 import { opacityMap } from '../stores.js';
 import { get } from 'svelte/store';
+import { interpolateYlOrBr, interpolateReds } from 'd3-scale-chromatic';
 
 /** @typedef {'temperature'|'temperatureProjection'|'drySpell'|'drySpellProjection'|'rainfall'|'rainfallProjection'|'daysAbove20mm'|'daysAbove20mmProjection'} ScaleType */
 
@@ -21,24 +22,13 @@ const SCALES = {
     min: 10,
     max: 36,
     unit: "°C",
-    colors: [
-      "#ffffe0", "#fffedb", "#fffdd6", "#fffcd1", "#fffbcc", "#fffac7", "#fff9c2", "#fff8bd", 
-      "#fff7b8", "#fff6b3", "#fef5ae", "#fef4a9", "#fef3a4", "#fef29f", "#fef19a", "#fdef95", 
-      "#fdec90", "#fde98b", "#fce686", "#fce281", "#fcde7c", "#fbda77", "#fbd572", "#fad06d", 
-      "#f9cb68", "#f9c563", "#f8bf5e", "#f7b859", "#f6b154", "#f5aa4f", "#f4a249", "#f39a44", 
-      "#f2923f", "#f1893a", "#f08035", "#ef7630", "#ee6b2c", "#ed6028", "#eb5524", "#ea4921", 
-      "#e93d1e", "#e8311c", "#e7261b", "#e61b1a", "#e51019", "#e40518", "#dc0419", "#d00319", 
-      "#c4021c"
-    ]
+    colors: Array.from({length: 32}, (_, i) => interpolateYlOrBr(i / 31))
   },
   temperatureProjection: {
-    min: 1,
+    min: 0,
     max: 5,
     unit: "°C",
-    colors: [
-      "#ffffe0", "#fff7b8", "#fef4a9", "#fef19a", "#fde98b", "#fcde7c", "#f9cb68", "#f7b859",
-      "#f4a249", "#f1893a", "#ef7630", "#eb5524", "#e8311c", "#e61b1a", "#c4021c"
-    ]
+    colors: Array.from({length: 32}, (_, i) => interpolateReds(i / 31))
   },
   drySpell: {
     min: 0,
