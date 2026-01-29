@@ -101,8 +101,12 @@
 /* Responsive width for mobile devices */
 @media (max-width: 800px) {
 	.sidepanel {
-		width: 80vw; /* Wider panel on mobile */
+		width: 85vw; /* Wider panel on mobile */
 		left: 0;
+		top: 0;
+		height: 100vh;
+		border-radius: 0 15px 15px 0;
+		overflow-y: auto;
 	}
 }
 
@@ -145,19 +149,23 @@
 	
 	/* Mobile toggle button that appears when panel is closed */
 	.mobile-toggle {
-		display: block;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		position: fixed;
-		top: 10px;
-		left: 10px;
-		background-color: transparent;
+		top: 15px;
+		left: 15px;
+		background-color: #017e9f;
+		color: white;
 		border: none;
-		box-shadow: none;
-		padding: 8px;
-		font-size: 18px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+		padding: 12px 16px;
+		font-size: 20px;
 		z-index: 1002;
 		cursor: pointer;
+		border-radius: 8px;
 	}
-	
+
 	.mobile-toggle.hidden {
 		display: none;
 	}

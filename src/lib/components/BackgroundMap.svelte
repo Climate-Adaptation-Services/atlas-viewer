@@ -26,6 +26,8 @@
   let L
   /** @type {any} */
   let countryConfig
+  /** @type {boolean} */
+  let isLoading = false
 
 const variableBases = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"];
 const scenarios = ["low", "high"];
@@ -519,6 +521,7 @@ function getLayerId(datalaag, time, scenario) {
 
     if (isCurrentLayerContext) {
       // Load context layer (e.g., Population, Agroclimatic zones)
+      isLoading = true;
       loadContextLayer($selectedLayer, $time, $scenario).then(layer => {
         if (layer && map) {
           if (!map.hasLayer(layer)) {
@@ -526,14 +529,17 @@ function getLayerId(datalaag, time, scenario) {
           }
           activeContextLayer = layer;
         }
-      }).catch(err => console.error(`Error adding context layer ${$selectedLayer}:`, err));
+      }).catch(err => console.error(`Error adding context layer ${$selectedLayer}:`, err))
+        .finally(() => isLoading = false);
     } else if (isGeojsonLayer($datalaag)) {
       // Load GeoJSON-based map layer (e.g., River Flood)
+      isLoading = true;
       loadGeoJsonLayer(null).then(layer => {
         if (layer && map) {
           layer.addTo(map);
         }
-      }).catch(err => console.error(`Error adding GeoJSON layer ${$datalaag}:`, err));
+      }).catch(err => console.error(`Error adding GeoJSON layer ${$datalaag}:`, err))
+        .finally(() => isLoading = false);
     } else {
       // Load standard climate layer
       const layerId = getLayerId($selectedLayer, $time, $scenario);
@@ -546,11 +552,13 @@ function getLayerId(datalaag, time, scenario) {
       }
       else if (countryConfig.dataType === "geojson") {
         // Load and add GeoJSON layer for GeoJSON-based countries
+        isLoading = true;
         loadGeoJsonLayer(layerId).then(layer => {
           if (layer && map) {
             layer.addTo(map);
           }
-        }).catch(err => console.error('Error adding GeoJSON layer:', err));
+        }).catch(err => console.error('Error adding GeoJSON layer:', err))
+          .finally(() => isLoading = false);
       }
     }
   }
@@ -560,7 +568,14 @@ function getLayerId(datalaag, time, scenario) {
 <div class="backgroundmap">
   <!-- Map container -->
   <div class="map" id="map"></div>
-  
+
+  <!-- Loading indicator -->
+  {#if isLoading}
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+  {/if}
+
   {#if map && L}
     <MapPopup 
       {map} 
@@ -595,6 +610,30 @@ function getLayerId(datalaag, time, scenario) {
     height: 100%;
     width: 100%;
   }
-    
-  /* Map popup styling moved to the MapPopup component */
+
+  .loading-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 </style>

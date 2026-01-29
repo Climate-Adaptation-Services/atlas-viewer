@@ -40,7 +40,7 @@
   }
 
   // Check if a time period is available for current layer
-  $: isTimeAvailable = (timeName) => {
+  $: isTimeAvailable = (/** @type {string} */ timeName) => {
     return layerAvailability.times.includes(timeName)
   }
 
@@ -70,66 +70,66 @@
   export let selectedTime = 0
   export let selectedScenario = 0
 
-  function handleClickTheme(event) {
-    theme.set(event.target.id)
-    let selectedTheme = document.getElementsByClassName($theme)
-    let prevTheme = document.querySelector(".active")
-    let prevCaption = document.querySelector(".activecaption")
-
-    if (prevTheme) {
-      prevTheme.classList.remove("active")
-      prevCaption.classList.remove("activecaption")
-    }
-    selectedTheme[0].classList.add("active")
-    selectedTheme[1].classList.add("activecaption")
-  }
-
+  /** @param {Event} e */
   function setSelectedTime(e) {
-    const newValue = Number(e.target.value)
+    const target = /** @type {HTMLButtonElement} */ (e.target)
+    const newValue = Number(target.value)
     selectedTime = newValue
     dispatch("change", { value: newValue })
-    $time = options2.find((x) => x.id === selectedTime).name
+    const found = options2.find((x) => x.id === selectedTime)
+    if (found) $time = found.name
   }
 
+  /** @param {Event} e */
   function setSelectedScenario(e) {
-    const newValue = Number(e.target.value)
+    const target = /** @type {HTMLButtonElement} */ (e.target)
+    const newValue = Number(target.value)
     selectedScenario = newValue
     dispatch("change", { value: newValue })
-    $scenario = options3.find((x) => x.id === selectedScenario).name
+    const found = options3.find((x) => x.id === selectedScenario)
+    if (found) $scenario = found.name
   }
 
 </script>
 
 <section>
   <h2 class="first">Choose a climate theme</h2>
-  <div class="item">
-    <img
-      class="themelogo heter active"
-      id="heter"
-      src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/heat.svg"
-      on:click={handleClickTheme} />
-    <p class="caption heter activecaption">Heat</p>
-  </div>
-  <div class="item">
-    <img
-      class="themelogo droger"
-      id="droger"
-      src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/drought.svg"
-      on:click={handleClickTheme} />
-    <p class="caption droger">Drought</p>
-  </div>
-  <div class="item">
-    <img
-      class="themelogo precipitation"
-      id="precipitation"
-      src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/rain.svg"
-      on:click={handleClickTheme} />
-    <p class="caption precipitation">Extreme rain</p>
+  <div class="theme-buttons">
+    <button
+      class="theme-btn"
+      class:active={$theme === 'heter'}
+      on:click={() => theme.set('heter')}>
+      <img
+        class="themelogo"
+        src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/heat.svg"
+        alt="Heat" />
+      <span class="caption">Heat</span>
+    </button>
+    <button
+      class="theme-btn"
+      class:active={$theme === 'droger'}
+      on:click={() => theme.set('droger')}>
+      <img
+        class="themelogo"
+        src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/drought.svg"
+        alt="Drought" />
+      <span class="caption">Drought</span>
+    </button>
+    <button
+      class="theme-btn"
+      class:active={$theme === 'precipitation'}
+      on:click={() => theme.set('precipitation')}>
+      <img
+        class="themelogo"
+        src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/rain.svg"
+        alt="Extreme rain" />
+      <span class="caption">Rain</span>
+    </button>
   </div>
   
   <h2>Select a map layer</h2>
   {#each options as option}
-    <label class="keuzes">
+    <label class="keuzes" class:selected={$selectedLayer === option}>
       <input class="option" type="radio" name="laag" value={option} bind:group={$selectedLayer} />
       {option}
     </label>
@@ -138,7 +138,7 @@
   {#if contextLayerOptions.length > 0}
     <h2>Context layers</h2>
     {#each contextLayerOptions as option}
-      <label class="keuzes">
+      <label class="keuzes" class:selected={$selectedLayer === option}>
         <input class="option" type="radio" name="laag" value={option} bind:group={$selectedLayer} />
         {option}
       </label>
@@ -218,48 +218,59 @@
 <style>
   /* Mobile responsive styles */
   @media (max-width: 768px) {
+    section {
+      padding-bottom: 2vh;
+    }
+
     h2 {
-      font-size: 2.5vh !important;
-      margin-top: 1vh !important;
-    }
-    
-    h2.first {
-      margin-top: 3vh !important;
-    }
-    
-    .keuzes {
       font-size: 2.4vh !important;
-      gap: 2vw !important;
-      margin-bottom: 1.5vh !important;
+      margin-top: 1.5vh !important;
+      margin-bottom: 1vh !important;
     }
-    
+
+    h2.first {
+      margin-top: 1.5vh !important;
+    }
+
+    .keuzes {
+      font-size: 2.2vh !important;
+      gap: 2.5vw !important;
+      margin-bottom: 0.3vh !important;
+      padding: 1.2vh 2.5vw !important;
+      margin-left: -2.5vw !important;
+      border-radius: 8px !important;
+    }
+
     .option {
+      width: 2.8vh !important;
+      height: 2.8vh !important;
+      flex-shrink: 0;
+    }
+
+    .option:checked::after {
+      font-size: 1.8vh !important;
+    }
+
+    .buttons button {
+      height: 5.5vh !important;
+      width: 20vw !important;
+      font-size: 2.2vh !important;
+      margin-right: 2vw !important;
+      border-radius: 20px !important;
+    }
+
+    .info-icon {
       width: 3vh !important;
       height: 3vh !important;
     }
-    
-    .option:checked::after {
-      font-size: 2vh !important;
+
+    .opacity-slider input {
+      height: 2vh !important;
     }
-    
-    button {
-      height: 7vh !important;
-      width: 20vw !important;
-      font-size: 2.4vh !important;
-      margin-right: 2vw !important;
-    }
-    
-    .caption {
-      font-size: 2.2vh !important;
-    }
-    
-    .themelogo {
-      width: 8vw !important;
-    }
-    
-    div.item {
-      width: 10vw !important;
-      margin-right: 2vw !important;
+
+    .opacity-slider input::-webkit-slider-thumb {
+      width: 3.5vh !important;
+      height: 3.5vh !important;
     }
   }
   
@@ -380,8 +391,22 @@
     align-items: center;
     gap: 0.8vw;
     cursor: pointer;
-    transition: all 0.3s ease-in-out;
+    transition: all 0.2s ease-in-out;
     font-size: 1.9vh;
+    padding: 0.8vh 1vw;
+    margin: 0.3vh 0;
+    border-radius: 8px;
+    margin-left: -1vw;
+  }
+
+  .keuzes:hover {
+    background-color: rgba(1, 126, 159, 0.1);
+  }
+
+  .keuzes.selected {
+    background-color: rgba(1, 126, 159, 0.15);
+    border-left: 3px solid #017e9f;
+    font-weight: 500;
   }
 
   /* Style the square option box */
@@ -418,19 +443,14 @@
     height: 100%;
   }
 
-  .logo {
-    width: 23vw;
-    margin-bottom: 12vh;
-  }
-
-  button {
+  .buttons button {
     margin-right: 0.5vw;
     height: 6vh;
     width: 4.5vw;
     border-radius: 30px;
     border-width: 0.3vh;
     font-size: 1.9vh;
-    background-color: "lightgrey";
+    background-color: lightgrey;
     margin-bottom: 1vh;
     cursor: pointer;
     transition:
@@ -438,37 +458,27 @@
       color 0.3s;
   }
 
-  button:hover {
+  .buttons button:hover {
     background-color: #017e9f;
     color: white;
   }
 
-  button.selected {
+  .buttons button.selected {
     background-color: #017e9f;
     color: white;
   }
 
-  button:disabled,
-  button.disabled {
+  .buttons button:disabled,
+  .buttons button.disabled {
     opacity: 0.3;
     cursor: not-allowed;
     background-color: #e0e0e0;
   }
 
-  button:disabled:hover,
-  button.disabled:hover {
+  .buttons button:disabled:hover,
+  .buttons button.disabled:hover {
     background-color: #e0e0e0;
     color: initial;
-  }
-
-  .description {
-    font-size: 2vh;
-  }
-
-  .source {
-    font-size: 2vh;
-    font-style: italic;
-    bottom: 2vh;
   }
 
   .first {
@@ -480,57 +490,74 @@
     font-size: 2vh;
   }
 
-  div.item {
-    vertical-align: top;
-    display: inline-block;
-    text-align: center;
-    width: 3vw;
-    margin: 0vw;
-    margin-bottom: 0vh;
-    font-size: 3vh;
-    margin-right: 0.5vw;
-    /* border: 1px solid #017E9F;
-        border-radius: 10px; */
+  .theme-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1vh;
+  }
+
+  .theme-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8vh 0.8vw;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.03);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    opacity: 0.5;
+    flex: 1;
+    max-width: 30%;
+  }
+
+  .theme-btn:hover {
+    background: rgba(1, 126, 159, 0.1);
+    opacity: 0.8;
+  }
+
+  .theme-btn.active {
+    background: rgba(1, 126, 159, 0.15);
+    border-color: #017e9f;
+    opacity: 1;
   }
 
   .themelogo {
-    width: 2.7vw;
-  }
-  
-  /* Increase theme icon size on mobile devices */
-  @media (max-width: 768px) {
-    .themelogo {
-      width: 6vw;
-      min-width: 32px;
-    }
-    
-    div.item {
-      width: 6vw !important;
-      min-width: 32px;
-      margin-right: 3vw !important;
-    }
-    
-    .caption {
-      font-size: 2vh;
-    }
+    width: 3vw;
+    min-width: 32px;
+    height: auto;
   }
 
   .caption {
-    font-size: 1.7vh;
-    margin-top: 0.1vh;
-    margin-bottom: 0vh;
+    font-size: 1.9vh;
+    margin-top: 0.8vh;
+    font-weight: 500;
+    color: #333;
   }
 
-  .themelogo:not(.active) {
-    opacity: 0.3;
-  }
+  /* Mobile styles for theme buttons */
+  @media (max-width: 768px) {
+    .theme-buttons {
+      gap: 2vw;
+      margin-bottom: 1.5vh;
+    }
 
-  .caption:not(.activecaption) {
-    opacity: 0;
-  }
+    .theme-btn {
+      padding: 1.2vh 1.5vw;
+      border-radius: 10px;
+      max-width: none;
+    }
 
-  .countrylogo:not(.activecountry) {
-    opacity: 0.3;
+    .themelogo {
+      width: 8vw;
+      min-width: 32px;
+    }
+
+    .caption {
+      font-size: 2vh;
+      margin-top: 0.6vh;
+    }
   }
 
   .opacity-slider {
@@ -559,44 +586,4 @@
     transition: background-color 0.3s ease-in-out;
   }
 
-  .context-layer {
-    display: flex;
-    align-items: center;
-    gap: 0.8vw;
-    cursor: pointer;
-    transition: all 0.3s ease-in-out;
-    font-size: 1.9vh;
-    margin-bottom: 1vh;
-  }
-
-  .checkbox {
-    appearance: none;
-    width: 2vh;
-    height: 2vh;
-    border: 2px solid #017e9f;
-    border-radius: 4px;
-    position: relative;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .checkbox:checked {
-    background-color: #017e9f;
-    border-color: #017e9f;
-  }
-
-  .checkbox:checked::after {
-    content: "✔";
-    color: white;
-    font-size: 1.4vh;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-  }
 </style>
