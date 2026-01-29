@@ -147,10 +147,7 @@
   <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
     Select time period
     <span class="info-icon-wrapper">
-      <svg class="info-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="12" cy="12" r="10" stroke="#0077b6" stroke-width="2" fill="#e9f5fb"/>
-  <text x="12" y="16" text-anchor="middle" fill="#0077b6" font-weight="bold" style="font-family: serif;">i</text>
-</svg>
+<span class="info-hint">(i)</span>
       <span class="tooltip">
         <ul class="tooltip-list">
           <li><strong>Past:&nbsp;</strong>observed data for 1981–2010</li>
@@ -180,37 +177,46 @@
         >
           <span class="marker-dot"></span>
           <span class="marker-label">{option.name}</span>
+          {#if !isTimeAvailable(option.name)}
+            <span class="disabled-tooltip">No data available</span>
+          {/if}
         </button>
       {/each}
     </div>
   </div>
   {#if showScenarios}
     <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
-      Select a scenario
+      Emissions scenario
       <span class="info-icon-wrapper">
-        <svg class="info-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="10" stroke="#0077b6" stroke-width="2" fill="#e9f5fb"/>
-          <text x="12" y="16" text-anchor="middle" fill="#0077b6" font-weight="bold" style="font-family: serif;">i</text>
-        </svg>
+        <span class="info-hint">(i)</span>
         <span class="tooltip">
           <ul class="tooltip-list">
-            <li><strong>Low:&nbsp;</strong> Low emissions (SSP1-2.6)</li>
-            <li><strong>High:&nbsp;</strong> High emissions (SSP5-8.5)</li>
+            <li><strong>Low:&nbsp;</strong>SSP1-2.6, low greenhouse gas emissions</li>
+            <li><strong>High:&nbsp;</strong>SSP5-8.5, high greenhouse gas emissions</li>
           </ul>
         </span>
       </span>
     </h2>
-    <div class="buttons-wrapper">
-      <div class="buttons">
-        {#each options3 as option, index}
-          <button class={selectedScenario === index ? "selected" : ""} value={option.id} name={option.name} on:click={setSelectedScenario}>
-            {option.name}
-          </button>
-        {/each}
-      </div>
+    <div class="scenario-toggle">
+      <button
+        class="scenario-option"
+        class:active={selectedScenario === 0}
+        on:click={() => { selectedScenario = 0; scenario.set('Low'); }}
+      >Low</button>
+      <button
+        class="scenario-option"
+        class:active={selectedScenario === 1}
+        on:click={() => { selectedScenario = 1; scenario.set('High'); }}
+      >High</button>
     </div>
   {/if}
-  <h2>Map transparency</h2>
+  <h2 class="opacity-header">
+    <svg class="opacity-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" fill="currentColor"/>
+    </svg>
+    Layer visibility
+    <span class="opacity-value">{Math.round($opacityMap * 100)}%</span>
+  </h2>
   <div class="opacity-slider">
     <input
       type="range"
@@ -219,7 +225,7 @@
       max="1"
       step="0.1"
       bind:value={$opacityMap}
-      style="background: linear-gradient(to right, #017E9F 0%, #017E9F {$opacityMap * 100}%, #ddd 0%);" />
+      style="background: linear-gradient(to right, #017E9F 0%, #017E9F {$opacityMap * 100}%, #ddd {$opacityMap * 100}%);" />
   </div>
 </section>
 
@@ -243,8 +249,8 @@
     .keuzes {
       font-size: 2.2vh !important;
       gap: 2.5vw !important;
-      margin-bottom: 0.3vh !important;
-      padding: 1.2vh 2.5vw !important;
+      margin-bottom: 0.2vh !important;
+      padding: 0.9vh 2.5vw !important;
       margin-left: -2.5vw !important;
       border-radius: 8px !important;
     }
@@ -286,13 +292,12 @@
     position: relative;
     display: inline-block;
   }
-  .info-icon {
-    cursor: pointer;
-    vertical-align: middle;
-    width: 3vh; /* Base size using viewport height */
-    height: 3vh;
-    min-width: 20px; /* Minimum size for small screens */
-    min-height: 20px;
+
+  .info-hint {
+    color: #999;
+    font-size: 0.85em;
+    font-weight: 400;
+    cursor: help;
   }
   
   /* Font size for the 'i' character */
@@ -325,68 +330,42 @@
   }
   .tooltip {
     visibility: hidden;
-    width: max-content; /* Fit content width */
-    min-width: 200px;
-    max-width: 320px;
-    background-color: #333;
-    color: #fff;
+    width: max-content;
+    min-width: 180px;
+    max-width: 280px;
+    background-color: white;
+    color: #333;
     text-align: left;
-    border-radius: 6px;
-    padding: 12px 14px;
+    border-radius: 8px;
+    padding: 10px 12px;
     position: absolute;
-    z-index: 1;
-    bottom: 120%;
+    z-index: 100;
+    top: 100%;
     left: 50%;
     transform: translateX(-50%);
+    margin-top: 8px;
     opacity: 0;
-    transition: opacity 0.3s;
-    font-size: 0.85em;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: opacity 0.2s;
+    font-size: 0.8em;
+    font-weight: 400;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
     pointer-events: none;
-    white-space: normal; /* Allow text to wrap if needed */
+    border: 1px solid #e0e0e0;
   }
-  
-  /* Apply wider tooltip and smaller text only on large screens */
-  @media (min-width: 1200px) {
-    .tooltip {
-      min-width: 300px;
-      max-width: 400px;
-      font-size: 0.7em;
-    }
-  }
-  
+
   .tooltip-list {
     margin: 0;
     padding: 0;
     list-style-type: none;
   }
-  
+
   .tooltip-list li {
-    position: relative;
-    padding-left: 12px;
-    margin-bottom: 0;
-    line-height: 1.5;
-    display: flex;
-    align-items: baseline;
+    padding: 4px 0;
+    line-height: 1.4;
   }
-  
-  .tooltip-list li:first-child {
-    margin-top: 0;
-  }
-  
-  .tooltip-list li:last-child {
-    margin-bottom: 0;
-  }
-  
-  .tooltip-list li:before {
-    content: "•";
-    position: absolute;
-    left: 0;
-    color: white;
-    font-size: 14px;
-    line-height: 0;
-    top: 50%;
-    transform: translateY(-50%);
+
+  .tooltip-list li strong {
+    color: #017e9f;
   }
   .info-icon-wrapper:hover .tooltip {
     visibility: visible;
@@ -400,9 +379,9 @@
     gap: 0.8vw;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
-    font-size: 1.9vh;
-    padding: 0.8vh 1vw;
-    margin: 0.3vh 0;
+    font-size: 1.8vh;
+    padding: 0.6vh 1vw;
+    margin: 0.2vh 0;
     border-radius: 8px;
     margin-left: -1vw;
   }
@@ -577,6 +556,32 @@
     font-weight: 500;
   }
 
+  .disabled-tooltip {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 8px;
+    background: white;
+    color: #666;
+    font-size: 0.75em;
+    padding: 6px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border: 1px solid #e0e0e0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .timeline-marker:disabled:hover .disabled-tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+
   /* Mobile timeline styles */
   @media (max-width: 768px) {
     .timeline-wrapper {
@@ -610,6 +615,7 @@
 
   h2 {
     margin-top: 1vh;
+    margin-bottom: 0.5vh;
     font-size: 2vh;
   }
 
@@ -647,14 +653,14 @@
   }
 
   .themelogo {
-    width: 3vw;
-    min-width: 32px;
+    width: 2.2vw;
+    min-width: 24px;
     height: auto;
   }
 
   .caption {
-    font-size: 1.9vh;
-    margin-top: 0.8vh;
+    font-size: 1.8vh;
+    margin-top: 0.5vh;
     font-weight: 500;
     color: #333;
   }
@@ -673,40 +679,176 @@
     }
 
     .themelogo {
-      width: 8vw;
-      min-width: 32px;
+      width: 6vw;
+      min-width: 24px;
     }
 
     .caption {
-      font-size: 2vh;
-      margin-top: 0.6vh;
+      font-size: 1.9vh;
+      margin-top: 0.5vh;
     }
   }
 
+  /* Scenario toggle styles */
+  .scenario-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8vh;
+    margin: 1.5vh 0 2vh 0;
+  }
+
+  .scenario-label {
+    font-size: 1.8vh;
+    font-weight: 500;
+    color: #333;
+  }
+
+  .scenario-toggle {
+    display: flex;
+    align-items: stretch;
+    background: #e8e8e8;
+    border-radius: 8px;
+    padding: 5px;
+    width: 100%;
+    margin-top: 0.5vh;
+    gap: 5px;
+  }
+
+  .scenario-option {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6vh 0;
+    margin: 0;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.8vh;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: transparent;
+    color: #666;
+  }
+
+  .scenario-option:hover {
+    background: rgba(255, 255, 255, 0.5);
+    color: #333;
+  }
+
+  .scenario-option.active {
+    background: #017e9f;
+    color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Mobile scenario styles */
+  @media (max-width: 768px) {
+    .scenario-label {
+      font-size: 2.2vh;
+    }
+
+    .scenario-option {
+      padding: 1.2vh 3vw;
+      font-size: 2vh;
+    }
+  }
+
+  .opacity-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-top: 2vh;
+  }
+
+  .opacity-icon {
+    width: 2vh;
+    height: 2vh;
+    min-width: 16px;
+    min-height: 16px;
+    color: #555;
+  }
+
+  .opacity-value {
+    margin-left: auto;
+    font-size: 1.6vh;
+    font-weight: 400;
+    color: #017e9f;
+    background: rgba(1, 126, 159, 0.1);
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+  }
+
   .opacity-slider {
-    z-index: 1000000;
-    padding-top: 0vh;
+    padding-top: 0.5vh;
   }
 
   .opacity-slider input {
     -webkit-appearance: none;
+    appearance: none;
     width: 100%;
     padding: 0px;
     border-radius: 9999px;
-    height: 1.5vh;
+    height: 4px;
+    background: #ddd;
+    cursor: pointer;
   }
 
-  /* Custom thumb (slider handle) */
   .opacity-slider input::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 3vh;
-    height: 3vh;
-    background-color: var(--thumb-color, #017e9f); /* Dynamic color */
+    width: 2vh;
+    height: 2vh;
+    min-width: 16px;
+    min-height: 16px;
+    background-color: #017e9f;
     border-radius: 50%;
     border: 2px solid white;
     cursor: pointer;
-    transition: background-color 0.3s ease-in-out;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease;
+  }
+
+  .opacity-slider input::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+  }
+
+  .opacity-slider input::-moz-range-thumb {
+    width: 2vh;
+    height: 2vh;
+    min-width: 16px;
+    min-height: 16px;
+    background-color: #017e9f;
+    border-radius: 50%;
+    border: 2px solid white;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  /* Mobile opacity slider */
+  @media (max-width: 768px) {
+    .opacity-icon {
+      width: 2.5vh;
+      height: 2.5vh;
+    }
+
+    .opacity-value {
+      font-size: 1.8vh;
+    }
+
+    .opacity-slider input {
+      height: 6px;
+    }
+
+    .opacity-slider input::-webkit-slider-thumb {
+      width: 3vh;
+      height: 3vh;
+    }
+
+    .opacity-slider input::-moz-range-thumb {
+      width: 3vh;
+      height: 3vh;
+    }
   }
 
 </style>

@@ -26,20 +26,22 @@
 </script>
 
 <div class='container'>
-	<div class:open={open} class="sidepanel" >
-		<Sidepanel/>
-		<button 
-			class="toggle-arrow" 
-			on:click={togglePanel} 
+	<div class:open={open} class="sidepanel-wrapper">
+		<div class="sidepanel">
+			<Sidepanel/>
+		</div>
+		<button
+			class="toggle-arrow"
+			on:click={togglePanel}
 			on:keydown={(e) => e.key === 'Enter' && togglePanel()}
 			aria-label={open ? "Close panel" : "Open panel"}
 			type="button"
 		>
 			<span class="tooltip">{open ? "Close panel" : "Open panel"}</span>
 			{#if open}
-				&larr; 
+				&larr;
 			{:else}
-				&rarr; 
+				&rarr;
 			{/if}
 		</button>
 	</div>
@@ -80,40 +82,68 @@
 	margin-left: 0;
 }
 
-.sidepanel{
-	display:flex;
-	flex-direction:column;
-	padding-left:2vw;
-	padding-right:2vw;
+.sidepanel-wrapper {
 	position: fixed;
-	width: 16vw; /* Default width for desktop */
+	width: 20vw; /* Default width for desktop */
 	left: 1vw;
-	top:5vh;
+	top: 5vh;
 	height: 90vh;
+	z-index: 2000000;
+	transform: translateX(-100%);
+	transition: transform 0.3s ease;
+}
+
+.sidepanel-wrapper.open {
+	transform: translateX(0);
+}
+
+.sidepanel {
+	display: flex;
+	flex-direction: column;
+	padding-left: 2vw;
+	padding-right: 2vw;
+	width: 100%;
+	height: 100%;
 	background-color: #F8F3EE;
 	box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-	z-index: 2000000;	
-	transform: translateX(-100%);
-    transition: transform 0.3s ease;
-	border-radius: 15px; /* Add rounded corners */
+	border-radius: 15px;
+	overflow-y: auto;
+	overflow-x: hidden;
+	scrollbar-width: thin;
+	scrollbar-gutter: stable;
+}
+
+.sidepanel-wrapper.open .sidepanel {
+	background-color: #fafafa;
+}
+
+/* Webkit scrollbar styling */
+.sidepanel::-webkit-scrollbar {
+	width: 6px;
+}
+
+.sidepanel::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.sidepanel::-webkit-scrollbar-thumb {
+	background-color: rgba(0, 0, 0, 0.2);
+	border-radius: 3px;
 }
 
 /* Responsive width for mobile devices */
 @media (max-width: 800px) {
-	.sidepanel {
-		width: 85vw; /* Wider panel on mobile */
+	.sidepanel-wrapper {
+		width: 85vw;
 		left: 0;
 		top: 0;
 		height: 100vh;
+	}
+
+	.sidepanel {
 		border-radius: 0 15px 15px 0;
-		overflow-y: auto;
 	}
 }
-
-.sidepanel.open {
-	transform: translateX(0);
-	background-color: #fafafa; /* Slightly different color for better visual effect */
-	}
 
 .toggle-arrow {
 	position: absolute;
