@@ -10,6 +10,7 @@
  * @property {Function} getPopupContent - Function to generate popup content for this layer
  * @property {number} clickThreshold - Distance threshold for click detection (in meters)
  * @property {Object} popupOptions - Leaflet popup options for this layer
+ * @property {string} [url] - Optional full URL for the layer data (overrides default filename logic)
  */
 
 /**
@@ -103,6 +104,15 @@ export const contextLayerConfigs = {
       minWidth: 200,
       className: 'compact-popup' // CSS class for styling
     }
+  },
+  "Agroclimatic zones": {
+    name: 'Agroclimatic zones',
+    type: 'polygon',
+    // Full URL for the agroclimatic zones GeoJSON
+    url: 'https://kenya-csv-data.s3.eu-north-1.amazonaws.com/kenya_dissolved.geojson',
+    getPopupContent: () => null, // No popup for this layer
+    clickThreshold: 0,
+    popupOptions: {}
   }
 };
 

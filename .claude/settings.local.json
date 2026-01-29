@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:kenya-csv-data.s3.eu-north-1.amazonaws.com)",
+      "Bash(curl:*)",
+      "Bash(python:*)"
+    ]
+  }
+}

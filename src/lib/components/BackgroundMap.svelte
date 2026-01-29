@@ -7,7 +7,7 @@
   import Legend from "./Legend.svelte"
   import { getCountryConfig } from "$lib/config/countries.js"
   import { styleGeoJsonFeature, getLegendItems } from "$lib/utils/geojsonStyles.js"
-  import { isContextLayer } from "$lib/config/contextLayers.js"
+  import { isContextLayer, getContextLayerConfig } from "$lib/config/contextLayers.js"
   import { isGeojsonLayer, getGeojsonLayerConfig, getGeojsonLayerUrl } from "$lib/config/geojsonLayers.js"
 
   /** @type {any} */
@@ -20,6 +20,8 @@
   let geojsonLayers = {}
   /** @type {Record<string, any>} */
   let contextLayerInstances = {}
+  /** @type {any} */
+  let activeContextLayer = null
   /** @type {any} */
   let L
   /** @type {any} */
@@ -232,7 +234,7 @@ function getLayerId(datalaag, time, scenario) {
    * @returns {string} Full filename for the context layer
    */
   function getContextLayerFilename(layerName, time, scenario) {
-    if (layerName === 'population') {
+    if (layerName.toLowerCase() === 'population') {
       // Map time periods to population data years
       const timeNormalized = time ? time.toLowerCase() : 'past';
       if (timeNormalized === 'past' || timeNormalized === 'hist') {
@@ -289,6 +291,25 @@ function getLayerId(datalaag, time, scenario) {
     return colors[bws_cat] !== undefined ? colors[bws_cat] : '#d1d1d1';
   }
 
+  /**
+   * Get AEZ (Agro-Ecological Zone) color based on zone name
+   * @param {string} aezName - AEZ zone name
+   * @returns {string} Color for the zone
+   */
+  function getAEZColor(aezName) {
+    const colors = {
+      'Coastal Lowland': '#2E86AB',    // Blue
+      'Inner Lowland': '#F6AE2D',      // Orange/Yellow
+      'Lower Highland': '#4A7C59',     // Forest green
+      'Lower Midland': '#86BA90',      // Light green
+      'Nairobi City': '#E84855',       // Red
+      'Tropical Alpine': '#9B5DE5',    // Purple
+      'Upper Highland': '#1B4332',     // Dark green
+      'Upper Midland': '#95D5B2',      // Mint green
+      'Waterbody': '#48CAE4'           // Light blue
+    };
+    return colors[aezName] || '#888888';
+  }
 
   /**
    * Function to load a context layer (e.g., population)
@@ -300,26 +321,38 @@ function getLayerId(datalaag, time, scenario) {
   async function loadContextLayer(layerName, time, scenario) {
     if (!layerName || !countryConfig) return null;
 
-    const filename = getContextLayerFilename(layerName, time, scenario);
     const cacheKey = `${layerName}_${time}_${scenario || 'none'}`;
 
     try {
       // Check if we already have this layer cached
       if (!contextLayerInstances[cacheKey]) {
-        // Try local static folder first, then S3
-        let url = `/${filename}`;
-        let response = await fetch(url);
+        // Check if the layer config has a direct URL
+        const layerConfig = getContextLayerConfig(layerName);
+        let url;
+        let response;
 
-        // If local fetch fails, try S3
-        if (!response.ok && countryConfig.geojsonBaseUrl) {
-          url = `${countryConfig.geojsonBaseUrl}${filename}`;
+        if (layerConfig?.url) {
+          // Use the direct URL from config
+          url = layerConfig.url;
           response = await fetch(url);
+        } else {
+          // Use filename-based lookup
+          const filename = getContextLayerFilename(layerName, time, scenario);
+          // Try local static folder first, then S3
+          url = `/${filename}`;
+          response = await fetch(url);
+
+          // If local fetch fails, try S3
+          if (!response.ok && countryConfig.geojsonBaseUrl) {
+            url = `${countryConfig.geojsonBaseUrl}${filename}`;
+            response = await fetch(url);
+          }
         }
 
         if (!response.ok) throw new Error(`Failed to fetch context layer: ${response.status}`);
         const data = await response.json();
 
-        if (layerName === 'population') {
+        if (layerName.toLowerCase() === 'population') {
           // Use point-to-layer for population circles
           contextLayerInstances[cacheKey] = L.geoJSON(data, {
             pointToLayer: (feature, latlng) => {
@@ -347,6 +380,21 @@ function getLayerId(datalaag, time, scenario) {
             },
             interactive: false
           });
+        } else if (layerName.toLowerCase() === 'agroclimatic zones') {
+          // Style Agroclimatic zones by AEZ_Name
+          contextLayerInstances[cacheKey] = L.geoJSON(data, {
+            style: (feature) => {
+              const aezName = feature.properties?.AEZ_Name || '';
+              return {
+                fillColor: getAEZColor(aezName),
+                weight: 1,
+                opacity: 1,
+                color: '#333333',
+                fillOpacity: 0.7
+              };
+            },
+            interactive: false
+          });
         } else {
           // Default styling for other context layers
           contextLayerInstances[cacheKey] = L.geoJSON(data, {
@@ -371,11 +419,11 @@ function getLayerId(datalaag, time, scenario) {
   
   // Update GeoJSON layers when opacity, datalaag, or time changes
   $: {
-    if (map && countryConfig && countryConfig.dataType === "geojson" && 
+    if (map && countryConfig && countryConfig.dataType === "geojson" &&
         (Object.keys(geojsonLayers).length > 0)) {
       // Force style update when time, datalaag, or opacity changes
       const normalizedTime = $time ? $time.toLowerCase() : 'past';
-      
+
       // Update all visible GeoJSON layers
       Object.values(geojsonLayers).forEach(/**@type {any}*/ layer => {
         if (layer && map.hasLayer(layer)) {
@@ -386,6 +434,20 @@ function getLayerId(datalaag, time, scenario) {
         }
       });
     }
+  }
+
+  // Update context layers (like Agroclimatic zones) when opacity changes
+  $: if (map && activeContextLayer && $selectedLayer?.toLowerCase() === 'agroclimatic zones') {
+    activeContextLayer.setStyle((/** @type {any} */ feature) => {
+      const aezName = feature?.properties?.AEZ_Name || '';
+      return {
+        fillColor: getAEZColor(aezName),
+        weight: 1,
+        opacity: 1,
+        color: '#333333',
+        fillOpacity: $opacityMap
+      };
+    });
   }
 
   $: if (esri && L && !map) {
@@ -451,15 +513,18 @@ function getLayerId(datalaag, time, scenario) {
       });
     }
 
-    // Clear the GeoJSON cache to force full reload with new styles
+    // Clear references
+    activeContextLayer = null;
     geojsonLayers = {};
 
     if (isCurrentLayerContext) {
-      // Load context layer (e.g., Population)
-      const layerName = $selectedLayer.toLowerCase();
-      loadContextLayer(layerName, $time, $scenario).then(layer => {
-        if (layer && map && !map.hasLayer(layer)) {
-          layer.addTo(map);
+      // Load context layer (e.g., Population, Agroclimatic zones)
+      loadContextLayer($selectedLayer, $time, $scenario).then(layer => {
+        if (layer && map) {
+          if (!map.hasLayer(layer)) {
+            layer.addTo(map);
+          }
+          activeContextLayer = layer;
         }
       }).catch(err => console.error(`Error adding context layer ${$selectedLayer}:`, err));
     } else if (isGeojsonLayer($datalaag)) {

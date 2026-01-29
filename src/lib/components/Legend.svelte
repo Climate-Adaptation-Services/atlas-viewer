@@ -102,6 +102,24 @@
     ];
   }
 
+  /**
+   * Get AEZ (Agro-Ecological Zone) legend items
+   * @returns {Array<{color: string, label: string}>}
+   */
+  const getAEZLegendItems = () => {
+    return [
+      { color: '#2E86AB', label: 'Coastal Lowland' },
+      { color: '#F6AE2D', label: 'Inner Lowland' },
+      { color: '#4A7C59', label: 'Lower Highland' },
+      { color: '#86BA90', label: 'Lower Midland' },
+      { color: '#E84855', label: 'Nairobi City' },
+      { color: '#9B5DE5', label: 'Tropical Alpine' },
+      { color: '#1B4332', label: 'Upper Highland' },
+      { color: '#95D5B2', label: 'Upper Midland' },
+      { color: '#48CAE4', label: 'Waterbody' }
+    ];
+  }
+
 
 </script>
 
@@ -154,6 +172,18 @@
                 <span style="color: #666; margin-left: 4px;">{item.subtitle}</span>
               {/if}
             </span>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+    <!-- Agroclimatic zones Context Layer Legend -->
+    {#if dataType === 'context' && layerName === 'Agroclimatic zones'}
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 4px 0;">
+        {#each getAEZLegendItems() as item}
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div class="color-box" style="background-color: {item.color}; flex-shrink: 0;"></div>
+            <span style="font-size: 11px; line-height: 1.2;">{item.label}</span>
           </div>
         {/each}
       </div>
