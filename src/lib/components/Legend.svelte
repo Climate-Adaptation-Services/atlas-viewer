@@ -1,8 +1,9 @@
 <script>
   import { browser } from "$app/environment"
-  import { datalaag, time } from "$lib/stores.js"
+  import { datalaag, time, scenario } from "$lib/stores.js"
   import { getLegendItems } from "$lib/utils/geojsonStyles.js"
   import { isGeojsonLayer, getGeojsonLayerLegend } from "$lib/config/geojsonLayers.js"
+  import { getLayerInfo } from "$lib/config/layerInfo.js"
 
   // Props
   /** @type {string} */
@@ -13,9 +14,17 @@
   export let wmsEndpoint = null
   /** @type {string} */
   export let layerName = ""
-  
+
+  // State for info panel
+  let showInfo = false
+
   // Derived state
   $: isShowingChange = $time === "2050" || $time === "2080"
+  $: currentLayerName = dataType === 'context' ? layerName : $datalaag
+  $: layerInfoData = getLayerInfo(currentLayerName)
+
+  // Get scenario label for display
+  $: scenarioLabel = $scenario === 'Low' ? 'SSP1-2.6' : 'SSP5-8.5'
   
   /**
    * Format the legend title for display
@@ -255,7 +264,51 @@
 
       {/key}
     {/if}
+
+    <!-- About this layer -->
+    {#if layerInfoData}
+      <button
+        class="info-toggle"
+        on:click={() => showInfo = !showInfo}
+      >
+        <span class="info-icon">i</span>
+        About this layer
+      </button>
+    {/if}
   </div>
+
+  <!-- Info Popup -->
+  {#if showInfo && layerInfoData}
+    <div class="info-popup">
+      <button class="popup-close" on:click={() => showInfo = false}>×</button>
+      <p class="popup-title">{currentLayerName}</p>
+      <p class="info-description">{layerInfoData.description}</p>
+      <div class="info-details">
+        <div class="info-row">
+          <span class="info-label">Source:</span>
+          <span class="info-value">{layerInfoData.source}</span>
+        </div>
+        {#if layerInfoData.baseline}
+          <div class="info-row">
+            <span class="info-label">Baseline:</span>
+            <span class="info-value">{layerInfoData.baseline}</span>
+          </div>
+        {/if}
+        {#if layerInfoData.resolution}
+          <div class="info-row">
+            <span class="info-label">Resolution:</span>
+            <span class="info-value">{layerInfoData.resolution}</span>
+          </div>
+        {/if}
+        {#if isShowingChange}
+          <div class="info-row">
+            <span class="info-label">Scenario:</span>
+            <span class="info-value">{scenarioLabel}</span>
+          </div>
+        {/if}
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -273,6 +326,10 @@
     width: 3vw;
     min-width: 120px;
     max-width: 220px;
+  }
+
+  .legend-content {
+    position: relative;
   }
 
   .legend-title {
@@ -372,5 +429,103 @@
   .legend-label {
     font-size: 11px;
     white-space: nowrap;
+  }
+
+  .info-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #666;
+    font-size: 11px;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .info-toggle:hover {
+    color: #017e9f;
+  }
+
+  .info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    font-family: Georgia, serif;
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  .info-popup {
+    position: absolute;
+    bottom: 0;
+    right: calc(100% + 10px);
+    background: white;
+    border-radius: 12px;
+    padding: 14px;
+    min-width: 200px;
+    max-width: 260px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e0e0e0;
+    z-index: 10;
+  }
+
+  .popup-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .popup-close:hover {
+    color: #333;
+  }
+
+  .popup-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #017e9f;
+    margin: 0 0 8px 0;
+    padding-right: 20px;
+  }
+
+  .info-description {
+    font-size: 11px;
+    color: #333;
+    margin: 0 0 10px 0;
+    line-height: 1.4;
+  }
+
+  .info-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .info-row {
+    display: flex;
+    gap: 6px;
+    font-size: 10px;
+  }
+
+  .info-label {
+    color: #888;
+    flex-shrink: 0;
+  }
+
+  .info-value {
+    color: #333;
   }
 </style>

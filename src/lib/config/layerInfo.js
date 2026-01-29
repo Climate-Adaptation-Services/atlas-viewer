@@ -1,13 +1,15 @@
 /**
  * Layer information configuration
- * Contains metadata about each layer: description, source, and methodology
+ * Contains metadata about each layer: description, source, baseline, resolution, etc.
  */
 
 /**
  * @typedef {Object} LayerInfo
  * @property {string} description - Short description of what the layer shows
  * @property {string} source - Data source/provider
- * @property {string} [methodology] - Optional methodology note
+ * @property {string} [baseline] - Baseline period
+ * @property {string} [resolution] - Spatial resolution
+ * @property {string} [uncertainty] - Uncertainty information
  */
 
 /**
@@ -18,34 +20,45 @@ export const layerInfo = {
   // Climate layers
   'Maximum temperature': {
     description: 'Highest daily temperature averaged over the selected period.',
-    source: 'CHIRPS & CHIRTS climate data'
+    source: 'CMIP6 multi-model ensemble',
+    baseline: '1981–2010',
+    resolution: '0.25°'
   },
   'Minimum temperature': {
     description: 'Lowest daily temperature averaged over the selected period.',
-    source: 'CHIRPS & CHIRTS climate data'
+    source: 'CMIP6 multi-model ensemble',
+    baseline: '1981–2010',
+    resolution: '0.25°'
   },
   'Average temperature': {
     description: 'Mean daily temperature averaged over the selected period.',
-    source: 'CHIRPS & CHIRTS climate data'
+    source: 'CMIP6 multi-model ensemble',
+    baseline: '1981–2010',
+    resolution: '0.25°'
   },
   'Total rainfall': {
     description: 'Cumulative precipitation over the selected period.',
-    source: 'CHIRPS & CHIRTS climate data'
+    source: 'CMIP6 multi-model ensemble',
+    baseline: '1981–2010',
+    resolution: '0.25°'
   },
   'Days above 20 mm': {
     description: 'Number of days with more than 20mm rainfall (heavy rain days).',
-    source: 'CHIRPS & CHIRTS climate data'
+    source: 'CMIP6 multi-model ensemble',
+    baseline: '1981–2010',
+    resolution: '0.25°'
   },
   'Dry spells': {
     description: 'Number of periods with 5+ consecutive days without significant rainfall.',
-    source: 'CHIRPS & CHIRTS climate data'
+    source: 'CMIP6 multi-model ensemble',
+    baseline: '1981–2010',
+    resolution: '0.25°'
   },
 
   // GeoJSON layers
   'Water Stress': {
     description: 'Ratio of water withdrawals to available water supply per basin.',
-    source: 'World Resources Institute, Aqueduct',
-    methodology: 'Categories based on withdrawal-to-availability ratio'
+    source: 'World Resources Institute, Aqueduct'
   },
   'River Flood': {
     description: 'Expected flood inundation depth during a 1-in-100 year flood event.',
