@@ -147,7 +147,7 @@
   <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
     Select time period
     <span class="info-icon-wrapper">
-<span class="info-hint">(i)</span>
+      <span class="layer-info-hint">i</span>
       <span class="tooltip">
         <ul class="tooltip-list">
           <li><strong>Past:&nbsp;</strong>observed data for 1981–2010</li>
@@ -188,7 +188,7 @@
     <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
       Emissions scenario
       <span class="info-icon-wrapper">
-        <span class="info-hint">(i)</span>
+        <span class="layer-info-hint">i</span>
         <span class="tooltip">
           <ul class="tooltip-list">
             <li><strong>Low:&nbsp;</strong>SSP1-2.6, low greenhouse gas emissions</li>
@@ -376,7 +376,6 @@
   .keuzes {
     display: flex;
     align-items: center;
-    gap: 0.8vw;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
     font-size: 1.8vh;
@@ -390,44 +389,35 @@
     background-color: rgba(1, 126, 159, 0.1);
   }
 
+  /* Info icon for headers */
+  .layer-info-hint {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 13px;
+    height: 13px;
+    background-color: rgba(0, 0, 0, 0.08);
+    border-radius: 50%;
+    font-family: Georgia, serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: #888;
+    cursor: help;
+  }
+
   .keuzes.selected {
     background-color: rgba(1, 126, 159, 0.15);
     border-left: 3px solid #017e9f;
     font-weight: 500;
   }
 
-  /* Style the square option box */
+  /* Hide the radio input - row highlight is enough */
   .option {
-    appearance: none;
-    width: 2vh; /* Adjusted for a square look */
-    height: 2vh; /* Equal width & height */
-    border: 2px solid #017e9f;
-    border-radius: 4px; /* Slightly rounded corners */
-    position: relative;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 0.8vh;
-  }
-
-  /* Add checkmark on selection */
-  .option:checked {
-    background-color: #017e9f;
-    border-color: #017e9f;
-  }
-
-  .option:checked::after {
-    content: "✔"; /* Unicode checkmark */
-    color: white;
-    font-size: 1.4vh;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
   }
 
   .buttons button {

@@ -3,7 +3,8 @@
     "allow": [
       "WebFetch(domain:kenya-csv-data.s3.eu-north-1.amazonaws.com)",
       "Bash(curl:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(npm run dev)"
     ]
   }
 }
