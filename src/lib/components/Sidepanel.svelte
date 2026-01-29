@@ -70,13 +70,12 @@
   export let selectedTime = 0
   export let selectedScenario = 0
 
-  /** @param {Event} e */
-  function setSelectedTime(e) {
-    const target = /** @type {HTMLButtonElement} */ (e.target)
-    const newValue = Number(target.value)
-    selectedTime = newValue
-    dispatch("change", { value: newValue })
-    const found = options2.find((x) => x.id === selectedTime)
+  /** @param {number} index */
+  function selectTime(index) {
+    if (!isTimeAvailable(options2[index].name)) return
+    selectedTime = index
+    dispatch("change", { value: index })
+    const found = options2.find((x) => x.id === index)
     if (found) $time = found.name
   }
 
@@ -161,17 +160,26 @@
       </span>
     </span>
   </h2>
-  <div class="buttons-wrapper">
-    <div class="buttons">
+  <div class="timeline-wrapper">
+    <div class="timeline">
       {#each options2 as option, index}
+        <!-- Line segment before marker (except for first) -->
+        {#if index > 0}
+          <div
+            class="timeline-line"
+            class:available={isTimeAvailable(options2[index - 1].name) && isTimeAvailable(option.name)}
+          ></div>
+        {/if}
+        <!-- Marker -->
         <button
-          class={selectedTime === index ? "selected" : ""}
-          class:disabled={!isTimeAvailable(option.name)}
+          class="timeline-marker"
+          class:selected={selectedTime === index}
+          class:available={isTimeAvailable(option.name)}
           disabled={!isTimeAvailable(option.name)}
-          value={option.id}
-          name={option.name}
-          on:click={setSelectedTime}>
-          {option.name}
+          on:click={() => selectTime(index)}
+        >
+          <span class="marker-dot"></span>
+          <span class="marker-label">{option.name}</span>
         </button>
       {/each}
     </div>
@@ -479,6 +487,121 @@
   .buttons button.disabled:hover {
     background-color: #e0e0e0;
     color: initial;
+  }
+
+  /* Timeline styles */
+  .timeline-wrapper {
+    padding: 0.5vh 0 1.5vh 0;
+  }
+
+  .timeline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+    width: 100%;
+  }
+
+  .timeline-line {
+    flex: 1;
+    height: 2px;
+    margin-top: calc(0.8vh + 1px);
+    background-image: repeating-linear-gradient(
+      to right,
+      #ddd,
+      #ddd 4px,
+      transparent 4px,
+      transparent 8px
+    );
+  }
+
+  .timeline-line.available {
+    background-image: none;
+    background-color: #017e9f;
+  }
+
+  .timeline-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .timeline-marker:disabled {
+    cursor: not-allowed;
+  }
+
+  .marker-dot {
+    width: 1.6vh;
+    height: 1.6vh;
+    border-radius: 50%;
+    background: #ddd;
+    border: 2px solid #ddd;
+    transition: all 0.2s ease;
+  }
+
+  .timeline-marker.available .marker-dot {
+    background: white;
+    border-color: #017e9f;
+  }
+
+  .timeline-marker.available:hover .marker-dot {
+    background: rgba(1, 126, 159, 0.15);
+  }
+
+  .timeline-marker.selected .marker-dot {
+    background: #017e9f;
+    border-color: #017e9f;
+    transform: scale(1.15);
+  }
+
+  .marker-label {
+    margin-top: 0.5vh;
+    font-size: 1.8vh;
+    color: #aaa;
+    font-weight: 400;
+    transition: all 0.2s ease;
+  }
+
+  .timeline-marker.available .marker-label {
+    color: #555;
+  }
+
+  .timeline-marker.selected .marker-label {
+    color: #017e9f;
+    font-weight: 500;
+  }
+
+  /* Mobile timeline styles */
+  @media (max-width: 768px) {
+    .timeline-wrapper {
+      padding: 1vh 0 1.5vh 0;
+    }
+
+    .timeline-marker {
+      min-width: auto;
+    }
+
+    .marker-dot {
+      width: 2.5vh;
+      height: 2.5vh;
+      border-width: 2px;
+    }
+
+    .marker-label {
+      font-size: 1.8vh;
+      margin-top: 0.6vh;
+    }
+
+    .timeline-line {
+      margin-top: calc(1.25vh + 1px);
+      height: 2px;
+    }
   }
 
   .first {
