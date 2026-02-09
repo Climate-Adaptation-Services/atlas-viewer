@@ -136,25 +136,24 @@
   <div class="legend-content">
     <!-- Legend Header (Common for all legend types) -->
     <div class="legend-header">
-      <p class="legend-title">
+      <span class="legend-title">
         {#if dataType === 'context'}
-          {#if getLegendUnit(layerName)}
-            {layerName} ({getLegendUnit(layerName)})
-          {:else}
-            {layerName}
-          {/if}
+          {getLegendUnit(layerName) || layerName}
         {:else if isGeojsonLayer($datalaag)}
-          {#if getLegendUnit($datalaag)}
-            {$datalaag} ({getLegendUnit($datalaag)})
-          {:else}
-            {$datalaag}
-          {/if}
-        {:else if isShowingChange}
-          Change in {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
+          {getLegendUnit($datalaag) || $datalaag}
         {:else}
-          {formatLegendTitle($datalaag)} ({getLegendUnit($datalaag)})
+          {getLegendUnit($datalaag) || formatLegendTitle($datalaag)}
         {/if}
-      </p>
+      </span>
+      {#if layerInfoData}
+        <button
+          class="info-icon-inline"
+          on:click={() => showInfo = !showInfo}
+        >
+          i
+          <span class="info-tooltip">About this layer</span>
+        </button>
+      {/if}
     </div>
 
     <!-- Population Context Layer Legend -->
@@ -265,16 +264,6 @@
       {/key}
     {/if}
 
-    <!-- About this layer -->
-    {#if layerInfoData}
-      <button
-        class="info-toggle"
-        on:click={() => showInfo = !showInfo}
-      >
-        <span class="info-icon">i</span>
-        About this layer
-      </button>
-    {/if}
   </div>
 
   <!-- Info Popup -->
@@ -286,14 +275,12 @@
       <div class="info-details">
         <div class="info-row">
           <span class="info-label">Source:</span>
-          <span class="info-value">{layerInfoData.source}</span>
+          {#if layerInfoData.sourceUrl}
+            <a class="info-link" href={layerInfoData.sourceUrl} target="_blank" rel="noopener noreferrer">{layerInfoData.source}</a>
+          {:else}
+            <span class="info-value">{layerInfoData.source}</span>
+          {/if}
         </div>
-        {#if layerInfoData.baseline}
-          <div class="info-row">
-            <span class="info-label">Baseline:</span>
-            <span class="info-value">{layerInfoData.baseline}</span>
-          </div>
-        {/if}
         {#if layerInfoData.resolution}
           <div class="info-row">
             <span class="info-label">Resolution:</span>
@@ -317,24 +304,81 @@
     bottom: 4vh;
     right: 4vw;
     z-index: 1000000;
-    display: inline-block;
-    background-color: rgba(255, 255, 255, 0.5);
-    padding-left: 10px;
-    padding-bottom: 10px;
-    padding-right: 10px;
-    border-radius: 25px;
-    width: 3vw;
-    min-width: 120px;
-    max-width: 220px;
+    background-color: rgba(250, 250, 250, 0.95);
+    padding: 12px 14px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    width: fit-content;
   }
 
   .legend-content {
     position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .legend-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 8px 0;
   }
 
   .legend-title {
-    font-size: max(12px, 1.3vh);
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.3;
+  }
+
+  .info-icon-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    background-color: rgba(0, 0, 0, 0.08);
+    border-radius: 50%;
+    border: none;
+    font-family: Georgia, serif;
+    font-size: 10px;
     font-weight: 500;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .info-icon-inline:hover {
+    background-color: #017e9f;
+    color: white;
+  }
+
+  .info-tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #555;
+    font-size: 10px;
+    font-weight: 400;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    transition: opacity 0.2s, visibility 0.2s;
+  }
+
+  .info-icon-inline:hover .info-tooltip {
+    visibility: visible;
+    opacity: 1;
   }
 
   .legend-image {
@@ -342,11 +386,6 @@
     height: 60vh;
     max-height: 250px;
     width: auto;
-  }
-  
-  .custom-legend {
-    margin-top: 8px;
-    font-size: 0.75rem;
   }
   
   .legend-item {
@@ -366,19 +405,19 @@
   .scalebar-legend {
     position: relative;
     display: flex;
-    height: 200px;
-    margin: 10px 0;
-    padding: 0 15px;
+    height: 150px;
+    margin: 0;
+    padding: 0;
   }
 
   .sequential-bars {
     display: flex;
     flex-direction: column;
     height: 100%;
-    width: 20px;
-    border: 1px solid #ccc;
-    border-radius: 3px;
+    width: 14px;
+    border-radius: 4px;
     overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
   }
 
   .color-block {
@@ -388,27 +427,17 @@
 
   .scalebar-labels {
     position: relative;
-    margin-left: 5px;
+    margin-left: 6px;
     height: 100%;
-    width: 40px;
   }
 
   .scalebar-label {
     position: absolute;
-    left: 5px;
-    transform: translateY(50%);
-    font-size: 12px;
-    white-space: nowrap;
-  }
-
-  .unit-label {
-    position: absolute;
-    top: -20px;
     left: 0;
-    right: 0;
-    text-align: center;
-    font-weight: bold;
-    font-size: 14px;
+    transform: translateY(50%);
+    font-size: 11px;
+    color: #555;
+    white-space: nowrap;
   }
 
   .categorical-legend {
@@ -431,101 +460,118 @@
     white-space: nowrap;
   }
 
-  .info-toggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 10px;
-    padding: 0;
-    border: none;
-    background: none;
-    color: #666;
-    font-size: 11px;
-    cursor: pointer;
-    transition: color 0.2s;
-  }
-
-  .info-toggle:hover {
-    color: #017e9f;
-  }
-
-  .info-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 14px;
-    height: 14px;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
-    font-family: Georgia, serif;
-    font-size: 10px;
-    font-weight: 500;
-  }
-
   .info-popup {
     position: absolute;
     bottom: 0;
-    right: calc(100% + 10px);
-    background: white;
-    border-radius: 12px;
-    padding: 14px;
-    min-width: 200px;
-    max-width: 260px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    border: 1px solid #e0e0e0;
+    right: calc(100% + 12px);
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+    border-radius: 14px;
+    padding: 16px 18px;
+    min-width: 220px;
+    max-width: 280px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(1, 126, 159, 0.15);
     z-index: 10;
   }
 
   .popup-close {
     position: absolute;
-    top: 8px;
-    right: 10px;
-    background: none;
+    top: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.05);
     border: none;
-    font-size: 18px;
-    color: #999;
+    font-size: 14px;
+    color: #888;
     cursor: pointer;
     padding: 0;
-    line-height: 1;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
   }
 
   .popup-close:hover {
-    color: #333;
+    background: rgba(1, 126, 159, 0.1);
+    color: #017e9f;
   }
 
   .popup-title {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: #017e9f;
-    margin: 0 0 8px 0;
-    padding-right: 20px;
+    margin: 0 0 10px 0;
+    padding-right: 24px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(1, 126, 159, 0.15);
   }
 
   .info-description {
-    font-size: 11px;
-    color: #333;
-    margin: 0 0 10px 0;
-    line-height: 1.4;
+    font-size: 12px;
+    color: #444;
+    margin: 0 0 14px 0;
+    line-height: 1.5;
   }
 
   .info-details {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
   }
 
   .info-row {
     display: flex;
-    gap: 6px;
-    font-size: 10px;
+    gap: 8px;
+    font-size: 11px;
   }
 
   .info-label {
-    color: #888;
+    color: #777;
     flex-shrink: 0;
+    font-weight: 500;
   }
 
   .info-value {
     color: #333;
+  }
+
+  .info-link {
+    color: #017e9f;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .info-link:hover {
+    color: #015a73;
+    text-decoration: underline;
+  }
+
+  /* Mobile font size adjustments */
+  @media (max-width: 768px) {
+    .legend-title {
+      font-size: 14px;
+    }
+
+    .info-icon-inline {
+      width: 18px;
+      height: 18px;
+      font-size: 12px;
+    }
+
+    .info-row {
+      font-size: 13px;
+    }
+
+    .info-source {
+      font-size: 14px;
+    }
+
+    .info-link {
+      font-size: 13px;
+    }
   }
 </style>

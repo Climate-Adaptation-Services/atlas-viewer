@@ -47,6 +47,9 @@
   // Check if scenarios should be shown for current layer
   $: showScenarios = layerAvailability.hasScenarios && ($time === "2050" || $time === "2080")
 
+  // Filter options2 to only show available time periods
+  $: availableTimeOptions = options2.filter(opt => isTimeAvailable(opt.name))
+
   // Auto-adjust time if current selection is not available
   $: if ($selectedLayer && !isTimeAvailable($time)) {
     // Set to first available time
@@ -69,6 +72,64 @@
 
   export let selectedTime = 0
   export let selectedScenario = 0
+
+  // Collapsible state for context layers
+  let contextLayersExpanded = false
+
+  /**
+   * @param {MouseEvent} event
+   * @param {string} tooltipId
+   */
+  function showTooltip(event, tooltipId) {
+    hideTooltip() // Remove any existing tooltip first
+
+    const wrapper = /** @type {HTMLElement} */ (event.currentTarget)
+    const icon = wrapper.querySelector('.layer-info-hint')
+    const rect = icon ? icon.getBoundingClientRect() : wrapper.getBoundingClientRect()
+
+    // Create tooltip and append to body to escape all overflow containers
+    const tooltip = document.createElement('div')
+    tooltip.id = 'sidepanel-floating-tooltip'
+    tooltip.style.cssText = `
+      position: fixed;
+      left: ${rect.left + rect.width / 2}px;
+      top: ${rect.bottom + 4}px;
+      transform: translateX(-50%);
+      background-color: rgba(255, 255, 255, 0.98);
+      color: #555;
+      font-size: 10px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      z-index: 999999999;
+      pointer-events: none;
+    `
+
+    if (tooltipId === 'time') {
+      tooltip.innerHTML = `
+        <ul style="margin: 0; padding: 0; list-style: none;">
+          <li style="padding: 2px 0;"><strong style="color: #017e9f;">Past:</strong> observed data for 1981–2010</li>
+          <li style="padding: 2px 0;"><strong style="color: #017e9f;">2050:</strong> projected data for 2036–2065</li>
+          <li style="padding: 2px 0;"><strong style="color: #017e9f;">2080:</strong> projected data for 2066–2095</li>
+        </ul>
+      `
+    } else if (tooltipId === 'scenario') {
+      tooltip.innerHTML = `
+        <ul style="margin: 0; padding: 0; list-style: none;">
+          <li style="padding: 2px 0;"><strong style="color: #017e9f;">Low:</strong> SSP1-2.6, low greenhouse gas emissions</li>
+          <li style="padding: 2px 0;"><strong style="color: #017e9f;">High:</strong> SSP5-8.5, high greenhouse gas emissions</li>
+        </ul>
+      `
+    }
+
+    document.body.appendChild(tooltip)
+  }
+
+  function hideTooltip() {
+    const existing = document.getElementById('sidepanel-floating-tooltip')
+    if (existing) existing.remove()
+  }
 
   /** @param {number} index */
   function selectTime(index) {
@@ -135,66 +196,79 @@
   {/each}
 
   {#if contextLayerOptions.length > 0}
-    <h2>Context layers</h2>
-    {#each contextLayerOptions as option}
-      <label class="keuzes" class:selected={$selectedLayer === option}>
-        <input class="option" type="radio" name="laag" value={option} bind:group={$selectedLayer} />
-        {option}
-      </label>
-    {/each}
+    <button
+      class="collapsible-header"
+      on:click={() => contextLayersExpanded = !contextLayersExpanded}
+      aria-expanded={contextLayersExpanded}
+    >
+      <span class="collapse-icon" class:expanded={contextLayersExpanded}>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <h2 class="collapsible-title">Context layers</h2>
+    </button>
+    {#if contextLayersExpanded}
+      <div class="collapsible-content">
+        {#each contextLayerOptions as option}
+          <label class="keuzes" class:selected={$selectedLayer === option}>
+            <input class="option" type="radio" name="laag" value={option} bind:group={$selectedLayer} />
+            {option}
+          </label>
+        {/each}
+      </div>
+    {/if}
   {/if}
 
-  <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
-    Select time period
-    <span class="info-icon-wrapper">
-      <span class="layer-info-hint">i</span>
-      <span class="tooltip">
-        <ul class="tooltip-list">
-          <li><strong>Past:&nbsp;</strong>observed data for 1981–2010</li>
-          <li><strong>2050:&nbsp;</strong>projected data for 2036–2065</li>
-          <li><strong>2080:&nbsp;</strong>projected data for 2066–2095</li>
-       </ul>
+  {#if availableTimeOptions.length > 1}
+    <h2 style="display: inline-flex; align-items: center; gap: 0.5em; margin-top: 2vh;">
+      Select time period
+      <span
+        class="info-icon-wrapper"
+        on:mouseenter={(e) => showTooltip(e, 'time')}
+        on:mouseleave={hideTooltip}
+        role="button"
+        tabindex="0"
+      >
+        <span class="layer-info-hint">i</span>
       </span>
-    </span>
-  </h2>
-  <div class="timeline-wrapper">
-    <div class="timeline">
-      {#each options2 as option, index}
-        <!-- Line segment before marker (except for first) -->
-        {#if index > 0}
-          <div
-            class="timeline-line"
-            class:available={isTimeAvailable(options2[index - 1].name) && isTimeAvailable(option.name)}
-          ></div>
-        {/if}
-        <!-- Marker -->
-        <button
-          class="timeline-marker"
-          class:selected={selectedTime === index}
-          class:available={isTimeAvailable(option.name)}
-          disabled={!isTimeAvailable(option.name)}
-          on:click={() => selectTime(index)}
-        >
-          <span class="marker-dot"></span>
-          <span class="marker-label">{option.name}</span>
-          {#if !isTimeAvailable(option.name)}
-            <span class="disabled-tooltip">No data available</span>
+    </h2>
+    <div class="timeline-wrapper">
+      <div class="timeline">
+        {#each availableTimeOptions as option, index}
+          <!-- Line segment before marker (except for first) -->
+          {#if index > 0}
+            <div class="timeline-line available"></div>
           {/if}
-        </button>
-      {/each}
+          <!-- Marker -->
+          <button
+            class="timeline-marker available"
+            class:selected={selectedTime === option.id}
+            on:click={() => selectTime(option.id)}
+          >
+            <span class="marker-dot"></span>
+            <span class="marker-label">{option.name}</span>
+          </button>
+        {/each}
+      </div>
     </div>
-  </div>
+  {:else if availableTimeOptions.length === 1}
+    <div class="time-period-label">
+      <span class="time-period-text">Time period:</span>
+      <span class="time-period-value">{availableTimeOptions[0].name}</span>
+    </div>
+  {/if}
   {#if showScenarios}
     <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
       Emissions scenario
-      <span class="info-icon-wrapper">
+      <span
+        class="info-icon-wrapper"
+        on:mouseenter={(e) => showTooltip(e, 'scenario')}
+        on:mouseleave={hideTooltip}
+        role="button"
+        tabindex="0"
+      >
         <span class="layer-info-hint">i</span>
-        <span class="tooltip">
-          <ul class="tooltip-list">
-            <li><strong>Low:&nbsp;</strong>SSP1-2.6, low greenhouse gas emissions</li>
-            <li><strong>High:&nbsp;</strong>SSP5-8.5, high greenhouse gas emissions</li>
-          </ul>
-        </span>
       </span>
     </h2>
     <div class="scenario-toggle">
@@ -265,6 +339,11 @@
       font-size: 1.8vh !important;
     }
 
+    .collapse-icon {
+      width: 2vh !important;
+      height: 2vh !important;
+    }
+
     .buttons button {
       height: 5.5vh !important;
       width: 20vw !important;
@@ -331,26 +410,24 @@
   .tooltip {
     visibility: hidden;
     width: max-content;
-    min-width: 180px;
-    max-width: 280px;
-    background-color: white;
-    color: #333;
+    max-width: 200px;
+    background-color: rgba(255, 255, 255, 0.98);
+    color: #555;
     text-align: left;
-    border-radius: 8px;
-    padding: 10px 12px;
+    border-radius: 4px;
+    padding: 6px 10px;
     position: absolute;
-    z-index: 100;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-top: 8px;
+    z-index: 10000000;
+    top: calc(100% + 6px);
+    left: -80px;
     opacity: 0;
-    transition: opacity 0.2s;
-    font-size: 0.8em;
+    transition: opacity 0.2s, visibility 0.2s;
+    font-size: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 400;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     pointer-events: none;
-    border: 1px solid #e0e0e0;
+    border: 1px solid rgba(0, 0, 0, 0.08);
   }
 
   .tooltip-list {
@@ -360,7 +437,7 @@
   }
 
   .tooltip-list li {
-    padding: 4px 0;
+    padding: 2px 0;
     line-height: 1.4;
   }
 
@@ -371,6 +448,104 @@
     visibility: visible;
     opacity: 1;
     pointer-events: auto;
+  }
+
+  /* Fixed position tooltip that escapes overflow containers */
+  .fixed-tooltip {
+    position: fixed;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 220px;
+    background-color: rgba(255, 255, 255, 0.98);
+    color: #555;
+    text-align: left;
+    border-radius: 4px;
+    padding: 6px 10px;
+    z-index: 10000000;
+    font-size: 10px;
+    font-weight: 400;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    pointer-events: none;
+  }
+
+  /* Collapsible section styles */
+  .collapsible-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 1vh;
+    margin-bottom: 0.5vh;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .collapsible-header:hover .collapsible-title {
+    color: #017e9f;
+  }
+
+  .collapsible-title {
+    margin: 0;
+    transition: color 0.2s ease;
+  }
+
+  .collapse-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.8vh;
+    height: 1.8vh;
+    min-width: 14px;
+    min-height: 14px;
+    color: #666;
+    transition: transform 0.2s ease;
+  }
+
+  .collapse-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .collapse-icon.expanded {
+    transform: rotate(90deg);
+  }
+
+  .collapsible-content {
+    animation: slideDown 0.2s ease-out;
+    padding-bottom: 0.5vh;
+  }
+
+  /* Single time period label */
+  .time-period-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-top: 2vh;
+    font-size: 1.8vh;
+  }
+
+  .time-period-text {
+    color: #555;
+  }
+
+  .time-period-value {
+    font-weight: 500;
+    color: #017e9f;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .keuzes {
@@ -394,8 +569,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 13px;
-    height: 13px;
+    width: 14px;
+    height: 14px;
     background-color: rgba(0, 0, 0, 0.08);
     border-radius: 50%;
     font-family: Georgia, serif;
@@ -403,6 +578,12 @@
     font-weight: 500;
     color: #888;
     cursor: help;
+    transition: all 0.2s;
+  }
+
+  .layer-info-hint:hover {
+    background-color: #017e9f;
+    color: white;
   }
 
   .keuzes.selected {

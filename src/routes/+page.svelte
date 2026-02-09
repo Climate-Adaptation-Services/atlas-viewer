@@ -30,32 +30,23 @@
 		<div class="sidepanel">
 			<Sidepanel/>
 		</div>
-		<button
-			class="toggle-arrow"
-			on:click={togglePanel}
-			on:keydown={(e) => e.key === 'Enter' && togglePanel()}
-			aria-label={open ? "Close panel" : "Open panel"}
-			type="button"
-		>
-			<span class="tooltip">{open ? "Close panel" : "Open panel"}</span>
-			{#if open}
-				&larr;
-			{:else}
-				&rarr;
-			{/if}
-		</button>
 	</div>
-	<!-- Mobile-only toggle that appears when panel is closed -->
-	<button 
-		class="mobile-toggle" 
-		class:hidden={open} 
+	<button
+		class="toggle-arrow"
+		class:panel-open={open}
 		on:click={togglePanel}
 		on:keydown={(e) => e.key === 'Enter' && togglePanel()}
-		aria-label="Open panel"
+		aria-label={open ? "Close panel" : "Open panel"}
 		type="button"
 	>
-		&rarr;
-	</button>	
+		<span class="tooltip">{open ? "Close panel" : "Open panel"}</span>
+		{#if open}
+			&larr;
+		{:else}
+			&rarr;
+		{/if}
+	</button>
+
 	<div class='map' bind:clientWidth={w} bind:clientHeight={h} >
 		<BackgroundMap />
 	</div>
@@ -84,13 +75,14 @@
 
 .sidepanel-wrapper {
 	position: fixed;
-	width: 20vw; /* Default width for desktop */
+	width: 18vw; /* Default width for desktop */
 	left: 1vw;
 	top: 5vh;
 	height: 90vh;
 	z-index: 2000000;
-	transform: translateX(-100%);
+	transform: translateX(calc(-100% - 2vw)); /* Fully hidden when closed */
 	transition: transform 0.3s ease;
+	overflow: visible;
 }
 
 .sidepanel-wrapper.open {
@@ -100,15 +92,15 @@
 .sidepanel {
 	display: flex;
 	flex-direction: column;
-	padding-left: 2vw;
-	padding-right: 2vw;
+	padding-left: 1vw;
+	padding-right: 1vw;
 	width: 100%;
 	height: 100%;
 	background-color: #F8F3EE;
 	box-shadow: 2px 0 5px rgba(0,0,0,0.1);
 	border-radius: 15px;
 	overflow-y: auto;
-	overflow-x: hidden;
+	overflow-x: clip;
 	scrollbar-width: thin;
 	scrollbar-gutter: stable;
 }
@@ -142,81 +134,71 @@
 
 	.sidepanel {
 		border-radius: 0 15px 15px 0;
+		padding-left: 4vw;
+		padding-right: 4vw;
+		padding-top: 3vh;
 	}
 }
 
 .toggle-arrow {
-	position: absolute;
-	top: 10px; 
-	right: -30px; 
+	position: fixed;
+	top: calc(5vh + 10px);
+	left: 25px; /* Default: visible at left when closed, just outside panel edge */
 	cursor: pointer;
 	background-color: #fff;
 	border: 1px solid #ccc;
 	padding: 5px;
 	border-radius: 50%;
 	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-	z-index: 1001; /* Ensure it is above the sidepanel */
-	transition: transform 0.3s ease; /* Ensure it transitions with the sidepanel */
+	z-index: 2000001;
+	transition: left 0.3s ease;
 	appearance: none;
 	line-height: 1;
+}
+
+.toggle-arrow.panel-open {
+	left: calc(1vw + 18vw - 10px); /* Position at right edge when open */
 }
 
 /* Position the toggle arrow for mobile */
 @media (max-width: 768px) {
 	.toggle-arrow {
-		top: 10px;
-		right: 10px;
-		background-color: transparent;
-		border: none;
-		box-shadow: none;
-		padding: 8px;
-		font-size: 18px;
-	}
-	
-	.toggle-arrow .tooltip {
-		display: none; /* Hide tooltip on mobile to save space */
-	}
-	
-	/* Mobile toggle button that appears when panel is closed */
-	.mobile-toggle {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		position: fixed;
-		top: 15px;
-		left: 15px;
-		background-color: #017e9f;
-		color: white;
-		border: none;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-		padding: 12px 16px;
-		font-size: 20px;
-		z-index: 1002;
-		cursor: pointer;
-		border-radius: 8px;
+		top: 12px;
+		left: 25px;
+		padding: 5px 7px;
+		font-size: 14px;
+		background-color: rgba(255, 255, 255, 0.9);
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 	}
 
-	.mobile-toggle.hidden {
+	.toggle-arrow.panel-open {
+		left: calc(85vw - 15px); /* Position at right edge when open */
+	}
+
+	.toggle-arrow .tooltip {
 		display: none;
 	}
 }
 
 .tooltip {
-	visibility: visible;
-	width: 100px;
-	background-color: #555;
-	color: #fff;
+	visibility: hidden;
+	width: max-content;
+	background-color: rgba(255, 255, 255, 0.98);
+	color: #555;
 	text-align: center;
-	border-radius: 6px;
-	padding: 5px;
+	border-radius: 4px;
+	padding: 4px 8px;
 	position: absolute;
 	z-index: 10002;
-	top: -5px; /* Position above the arrow */
-	left: 90px;
-	transform: translateX(-50%);
-	margin-top: 5px; /* Space between the arrow and the tooltip */
+	top: 50%;
+	left: calc(100% + 8px);
+	transform: translateY(-50%);
+	font-size: 11px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+	border: 1px solid rgba(0, 0, 0, 0.08);
 	opacity: 0;
-	transition: opacity 0.3s;
+	transition: opacity 0.2s, visibility 0.2s;
 }
 
 .toggle-arrow:hover .tooltip {
@@ -224,11 +206,5 @@
 	opacity: 1;
 }
 
-/* Hide mobile toggle on desktop */
-@media (min-width: 769px) {
-	.mobile-toggle {
-		display: none;
-	}
-}
 
 </style>
