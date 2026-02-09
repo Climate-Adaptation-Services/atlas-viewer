@@ -562,12 +562,26 @@
       font-size: 12px;
     }
 
-    .info-row {
-      font-size: 13px;
+    .info-tooltip {
+      font-size: 12px;
     }
 
-    .info-source {
+    .info-popup {
+      min-width: 200px;
+      max-width: 260px;
+      padding: 14px 16px;
+    }
+
+    .popup-title {
+      font-size: 15px;
+    }
+
+    .info-description {
       font-size: 14px;
+    }
+
+    .info-row {
+      font-size: 13px;
     }
 
     .info-link {

@@ -423,7 +423,6 @@
     opacity: 0;
     transition: opacity 0.2s, visibility 0.2s;
     font-size: 10px;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 400;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     pointer-events: none;
