@@ -26,11 +26,22 @@
   // Get scenario label for display
   $: scenarioLabel = $scenario === 'Low' ? 'SSP1-2.6' : 'SSP5-8.5'
   
+  /** @type {string[]} */
+  const climateLayerNames = [
+    "Maximum temperature", "Minimum temperature", "Average temperature",
+    "Total rainfall", "Days above 20 mm", "Dry spells"
+  ]
+
   /**
-   * Format the legend title for display
-   * @param {string} title - The data layer title to format
-   * @returns {string} - The formatted title
+   * Check if a layer is one of the climate layers that show change for projections
+   * @param {string} layer
+   * @returns {boolean}
    */
+  const isClimateLayer = (layer) => {
+    if (!layer) return false
+    return climateLayerNames.some(cl => layer.toLowerCase().includes(cl.toLowerCase()))
+  }
+
   const formatLegendTitle = (title) => {
     const titleMap = {
       "Maximum temperature": "Maximum temp.",
@@ -47,9 +58,32 @@
         return value
       }
     }
-    
+
     // If no match found, return the original with first letter capitalized
     return title.charAt(0).toUpperCase() + title.slice(1)
+  }
+
+  /**
+   * Get the legend title for projection mode (Change in ...)
+   * @param {string} title - The data layer title
+   * @returns {string} - The formatted change title with unit
+   */
+  const getChangeLegendTitle = (title) => {
+    const changeUnitMap = {
+      "Maximum temperature": "°C",
+      "Minimum temperature": "°C",
+      "Average temperature": "°C",
+      "Total rainfall": "mm",
+      "Days above 20 mm": "days",
+      "Dry spells": "days"
+    }
+
+    for (const [key, unit] of Object.entries(changeUnitMap)) {
+      if (title && title.toLowerCase().includes(key.toLowerCase())) {
+        return `Change (${unit})`
+      }
+    }
+    return "Change"
   }
   
   /**
@@ -141,6 +175,8 @@
           {getLegendUnit(layerName) || layerName}
         {:else if isGeojsonLayer($datalaag)}
           {getLegendUnit($datalaag) || $datalaag}
+        {:else if isShowingChange && isClimateLayer($datalaag)}
+          {getChangeLegendTitle($datalaag)}
         {:else}
           {getLegendUnit($datalaag) || formatLegendTitle($datalaag)}
         {/if}
@@ -271,7 +307,11 @@
     <div class="info-popup">
       <button class="popup-close" on:click={() => showInfo = false}>×</button>
       <p class="popup-title">{currentLayerName}</p>
-      <p class="info-description">{layerInfoData.description}</p>
+      {#if isShowingChange && isClimateLayer(currentLayerName)}
+        <p class="info-description">Projected change in {currentLayerName.toLowerCase()} compared to the baseline period ({layerInfoData.baseline || '1981–2010'}).</p>
+      {:else}
+        <p class="info-description">{layerInfoData.description}</p>
+      {/if}
       <div class="info-details">
         <div class="info-row">
           <span class="info-label">Source:</span>
