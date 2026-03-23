@@ -26,8 +26,8 @@ export const countryConfigs = {
     name: "Zimbabwe",
     center: [-19, 27],
     zoom: 6,
-    dataType: "wms",
-    wmsEndpoint: "https://dev.cas-zimbabwe.predictia.es/wms",
+    dataType: "geojson",
+    geojsonBaseUrl: "https://zimciaviewer.s3.eu-north-1.amazonaws.com/",
     mask: "zimbabwe",
     layerAvailability: {
       // Climate layers - all have Past, 2050, 2080 with low/high scenarios
@@ -36,9 +36,7 @@ export const countryConfigs = {
       "Maximum temperature": { times: ["Past", "2050", "2080"], hasScenarios: true },
       "Total rainfall": { times: ["Past", "2050", "2080"], hasScenarios: true },
       "Days above 20 mm": { times: ["Past", "2050", "2080"], hasScenarios: true },
-      "Dry spells": { times: ["Past", "2050", "2080"], hasScenarios: true },
-      // Context layers
-      "River Flood": { times: ["Past"], hasScenarios: false }
+      "Dry spells": { times: ["Past", "2050", "2080"], hasScenarios: true }
     }
   },
   kenya: {

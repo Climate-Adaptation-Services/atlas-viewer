@@ -7,9 +7,12 @@
 
   const dispatch = createEventDispatcher()
 
-  const optionsTemperature = ["Average temperature", "Minimum temperature", "Maximum temperature"]
-  const optionsDrought = ["Dry spells", "Water Stress"]
-  const optionsPrecipitation = ["Total rainfall", "Days above 20 mm", "River Flood"]
+  const themeLayerMap = {
+    heat: ["Average temperature", "Minimum temperature", "Maximum temperature"],
+    drought: ["Dry spells", "Water Stress"],
+    rain: ["Total rainfall", "Days above 20 mm", "River Flood"]
+  }
+
   const allContextLayerOptions = getContextLayerNames()
 
   const options2 = [
@@ -26,7 +29,10 @@
   $: countryCode = $page.url.searchParams.get('country') || 'zimbabwe'
   $: countryConfig = getCountryConfig(countryCode)
 
-  $: options = $theme === "heter" ? optionsTemperature : $theme === "precipitation" ? optionsPrecipitation : optionsDrought
+  // Filter theme options by country availability
+  $: options = (themeLayerMap[$theme] || []).filter(
+    layer => countryConfig?.layerAvailability?.[layer] !== undefined
+  )
 
   // Filter context layers to only show those available for this country
   $: contextLayerOptions = allContextLayerOptions.filter(layer =>
@@ -157,8 +163,8 @@
   <div class="theme-buttons">
     <button
       class="theme-btn"
-      class:active={$theme === 'heter'}
-      on:click={() => theme.set('heter')}>
+      class:active={$theme === 'heat'}
+      on:click={() => theme.set('heat')}>
       <img
         class="themelogo"
         src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/heat.svg"
@@ -167,8 +173,8 @@
     </button>
     <button
       class="theme-btn"
-      class:active={$theme === 'droger'}
-      on:click={() => theme.set('droger')}>
+      class:active={$theme === 'drought'}
+      on:click={() => theme.set('drought')}>
       <img
         class="themelogo"
         src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/drought.svg"
@@ -177,8 +183,8 @@
     </button>
     <button
       class="theme-btn"
-      class:active={$theme === 'precipitation'}
-      on:click={() => theme.set('precipitation')}>
+      class:active={$theme === 'rain'}
+      on:click={() => theme.set('rain')}>
       <img
         class="themelogo"
         src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/rain.svg"
