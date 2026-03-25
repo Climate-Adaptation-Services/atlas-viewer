@@ -99,7 +99,7 @@
       "Total rainfall": "mm",
       "Days above 20 mm": "days",
       "Dry spells": "5 dry days in a row",
-      "Population": "people",
+      "Urban population": "People",
       "River Flood": "Inundation depth"
     }
 
@@ -193,7 +193,7 @@
     </div>
 
     <!-- Population Context Layer Legend -->
-    {#if dataType === 'context' && layerName === 'Population'}
+    {#if dataType === 'context' && layerName === 'Urban population'}
       <div class="categorical-legend">
         {#each getPopulationLegendItems() as item}
           <div class="legend-item">

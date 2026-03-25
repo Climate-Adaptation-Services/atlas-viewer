@@ -59,7 +59,7 @@ export const countryConfigs = {
       // Regular map layers
       "Water Stress": { times: ["Past", "2050", "2080"], hasScenarios: true },
       // Context layers - Population only has Past (2025) and 2050, no scenarios
-      "Population": { times: ["Past", "2050"], hasScenarios: false },
+      "Urban population": { times: ["Past", "2050"], hasScenarios: false },
       "River Flood": { times: ["Past"], hasScenarios: false },
       "Agroclimatic zones": { times: ["Past"], hasScenarios: false }
     }

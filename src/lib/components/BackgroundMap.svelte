@@ -236,7 +236,7 @@ function getLayerId(datalaag, time, scenario) {
    * @returns {string} Full filename for the context layer
    */
   function getContextLayerFilename(layerName, time, scenario) {
-    if (layerName.toLowerCase() === 'population') {
+    if (layerName.toLowerCase() === 'urban population') {
       // Map time periods to population data years
       const timeNormalized = time ? time.toLowerCase() : 'past';
       if (timeNormalized === 'past' || timeNormalized === 'hist') {
@@ -354,7 +354,7 @@ function getLayerId(datalaag, time, scenario) {
         if (!response.ok) throw new Error(`Failed to fetch context layer: ${response.status}`);
         const data = await response.json();
 
-        if (layerName.toLowerCase() === 'population') {
+        if (layerName.toLowerCase() === 'urban population') {
           // Use point-to-layer for population circles
           contextLayerInstances[cacheKey] = L.geoJSON(data, {
             pointToLayer: (feature, latlng) => {
