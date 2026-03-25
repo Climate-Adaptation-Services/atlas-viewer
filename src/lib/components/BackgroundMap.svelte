@@ -46,9 +46,10 @@ const baseLayerCodes = {
   "Maximum temperature": "tmax",
   "Minimum temperature": "tmin",
   "Average temperature": "tavg",
-  "Total rainfall": "precip_total",
+  "Total rainfall": "precip",
   "Days above 20 mm": "daysabove20",
-  "Dry spells": "drydays"
+  "Dry spells": "drydays",
+  "Days above 35°C": "daysabove35C"
 }
 
 /**
@@ -94,7 +95,8 @@ function getLayerId(datalaag, time, scenario) {
       "Average temperature": "°C",
       "Total rainfall": "mm/year",
       "Days above 20 mm": "days/year",
-      "Dry spells": "spells/year"
+      "Dry spells": "spells/year",
+      "Days above 35°C": "days/year"
     };
     
     return dataLayer && typeof dataLayer === 'string' && dataLayer in units ? 
@@ -171,10 +173,11 @@ function getLayerId(datalaag, time, scenario) {
 
       if (!geojsonLayers[cacheKey] && config) {
         try {
-          const url = getGeojsonLayerUrl($datalaag, $time, $scenario);
-          if (!url) throw new Error(`No URL configured for ${$datalaag}`);
+          const baseUrl = getGeojsonLayerUrl($datalaag, $time, $scenario);
+          if (!baseUrl) throw new Error(`No URL configured for ${$datalaag}`);
+          const url = baseUrl;
 
-          const response = await fetch(url);
+          const response = await fetch(url, { cache: 'no-store' });
           if (!response.ok) throw new Error(`Failed to fetch ${$datalaag}: ${response.status}`);
           const data = await response.json();
 
@@ -193,9 +196,9 @@ function getLayerId(datalaag, time, scenario) {
     // Standard climate layer handling
     if (!layerId) return null;
 
-    // Get base code from layerId
-    const parts = layerId.split('_');
-    const baseCode = parts[0];
+    // Get base code from layerId by matching against known codes
+    const base = baseLayerCodes[$datalaag];
+    const baseCode = base || layerId.split('_')[0];
     const url = getGeoJsonUrl(baseCode, $time, $scenario);
 
     if (!url) return null;
@@ -203,9 +206,11 @@ function getLayerId(datalaag, time, scenario) {
     try {
       // Check if we already have this layer cached
       if (!geojsonLayers[layerId]) {
-        const response = await fetch(url);
+        console.log('[MAP] Fetching URL:', url);
+        const response = await fetch(url, { cache: 'no-store' });
         if (!response.ok) throw new Error(`Failed to fetch GeoJSON: ${response.status}`);
         const data = await response.json();
+        console.log('[MAP] Response features:', data?.features?.length);
         geojsonLayers[layerId] = L.geoJSON(data, {
           style: styleGeoJson,
           interactive: false, // Make layer non-interactive to allow clicks to pass through
@@ -336,18 +341,18 @@ function getLayerId(datalaag, time, scenario) {
         if (layerConfig?.url) {
           // Use the direct URL from config
           url = layerConfig.url;
-          response = await fetch(url);
+          response = await fetch(url, { cache: 'no-store' });
         } else {
           // Use filename-based lookup
           const filename = getContextLayerFilename(layerName, time, scenario);
           // Try local static folder first, then S3
           url = `/${filename}`;
-          response = await fetch(url);
+          response = await fetch(url, { cache: 'no-store' });
 
           // If local fetch fails, try S3
           if (!response.ok && countryConfig.geojsonBaseUrl) {
             url = `${countryConfig.geojsonBaseUrl}${filename}`;
-            response = await fetch(url);
+            response = await fetch(url, { cache: 'no-store' });
           }
         }
 
@@ -543,8 +548,9 @@ function getLayerId(datalaag, time, scenario) {
     } else {
       // Load standard climate layer
       const layerId = getLayerId($selectedLayer, $time, $scenario);
+      console.log('[MAP] Standard layer:', { selectedLayer: $selectedLayer, datalaag: $datalaag, time: $time, scenario: $scenario, layerId, dataType: countryConfig.dataType });
 
-      if (!layerId) { /* Skip if no valid layer ID */ }
+      if (!layerId) { console.log('[MAP] No valid layerId, skipping'); }
       else if (countryConfig.dataType === "wms" && wmsLayers[layerId]) {
         // Add WMS layer for WMS-based countries
         wmsLayers[layerId].addTo(map);
@@ -554,6 +560,7 @@ function getLayerId(datalaag, time, scenario) {
         // Load and add GeoJSON layer for GeoJSON-based countries
         isLoading = true;
         loadGeoJsonLayer(layerId).then(layer => {
+          console.log('[MAP] GeoJSON loaded:', layerId, layer ? `${layer.getLayers().length} features` : 'null');
           if (layer && map) {
             layer.addTo(map);
           }

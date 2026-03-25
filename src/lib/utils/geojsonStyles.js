@@ -6,7 +6,7 @@ import { opacityMap } from '../stores.js';
 import { get } from 'svelte/store';
 import { interpolateYlOrBr, interpolateReds } from 'd3-scale-chromatic';
 
-/** @typedef {'temperature'|'temperatureProjection'|'drySpell'|'drySpellProjection'|'rainfall'|'rainfallProjection'|'daysAbove20mm'|'daysAbove20mmProjection'} ScaleType */
+/** @typedef {'temperature'|'temperatureProjection'|'drySpell'|'drySpellProjection'|'rainfall'|'rainfallProjection'|'daysAbove20mm'|'daysAbove20mmProjection'|'daysAbove35'} ScaleType */
 
 /** @type {Record<string, ScaleType>} */
 const LAYER_TYPE_MAPPINGS = {
@@ -14,6 +14,7 @@ const LAYER_TYPE_MAPPINGS = {
   'dry spell': 'drySpell',
   'rainfall': 'rainfall',
   'days above 20': 'daysAbove20mm',
+  'days above 35': 'daysAbove35',
 };
 console.log(get(opacityMap))
 /** @type {Record<ScaleType, {min: number, max: number, unit: string, colors: string[]}>} */
@@ -83,10 +84,16 @@ const SCALES = {
     max: 10,
     unit: "days",
     colors: [
-      "#e6cbae", "#f0e1d0", "#fbf6f2", "#f1f7f5", 
-      "#d2e5e0", "#b5d2cc", "#99c2bd", "#81bab2", "#6cb3ab", "#57aaa4", "#46a198", "#3a968b", 
+      "#e6cbae", "#f0e1d0", "#fbf6f2", "#f1f7f5",
+      "#d2e5e0", "#b5d2cc", "#99c2bd", "#81bab2", "#6cb3ab", "#57aaa4", "#46a198", "#3a968b",
       "#308c7f", "#248071", "#1e735e", "#19674e", "#14593c", "#115338"
     ]
+  },
+  daysAbove35: {
+    min: 0,
+    max: 300,
+    unit: "days",
+    colors: Array.from({length: 32}, (_, i) => interpolateReds(i / 31))
   },
 };
 
@@ -149,9 +156,13 @@ export function styleGeoJsonFeature(feature, layerType, opacityValue = 1, time =
       color = getColorForScale(value, 'rainfallProjection');
     }
     // Days above 20mm projections
-    else if (layerLower.includes('days above 20mm') || layerLower.includes('days_above_20') || 
+    else if (layerLower.includes('days above 20mm') || layerLower.includes('days_above_20') ||
              layerLower.includes('days above 20')) {
       color = getColorForScale(value, 'daysAbove20mmProjection');
+    }
+    // Days above 35°C projections (absolute values, same scale as hist)
+    else if (layerLower.includes('days above 35')) {
+      color = getColorForScale(value, 'daysAbove35');
     }
   } else {
     const matchingKeyword = Object.keys(LAYER_TYPE_MAPPINGS).find(keyword => layerLower.includes(keyword));
@@ -210,7 +221,8 @@ const SCALE_STEPS = {
   rainfall: 200,
   rainfallProjection: 50,
   daysAbove20mm: 5,
-  daysAbove20mmProjection: 1
+  daysAbove20mmProjection: 1,
+  daysAbove35: 50
 };
 
 /**
@@ -242,10 +254,15 @@ export function getLegendItems(layerName, time = 'past') {
       return createScalebarLegendItems('rainfallProjection', step);
     }
     // Days above 20mm projections
-    else if (layerNameLower.includes('days above 20mm') || layerNameLower.includes('days above 20') || 
+    else if (layerNameLower.includes('days above 20mm') || layerNameLower.includes('days above 20') ||
              layerNameLower.includes('days_above_20')) {
       const step = SCALE_STEPS['daysAbove20mmProjection'] || 1;
       return createScalebarLegendItems('daysAbove20mmProjection', step);
+    }
+    // Days above 35°C projections (absolute values, same scale as hist)
+    else if (layerNameLower.includes('days above 35')) {
+      const step = SCALE_STEPS['daysAbove35'] || 50;
+      return createScalebarLegendItems('daysAbove35', step);
     }
   }
   

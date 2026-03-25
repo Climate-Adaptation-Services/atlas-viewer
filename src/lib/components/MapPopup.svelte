@@ -7,6 +7,8 @@
   import { isContextLayer, getContextLayerConfig } from '$lib/config/contextLayers.js';
   import { getClimateLayerConfig } from '$lib/config/climateLayers.js';
   import { isGeojsonLayer } from '$lib/config/geojsonLayers.js';
+  import { getCountryConfig } from '$lib/config/countries.js';
+  import Chart from 'chart.js/auto';
 
   // Track map parameter changes
   let currentDataLayer;
@@ -161,9 +163,128 @@
         .setContent(`<div class="popup-content">Loading data...</div>`)
         .openOn(map);
 
+      // --- Special simplified popup for "Days above 35°C" (only for 2050/2080) ---
+      if ($datalaag === 'Days above 35°C' && ['2050', '2080'].includes($time || '')) {
+        const csvPoints = $csvData;
+        if (csvPoints && csvPoints.length > 0) {
+          // Find closest CSV point
+          const threshold = 0.5;
+          const nearbyPoints = csvPoints
+            .filter(point =>
+              Math.abs(parseFloat(point.lat) - parseFloat(lat)) < threshold &&
+              Math.abs(parseFloat(point.lon) - parseFloat(lng)) < threshold
+            )
+            .sort((a, b) => {
+              const distA = Math.hypot(parseFloat(a.lat) - lat, parseFloat(a.lon) - lng);
+              const distB = Math.hypot(parseFloat(b.lat) - lat, parseFloat(b.lon) - lng);
+              return distA - distB;
+            });
+
+          if (nearbyPoints.length > 0) {
+            const closestPoint = nearbyPoints[0];
+            const sameLocationPoints = csvPoints.filter(
+              point => point.lat === closestPoint.lat && point.lon === closestPoint.lon
+            );
+
+            // Get scenario code for filtering
+            const scenarioCode = $scenario === 'Low' ? 'ssp126' : 'ssp585';
+
+            // Debug: log unique period/scenario combos
+            const combos = [...new Set(sameLocationPoints.map(p => `${p.sceno}|${p.period_mean}`))];
+            console.log('[Days35] combos:', combos);
+
+            // Find values for hist, 2050, 2080
+            const histPoint = sameLocationPoints.find(p => String(p.sceno) === 'historical');
+            const p2050 = sameLocationPoints.find(p => String(p.sceno) === scenarioCode && String(p.period_mean).startsWith('2036'));
+            const p2080 = sameLocationPoints.find(p => String(p.sceno) === scenarioCode && String(p.period_mean).startsWith('2066'));
+
+            const histVal = histPoint ? parseFloat(histPoint.value) : null;
+            const val2050 = p2050 ? parseFloat(p2050.value) : null;
+            const val2080 = p2080 ? parseFloat(p2080.value) : null;
+
+            // If all values are 0, show a message instead of an empty chart
+            if ((histVal || 0) === 0 && (val2050 || 0) === 0 && (val2080 || 0) === 0) {
+              popup.setContent(`
+                <div class="popup-content">
+                  <div class="chart-title">Days above 35°C</div>
+                  <div style="text-align: center; padding: 15px 10px; color: #666;">
+                    No days above 35°C projected for this location.
+                  </div>
+                </div>`);
+              return;
+            }
+
+            const barChartId = 'bar-chart-' + Date.now();
+
+            popup.setContent(`
+              <div class="popup-content">
+                <div class="chart-title">Days above 35°C</div>
+                <div class="chart-subtitle">${$scenario} emissions scenario</div>
+                <div class="chart-container" style="width: 300px; height: 220px; margin: 10px auto 5px; position: relative;">
+                  <canvas id="${barChartId}" style="display: block;"></canvas>
+                </div>
+              </div>`);
+
+            setTimeout(() => {
+              const canvas = document.getElementById(barChartId);
+              if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                  new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                      labels: ['Historical', '2050', '2080'],
+                      datasets: [{
+                        data: [histVal, val2050, val2080],
+                        backgroundColor: ['#6b7280', '#f97316', '#ef4444'],
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                      }]
+                    },
+                    options: {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                          callbacks: {
+                            label: (ctx) => `${Math.round(ctx.raw)} days/year`
+                          }
+                        }
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          title: {
+                            display: true,
+                            text: 'days/year',
+                            font: { size: 12 }
+                          },
+                          ticks: {
+                            precision: 0
+                          }
+                        },
+                        x: {
+                          grid: { display: false }
+                        }
+                      }
+                    }
+                  });
+                }
+              }
+            }, 200);
+          } else {
+            popup.setContent(`<div class="popup-content">No data available for this location.</div>`);
+          }
+        } else {
+          popup.setContent(`<div class="popup-content">Loading data...</div>`);
+        }
+        return;
+      }
+
       // Active layer ID for WMS request
       const layerId = getLayerId($datalaag, $time, $scenario);
-      
+
       // Check if we're using a country with WMS or CSV only
       const isWmsCountry = countryCode.toLowerCase() === 'zimbabwe';
 
@@ -174,7 +295,7 @@
       let sameScenarioPoints = [];
 
       if (csvPoints && csvPoints.length > 0) {
-        
+
         // Find closest CSV point
         const threshold = 0.5; // degrees
         const nearbyPoints = csvPoints
@@ -331,9 +452,9 @@
         // Format the value if found
         if (value !== undefined) {
           const isHistorical = !['2050', '2080'].includes($time || '');
-          // Round to whole numbers if showing total precipitation, otherwise use 1 decimal place
-          const isPrecipitation = $datalaag.toLowerCase().includes('total');
-          const roundedValue = isPrecipitation ? Math.round(value) : Math.round(value * 10) / 10;
+          // Round to whole numbers for precipitation and days above 35, otherwise use 1 decimal place
+          const useWholeNumbers = $datalaag.toLowerCase().includes('total') || $datalaag === 'Days above 35°C';
+          const roundedValue = useWholeNumbers ? Math.round(value) : Math.round(value * 10) / 10;
           
           const formattedValue = value > 0 && !isHistorical
             ? `+${roundedValue}`

@@ -21,18 +21,18 @@
  * @returns {string|null} HTML content for popup
  */
 function getPopulationPopupContent(feature, time, scenario) {
-  const props = feature.properties;
+  const props = feature.properties
 
   // Map time period to population property - only 2025 and 2050 available
-  const is2050 = time === '2050';
-  const popProperty = is2050 ? 'Population_2050' : 'Population_2025';
-  const displayYear = is2050 ? '2050' : '2025';
+  const is2050 = time === "2050"
+  const popProperty = is2050 ? "Population_2050" : "Population_2025"
+  const displayYear = is2050 ? "2050" : "2025"
 
-  const population = props[popProperty];
-  const name = props.Agglomeration_Name || 'Unknown';
+  const population = props[popProperty]
+  const name = props.Agglomeration_Name || "Unknown"
 
   if (population) {
-    const formattedPop = population.toLocaleString();
+    const formattedPop = population.toLocaleString()
 
     return `
       <div class="popup-content">
@@ -41,10 +41,10 @@ function getPopulationPopupContent(feature, time, scenario) {
           Population (${displayYear}): ${formattedPop}
         </div>
       </div>
-    `;
+    `
   }
 
-  return null;
+  return null
 }
 
 /**
@@ -55,26 +55,26 @@ function getPopulationPopupContent(feature, time, scenario) {
  * @returns {string|null} HTML content for popup
  */
 function getWaterStressPopupContent(feature, time, scenario) {
-  const props = feature.properties;
-  const basinName = props.name_1 || 'Water Basin';
+  const props = feature.properties
+  const basinName = props.name_1 || "Water Basin"
 
-  let stressLabel, stressRaw;
-  const timeNormalized = time ? time.toLowerCase() : 'past';
+  let stressLabel, stressRaw
+  const timeNormalized = time ? time.toLowerCase() : "past"
 
-  if (timeNormalized === 'past' || timeNormalized === 'hist') {
+  if (timeNormalized === "past" || timeNormalized === "hist") {
     // Baseline uses bws_label and bws_raw
-    stressLabel = props.bws_label || 'No data';
-    stressRaw = props.bws_raw;
+    stressLabel = props.bws_label || "No data"
+    stressRaw = props.bws_raw
   } else {
     // Future data (2050/2080) uses scenario-specific fields
-    const scenarioNormalized = scenario ? scenario.toLowerCase() : 'high';
-    const scenarioPrefix = scenarioNormalized === 'low' ? 'opt' : 'pes';
-    const year = timeNormalized === '2080' ? '80' : '50';
-    const labelField = `${scenarioPrefix}${year}_ws_x_l`;
-    const rawField = `${scenarioPrefix}${year}_ws_x_r`;
+    const scenarioNormalized = scenario ? scenario.toLowerCase() : "high"
+    const scenarioPrefix = scenarioNormalized === "low" ? "opt" : "pes"
+    const year = timeNormalized === "2080" ? "80" : "50"
+    const labelField = `${scenarioPrefix}${year}_ws_x_l`
+    const rawField = `${scenarioPrefix}${year}_ws_x_r`
 
-    stressLabel = props[labelField] || 'No data';
-    stressRaw = props[rawField];
+    stressLabel = props[labelField] || "No data"
+    stressRaw = props[rawField]
   }
 
   return `
@@ -82,10 +82,10 @@ function getWaterStressPopupContent(feature, time, scenario) {
       <div class="value-text"><strong>${basinName}</strong></div>
       <div style="text-align: center; margin-top: 5px;">
         Water Stress: ${stressLabel}
-        ${stressRaw != null ? `<br><small>(${(stressRaw * 100).toFixed(1)}%)</small>` : ''}
+        ${stressRaw != null ? `<br><small>(${(stressRaw * 100).toFixed(1)}%)</small>` : ""}
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -93,8 +93,8 @@ function getWaterStressPopupContent(feature, time, scenario) {
  */
 export const contextLayerConfigs = {
   Population: {
-    name: 'Population',
-    type: 'point',
+    name: "Population",
+    type: "point",
     getPopupContent: getPopulationPopupContent,
     // Distance threshold for click detection (in meters)
     clickThreshold: 20000,
@@ -102,26 +102,26 @@ export const contextLayerConfigs = {
     popupOptions: {
       maxWidth: 350,
       minWidth: 200,
-      className: 'compact-popup' // CSS class for styling
-    }
+      className: "compact-popup", // CSS class for styling
+    },
   },
   "Agroclimatic zones": {
-    name: 'Agroclimatic zones',
-    type: 'polygon',
+    name: "Agroclimatic zones",
+    type: "polygon",
     // Full URL for the agroclimatic zones GeoJSON
-    url: 'https://kenya-csv-data.s3.eu-north-1.amazonaws.com/kenya_dissolved.geojson',
+    url: "https://fsn1.your-objectstorage.com/kenyaciaviewer/kenya_dissolved.geojson",
     getPopupContent: () => null, // No popup for this layer
     clickThreshold: 0,
-    popupOptions: {}
-  }
-};
+    popupOptions: {},
+  },
+}
 
 /**
  * Get list of all context layer names
  * @returns {string[]}
  */
 export function getContextLayerNames() {
-  return Object.keys(contextLayerConfigs);
+  return Object.keys(contextLayerConfigs)
 }
 
 /**
@@ -130,7 +130,7 @@ export function getContextLayerNames() {
  * @returns {boolean}
  */
 export function isContextLayer(layerName) {
-  return layerName in contextLayerConfigs;
+  return layerName in contextLayerConfigs
 }
 
 /**
@@ -139,5 +139,5 @@ export function isContextLayer(layerName) {
  * @returns {ContextLayerConfig|null}
  */
 export function getContextLayerConfig(layerName) {
-  return contextLayerConfigs[layerName] || null;
+  return contextLayerConfigs[layerName] || null
 }

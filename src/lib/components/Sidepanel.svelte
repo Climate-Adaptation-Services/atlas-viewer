@@ -8,7 +8,7 @@
   const dispatch = createEventDispatcher()
 
   const themeLayerMap = {
-    heat: ["Average temperature", "Minimum temperature", "Maximum temperature"],
+    heat: ["Average temperature", "Minimum temperature", "Maximum temperature", "Days above 35°C"],
     drought: ["Dry spells", "Water Stress"],
     rain: ["Total rainfall", "Days above 20 mm", "River Flood"]
   }

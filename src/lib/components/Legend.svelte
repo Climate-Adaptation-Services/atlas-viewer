@@ -49,7 +49,8 @@
       "Average temperature": "Average temp.",
       "Total rainfall": "Total rainfall",
       "Days above 20 mm": "Days above 20mm",
-      "Dry spells": "Dry spells"
+      "Dry spells": "Dry spells",
+      "Days above 35°C": "Days above 35°C"
     }
 
     // Try to find a match in the titleMap
@@ -99,6 +100,7 @@
       "Total rainfall": "mm",
       "Days above 20 mm": "days",
       "Dry spells": "5 dry days in a row",
+      "Days above 35°C": "days",
       "Population": "people",
       "River Flood": "Inundation depth"
     }

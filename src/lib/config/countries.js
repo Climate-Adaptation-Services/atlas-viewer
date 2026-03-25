@@ -27,7 +27,7 @@ export const countryConfigs = {
     center: [-19, 27],
     zoom: 6,
     dataType: "geojson",
-    geojsonBaseUrl: "https://zimciaviewer.s3.eu-north-1.amazonaws.com/",
+    geojsonBaseUrl: "https://fsn1.your-objectstorage.com/zimciaviewer/",
     mask: "zimbabwe",
     layerAvailability: {
       // Climate layers - all have Past, 2050, 2080 with low/high scenarios
@@ -44,9 +44,7 @@ export const countryConfigs = {
     center: [0.0236, 37.9062], // Kenya's geographic center
     zoom: 6,
     dataType: "geojson",
-    geojsonBaseUrl: "https://kenyaciaviewer.s3.eu-north-1.amazonaws.com/", // AWS S3 bucket with GeoJSON files
-    // Keep WMS settings as fallback
-    wmsEndpoint: "https://dev.cas-zimbabwe.predictia.es/wms",
+    geojsonBaseUrl: "https://fsn1.your-objectstorage.com/kenyaciaviewer/",
     mask: "kenya",
     layerAvailability: {
       // Climate layers - all have Past, 2050, 2080 with low/high scenarios
@@ -56,6 +54,7 @@ export const countryConfigs = {
       "Total rainfall": { times: ["Past", "2050", "2080"], hasScenarios: true },
       "Days above 20 mm": { times: ["Past", "2050", "2080"], hasScenarios: true },
       "Dry spells": { times: ["Past", "2050", "2080"], hasScenarios: true },
+      "Days above 35°C": { times: ["Past", "2050", "2080"], hasScenarios: true },
       // Regular map layers
       "Water Stress": { times: ["Past", "2050", "2080"], hasScenarios: true },
       // Context layers - Population only has Past (2025) and 2050, no scenarios

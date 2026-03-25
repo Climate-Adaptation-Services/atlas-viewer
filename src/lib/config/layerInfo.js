@@ -61,6 +61,13 @@ export const layerInfo = {
     baseline: '1981–2010',
     resolution: '0.25°'
   },
+  'Days above 35°C': {
+    description: 'Number of days per year where the maximum temperature exceeds 35°C.',
+    source: 'Critical Threshold Explorer',
+    sourceUrl: 'https://cte-zeta.vercel.app/?t1=35&years=2036-2065&scenario=ssp585&months=1-12',
+    baseline: '1981–2010',
+    resolution: '0.5°'
+  },
 
   // GeoJSON layers
   'Water Stress': {

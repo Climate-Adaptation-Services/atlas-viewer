@@ -4,7 +4,7 @@ This guide explains how to add new GeoJSON-based map layers to the climate atlas
 
 ## Overview
 
-GeoJSON layers are data layers stored as static GeoJSON files (either locally or on AWS S3) rather than being served via WMS or generated from CSV data. Examples include River Flood, Landslide Risk, etc.
+GeoJSON layers are data layers stored as static GeoJSON files (either locally or on Hetzner Object Storage) rather than being served via WMS or generated from CSV data. Examples include River Flood, Landslide Risk, etc.
 
 ## Step 1: Add Layer Configuration
 
@@ -14,7 +14,7 @@ Edit `/src/lib/config/geojsonLayers.js` and add your layer to the `geojsonLayerC
 export const geojsonLayerConfigs = {
   'Your Layer Name': {
     filename: 'your_layer_data.geojson',
-    baseUrl: '', // Empty for local static folder, or 'https://bucket.s3.region.amazonaws.com/'
+    baseUrl: '/api/geojson/', // Uses the server-side S3 proxy
     propertyName: 'value_field', // The GeoJSON property containing the data value
     getStyle: (feature) => {
       // Define how features should be styled
@@ -42,7 +42,7 @@ export const geojsonLayerConfigs = {
 - **filename**: Name of the GeoJSON file
 - **baseUrl**:
   - Use empty string `''` for local files in `/static/` folder (development)
-  - Use AWS S3 URL like `'https://yourbucket.s3.region.amazonaws.com/'` for production
+  - Use `'/api/geojson/'` for files on Hetzner Object Storage (production)
 - **propertyName**: The property in the GeoJSON features that contains the data value
 - **getStyle**: Function that returns Leaflet style options based on feature properties
 - **interactive**: Boolean - whether users can click/interact with the layer
@@ -105,10 +105,10 @@ const getLegendUnit = (dataLayer) => {
 ### For Development (Local):
 Place your GeoJSON file in `/static/your_layer_data.geojson`
 
-### For Production (AWS S3):
-1. Upload your GeoJSON file to your S3 bucket
-2. Update the `baseUrl` in the layer configuration to point to your S3 bucket
-3. Ensure the file has public read permissions or proper CORS configuration
+### For Production (Hetzner Object Storage):
+1. Upload your GeoJSON file to the appropriate Hetzner bucket
+2. The `/api/geojson/` proxy will serve it via the server-side S3 client
+3. Ensure the bucket name is configured in `/src/routes/api/geojson/[filename]/+server.js`
 
 ## Example: River Flood Layer
 
@@ -127,7 +127,7 @@ function getRiverFloodColor(depth) {
 export const geojsonLayerConfigs = {
   'River Flood': {
     filename: 'kenya_river_flood.geojson',
-    baseUrl: '',
+    baseUrl: '/api/geojson/',
     propertyName: 'DN',
     getStyle: (feature) => {
       const depth = feature.properties?.DN ?? 0;
@@ -151,21 +151,9 @@ export const geojsonLayerConfigs = {
 };
 ```
 
-## Migration from Local to AWS
-
-When moving from development to production:
-
-1. Upload your GeoJSON file to AWS S3
-2. Update only the `baseUrl` in `geojsonLayers.js`:
-   ```javascript
-   baseUrl: 'https://yourbucket.s3.eu-north-1.amazonaws.com/'
-   ```
-3. No other code changes needed!
-
 ## Tips
 
 - Use discrete color scales for better visualization
 - Keep GeoJSON files optimized (simplified geometries, removed unnecessary properties)
-- For large files, consider serving from AWS S3 for better performance
-- Test locally first with files in `/static/` before moving to AWS
+- Test locally first with files in `/static/` before uploading to Hetzner
 - Use meaningful property names in your GeoJSON data
