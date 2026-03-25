@@ -20,17 +20,14 @@
 
   // Derived state
   $: isShowingChange = $time === "2050" || $time === "2080"
-  $: currentLayerName = dataType === 'context' ? layerName : $datalaag
+  $: currentLayerName = dataType === "context" ? layerName : $datalaag
   $: layerInfoData = getLayerInfo(currentLayerName)
 
   // Get scenario label for display
-  $: scenarioLabel = $scenario === 'Low' ? 'SSP1-2.6' : 'SSP5-8.5'
-  
+  $: scenarioLabel = $scenario === "Low" ? "SSP1-2.6" : "SSP5-8.5"
+
   /** @type {string[]} */
-  const climateLayerNames = [
-    "Maximum temperature", "Minimum temperature", "Average temperature",
-    "Total rainfall", "Days above 20 mm", "Dry spells"
-  ]
+  const climateLayerNames = ["Maximum temperature", "Minimum temperature", "Average temperature", "Total rainfall", "Days above 20 mm", "Dry spells"]
 
   /**
    * Check if a layer is one of the climate layers that show change for projections
@@ -39,7 +36,7 @@
    */
   const isClimateLayer = (layer) => {
     if (!layer) return false
-    return climateLayerNames.some(cl => layer.toLowerCase().includes(cl.toLowerCase()))
+    return climateLayerNames.some((cl) => layer.toLowerCase().includes(cl.toLowerCase()))
   }
 
   const formatLegendTitle = (title) => {
@@ -50,7 +47,7 @@
       "Total rainfall": "Total rainfall",
       "Days above 20 mm": "Days above 20mm",
       "Dry spells": "Dry spells",
-      "Days above 35°C": "Days above 35°C"
+      "Days above 35°C": "Days above 35°C",
     }
 
     // Try to find a match in the titleMap
@@ -76,7 +73,7 @@
       "Average temperature": "°C",
       "Total rainfall": "mm",
       "Days above 20 mm": "days",
-      "Dry spells": "days"
+      "Dry spells": "days",
     }
 
     for (const [key, unit] of Object.entries(changeUnitMap)) {
@@ -86,7 +83,7 @@
     }
     return "Change"
   }
-  
+
   /**
    * Get the unit for the legend based on data layer
    * @param {string} dataLayer - The data layer
@@ -100,9 +97,8 @@
       "Total rainfall": "mm",
       "Days above 20 mm": "days",
       "Dry spells": "5 dry days in a row",
-      "Days above 35°C": "days",
-      "Population": "people",
-      "River Flood": "Inundation depth"
+      "Urban population": "People",
+      "River Flood": "Inundation depth",
     }
 
     // Try to find a match in the unitMap
@@ -122,14 +118,14 @@
    */
   const getPopulationLegendItems = () => {
     return [
-      { color: '#FFF4CC', label: 'Above 10M', range: '>10M' },
-      { color: '#FFE699', label: '3-10M', range: '3-10M' },
-      { color: '#FFD966', label: '1-3M', range: '1-3M' },
-      { color: '#F4B183', label: '300K-1M', range: '300K-1M' },
-      { color: '#E07C7C', label: '100K-300K', range: '100K-300K' },
-      { color: '#C55A5A', label: '30K-100K', range: '30K-100K' },
-      { color: '#8B3A3A', label: '10K-30K', range: '10K-30K' }
-    ];
+      { color: "#FFF4CC", label: "Above 10M", range: ">10M" },
+      { color: "#FFE699", label: "3-10M", range: "3-10M" },
+      { color: "#FFD966", label: "1-3M", range: "1-3M" },
+      { color: "#F4B183", label: "300K-1M", range: "300K-1M" },
+      { color: "#E07C7C", label: "100K-300K", range: "100K-300K" },
+      { color: "#C55A5A", label: "30K-100K", range: "30K-100K" },
+      { color: "#8B3A3A", label: "10K-30K", range: "10K-30K" },
+    ]
   }
 
   /**
@@ -138,13 +134,13 @@
    */
   const getWaterStressLegendItems = () => {
     return [
-      { color: '#a41f35', label: 'Extremely high', subtitle: '(>80%)' },
-      { color: '#d8392c', label: 'High', subtitle: '(40-80%)' },
-      { color: '#f47b50', label: 'Medium-high', subtitle: '(20-40%)' },
-      { color: '#fed976', label: 'Low-medium', subtitle: '(10-20%)' },
-      { color: '#ffffbe', label: 'Low', subtitle: '(<10%)' },
-      { color: '#d1d1d1', label: 'Arid and low water use', subtitle: '' }
-    ];
+      { color: "#a41f35", label: "Extremely high", subtitle: "(>80%)" },
+      { color: "#d8392c", label: "High", subtitle: "(40-80%)" },
+      { color: "#f47b50", label: "Medium-high", subtitle: "(20-40%)" },
+      { color: "#fed976", label: "Low-medium", subtitle: "(10-20%)" },
+      { color: "#ffffbe", label: "Low", subtitle: "(<10%)" },
+      { color: "#d1d1d1", label: "Arid and low water use", subtitle: "" },
+    ]
   }
 
   /**
@@ -153,19 +149,17 @@
    */
   const getAEZLegendItems = () => {
     return [
-      { color: '#2E86AB', label: 'Coastal Lowland' },
-      { color: '#F6AE2D', label: 'Inner Lowland' },
-      { color: '#4A7C59', label: 'Lower Highland' },
-      { color: '#86BA90', label: 'Lower Midland' },
-      { color: '#E84855', label: 'Nairobi City' },
-      { color: '#9B5DE5', label: 'Tropical Alpine' },
-      { color: '#1B4332', label: 'Upper Highland' },
-      { color: '#95D5B2', label: 'Upper Midland' },
-      { color: '#48CAE4', label: 'Waterbody' }
-    ];
+      { color: "#2E86AB", label: "Coastal Lowland" },
+      { color: "#F6AE2D", label: "Inner Lowland" },
+      { color: "#4A7C59", label: "Lower Highland" },
+      { color: "#86BA90", label: "Lower Midland" },
+      { color: "#E84855", label: "Nairobi City" },
+      { color: "#9B5DE5", label: "Tropical Alpine" },
+      { color: "#1B4332", label: "Upper Highland" },
+      { color: "#95D5B2", label: "Upper Midland" },
+      { color: "#48CAE4", label: "Waterbody" },
+    ]
   }
-
-
 </script>
 
 <div class="legend">
@@ -173,7 +167,7 @@
     <!-- Legend Header (Common for all legend types) -->
     <div class="legend-header">
       <span class="legend-title">
-        {#if dataType === 'context'}
+        {#if dataType === "context"}
           {getLegendUnit(layerName) || layerName}
         {:else if isGeojsonLayer($datalaag)}
           {getLegendUnit($datalaag) || $datalaag}
@@ -184,10 +178,7 @@
         {/if}
       </span>
       {#if layerInfoData}
-        <button
-          class="info-icon-inline"
-          on:click={() => showInfo = !showInfo}
-        >
+        <button class="info-icon-inline" on:click={() => (showInfo = !showInfo)}>
           i
           <span class="info-tooltip">About this layer</span>
         </button>
@@ -195,7 +186,7 @@
     </div>
 
     <!-- Population Context Layer Legend -->
-    {#if dataType === 'context' && layerName === 'Population'}
+    {#if dataType === "context" && layerName === "Urban population"}
       <div class="categorical-legend">
         {#each getPopulationLegendItems() as item}
           <div class="legend-item">
@@ -207,7 +198,7 @@
     {/if}
 
     <!-- Water Stress Context Layer Legend -->
-    {#if dataType === 'context' && layerName === 'Water Stress'}
+    {#if dataType === "context" && layerName === "Water Stress"}
       <div style="display: flex; flex-direction: column; gap: 6px; padding: 4px 0;">
         {#each getWaterStressLegendItems() as item}
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -224,7 +215,7 @@
     {/if}
 
     <!-- Agroclimatic zones Context Layer Legend -->
-    {#if dataType === 'context' && layerName === 'Agroclimatic zones'}
+    {#if dataType === "context" && layerName === "Agroclimatic zones"}
       <div style="display: flex; flex-direction: column; gap: 4px; padding: 4px 0;">
         {#each getAEZLegendItems() as item}
           <div style="display: flex; align-items: center; gap: 6px;">
@@ -236,7 +227,7 @@
     {/if}
 
     <!-- GeoJSON Layer Legends (generic handling for all configured GeoJSON layers) -->
-    {#if dataType !== 'context' && isGeojsonLayer($datalaag)}
+    {#if dataType !== "context" && isGeojsonLayer($datalaag)}
       {@const legendItems = getGeojsonLayerLegend($datalaag)}
       {#if legendItems}
         <div style="display: flex; flex-direction: column; gap: 6px; padding: 4px 0;">
@@ -266,51 +257,50 @@
     <!-- GeoJSON Custom Legend -->
     {#if typeof dataType === "string" && dataType === "geojson" && browser === true}
       {#key $datalaag}
-
         {#each [getLegendItems($datalaag, $time)] as legendData}
-        {#if legendData && typeof legendData === 'object' && 'type' in legendData && legendData.type === "scalebar"}
+          {#if legendData && typeof legendData === "object" && "type" in legendData && legendData.type === "scalebar"}
             <!-- Vertical Scalebar Legend -->
             <div class="scalebar-legend">
-            <!-- Gradient Bar -->
-            {#if 'colors' in legendData && Array.isArray(legendData.colors)}
+              <!-- Gradient Bar -->
+              {#if "colors" in legendData && Array.isArray(legendData.colors)}
                 {@const colors = /** @type {string[]} */ (legendData.colors)}
                 <div class="sequential-bars">
-                    {#each [...colors].reverse() as color, i}
-                        <div class="color-block" style="background-color: {color};"></div>
-                    {/each}
+                  {#each [...colors].reverse() as color, i}
+                    <div class="color-block" style="background-color: {color};"></div>
+                  {/each}
                 </div>
-            {/if}
+              {/if}
 
-            <!-- Labels on the right side -->
-            {#if 'labels' in legendData && Array.isArray(legendData.labels) && 'min' in legendData && 'max' in legendData}
+              <!-- Labels on the right side -->
+              {#if "labels" in legendData && Array.isArray(legendData.labels) && "min" in legendData && "max" in legendData}
                 {@const min = /** @type {number} */ (legendData.min)}
                 {@const max = /** @type {number} */ (legendData.max)}
                 <div class="scalebar-labels">
-                {#each legendData.labels as labelItem}
-                    {#if 'value' in labelItem && 'label' in labelItem}
-                    <div class="scalebar-label" style="bottom: {((labelItem.value - min) / (max - min)) * 100}%">
+                  {#each legendData.labels as labelItem}
+                    {#if "value" in labelItem && "label" in labelItem}
+                      <div class="scalebar-label" style="bottom: {((labelItem.value - min) / (max - min)) * 100}%">
                         {labelItem.label}
-                    </div>
+                      </div>
                     {/if}
-                {/each}
+                  {/each}
                 </div>
-            {/if}
+              {/if}
             </div>
-        {/if}
+          {/if}
         {/each}
-
       {/key}
     {/if}
-
   </div>
 
   <!-- Info Popup -->
   {#if showInfo && layerInfoData}
     <div class="info-popup">
-      <button class="popup-close" on:click={() => showInfo = false}>×</button>
+      <button class="popup-close" on:click={() => (showInfo = false)}>×</button>
       <p class="popup-title">{currentLayerName}</p>
       {#if isShowingChange && isClimateLayer(currentLayerName)}
-        <p class="info-description">Projected change in {currentLayerName.toLowerCase()} compared to the baseline period ({layerInfoData.baseline || '1981–2010'}).</p>
+        <p class="info-description">
+          Projected change in {currentLayerName.toLowerCase()} compared to the baseline period ({layerInfoData.baseline || "1981–2010"}).
+        </p>
       {:else}
         <p class="info-description">{layerInfoData.description}</p>
       {/if}
@@ -415,7 +405,9 @@
     z-index: 1000;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     border: 1px solid rgba(0, 0, 0, 0.08);
-    transition: opacity 0.2s, visibility 0.2s;
+    transition:
+      opacity 0.2s,
+      visibility 0.2s;
   }
 
   .info-icon-inline:hover .info-tooltip {
@@ -429,13 +421,13 @@
     max-height: 250px;
     width: auto;
   }
-  
+
   .legend-item {
     display: flex;
     align-items: center;
     margin-bottom: 3px;
   }
-  
+
   .color-box {
     display: inline-block;
     width: 15px;
@@ -443,7 +435,7 @@
     margin-right: 5px;
     border: 1px solid #ccc;
   }
-  
+
   .scalebar-legend {
     position: relative;
     display: flex;
@@ -459,7 +451,7 @@
     width: 14px;
     border-radius: 4px;
     overflow: hidden;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
   }
 
   .color-block {
@@ -511,7 +503,9 @@
     padding: 16px 18px;
     min-width: 220px;
     max-width: 280px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.12),
+      0 2px 8px rgba(0, 0, 0, 0.08);
     border: 1px solid rgba(1, 126, 159, 0.15);
     z-index: 10;
   }

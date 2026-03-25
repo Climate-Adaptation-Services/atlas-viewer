@@ -92,8 +92,8 @@ function getWaterStressPopupContent(feature, time, scenario) {
  * @type {Record<string, ContextLayerConfig>}
  */
 export const contextLayerConfigs = {
-  Population: {
-    name: "Population",
+  "Urban population": {
+    name: "Urban population",
     type: "point",
     getPopupContent: getPopulationPopupContent,
     // Distance threshold for click detection (in meters)

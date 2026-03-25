@@ -82,10 +82,10 @@ export const layerInfo = {
   },
 
   // Context layers
-  'Population': {
-    description: 'Urban agglomerations with population estimates.',
-    source: 'UN World Urbanization Prospects',
-    sourceUrl: 'https://population.un.org/wup/'
+  'Urban population': {
+    description: 'Agglomerations with over 10,000 people.',
+    source: 'Africapolis',
+    sourceUrl: 'https://africapolis.org/'
   },
   'Agroclimatic zones': {
     description: 'Agro-ecological zones based on climate and soil conditions.',
