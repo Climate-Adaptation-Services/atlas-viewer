@@ -44,7 +44,7 @@
     : null
 
   /** @type {string[]} */
-  const climateLayerNames = ["Maximum temperature", "Minimum temperature", "Average temperature", "Total rainfall", "Days above 20 mm", "Dry spells", "Days above 35°C"]
+  const climateLayerNames = ["Maximum temperature", "Minimum temperature", "Average temperature", "Total rainfall", "Days above 20 mm", "Dry spells"]
 
   /**
    * Check if a layer is one of the climate layers that show change for projections
@@ -90,7 +90,6 @@
       "Average temperature": "°C",
       "Total rainfall": "mm",
       "Days above 20 mm": "Days",
-      "Days above 35°C": "Days",
       "Dry spells": "dry spells",
     }
 
@@ -370,9 +369,9 @@
 
   .legend-header {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     margin: 0 0 8px 0;
   }
 
@@ -387,8 +386,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     background-color: rgba(0, 0, 0, 0.08);
     border-radius: 50%;
     border: none;
@@ -399,7 +398,6 @@
     cursor: pointer;
     transition: all 0.2s;
     flex-shrink: 0;
-    margin-top: 1px;
   }
 
   .info-icon-inline:hover {
@@ -411,19 +409,19 @@
     visibility: hidden;
     opacity: 0;
     position: absolute;
-    bottom: calc(100% + 6px);
+    bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%);
-    background-color: rgba(255, 255, 255, 0.95);
-    color: #555;
-    font-size: 10px;
-    font-weight: 400;
-    padding: 4px 8px;
-    border-radius: 4px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+    color: #017e9f;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 8px;
     white-space: nowrap;
     z-index: 1000;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(1, 126, 159, 0.15);
     transition:
       opacity 0.2s,
       visibility 0.2s;
@@ -612,9 +610,9 @@
     }
 
     .info-icon-inline {
-      width: 18px;
-      height: 18px;
-      font-size: 12px;
+      width: 24px;
+      height: 24px;
+      font-size: 14px;
     }
 
     .info-tooltip {
