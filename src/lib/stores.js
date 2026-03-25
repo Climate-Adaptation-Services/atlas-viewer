@@ -7,7 +7,7 @@ export const tilelayerOpacity = writable(100)
 export const datalaag = writable("Maximum temperature")
 export const time = writable("hist")
 export const theme = writable("heat")
-export const scenario = writable("Low")
+export const scenario = writable("High")
 export const opacityMap = writable(1)
 
 export const panelOpen = writable(true)

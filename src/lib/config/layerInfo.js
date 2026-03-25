@@ -20,53 +20,72 @@
 export const layerInfo = {
   // Climate layers
   'Maximum temperature': {
-    description: 'Highest daily temperature averaged over the selected period.',
-    source: 'CMIP6 multi-model ensemble',
-    sourceUrl: 'https://pcmdi.llnl.gov/CMIP6/',
+    description: 'Yearly mean of daily maximum temperatures.',
+    historicalSource: 'ERA5',
+    historicalSourceUrl: 'https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels',
+    projectionSource: 'ISIMIP3B',
+    projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
-    resolution: '0.25°'
+    historicalResolution: '0.25°',
+    projectionResolution: '0.5°'
   },
   'Minimum temperature': {
-    description: 'Lowest daily temperature averaged over the selected period.',
-    source: 'CMIP6 multi-model ensemble',
-    sourceUrl: 'https://pcmdi.llnl.gov/CMIP6/',
+    description: 'Yearly mean of daily minimum temperatures.',
+    historicalSource: 'ERA5',
+    historicalSourceUrl: 'https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels',
+    projectionSource: 'ISIMIP3B',
+    projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
-    resolution: '0.25°'
+    historicalResolution: '0.25°',
+    projectionResolution: '0.5°'
   },
   'Average temperature': {
-    description: 'Mean daily temperature averaged over the selected period.',
-    source: 'CMIP6 multi-model ensemble',
-    sourceUrl: 'https://pcmdi.llnl.gov/CMIP6/',
+    description: 'Yearly average temperature.',
+    historicalSource: 'ERA5',
+    historicalSourceUrl: 'https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels',
+    projectionSource: 'ISIMIP3B',
+    projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
-    resolution: '0.25°'
+    historicalResolution: '0.25°',
+    projectionResolution: '0.5°'
   },
   'Total rainfall': {
     description: 'Cumulative precipitation over the selected period.',
-    source: 'CMIP6 multi-model ensemble',
-    sourceUrl: 'https://pcmdi.llnl.gov/CMIP6/',
+    historicalSource: 'CHIRPSv2',
+    historicalSourceUrl: 'https://www.chc.ucsb.edu/data/chirps',
+    projectionSource: 'ISIMIP3B',
+    projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
-    resolution: '0.25°'
+    historicalResolution: '0.05°',
+    projectionResolution: '0.5°'
   },
   'Days above 20 mm': {
     description: 'Number of days with more than 20mm rainfall (heavy rain days).',
-    source: 'CMIP6 multi-model ensemble',
-    sourceUrl: 'https://pcmdi.llnl.gov/CMIP6/',
+    historicalSource: 'CHIRPSv2',
+    historicalSourceUrl: 'https://www.chc.ucsb.edu/data/chirps',
+    projectionSource: 'ISIMIP3B',
+    projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
-    resolution: '0.25°'
+    historicalResolution: '0.05°',
+    projectionResolution: '0.5°'
   },
   'Dry spells': {
     description: 'Number of periods with 5+ consecutive days without significant rainfall.',
-    source: 'CMIP6 multi-model ensemble',
-    sourceUrl: 'https://pcmdi.llnl.gov/CMIP6/',
+    historicalSource: 'CHIRPSv2',
+    historicalSourceUrl: 'https://www.chc.ucsb.edu/data/chirps',
+    projectionSource: 'ISIMIP3B',
+    projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
-    resolution: '0.25°'
+    historicalResolution: '0.05°',
+    projectionResolution: '0.5°'
   },
   'Days above 35°C': {
     description: 'Number of days per year where the maximum temperature exceeds 35°C.',
     source: 'Critical Threshold Explorer',
     sourceUrl: 'https://cte-zeta.vercel.app/?t1=35&years=2036-2065&scenario=ssp585&months=1-12',
     baseline: '1981–2010',
-    resolution: '0.5°'
+    historicalResolution: '0.5°',
+    projectionResolution: '0.5°'
   },
 
   // GeoJSON layers

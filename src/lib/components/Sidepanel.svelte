@@ -77,7 +77,7 @@
   }
 
   export let selectedTime = 0
-  export let selectedScenario = 0
+  export let selectedScenario = 1
 
   // Collapsible state for context layers
   let contextLayersExpanded = false

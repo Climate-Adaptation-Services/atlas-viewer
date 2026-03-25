@@ -26,6 +26,23 @@
   // Get scenario label for display
   $: scenarioLabel = $scenario === "Low" ? "SSP1-2.6" : "SSP5-8.5"
 
+  // Determine displayed resolution and source based on time period
+  $: displayedResolution = layerInfoData
+    ? isShowingChange
+      ? layerInfoData.projectionResolution || layerInfoData.resolution || null
+      : layerInfoData.historicalResolution || layerInfoData.resolution || null
+    : null
+  $: displayedSource = layerInfoData
+    ? isShowingChange
+      ? layerInfoData.projectionSource || layerInfoData.source || null
+      : layerInfoData.historicalSource || layerInfoData.source || null
+    : null
+  $: displayedSourceUrl = layerInfoData
+    ? isShowingChange
+      ? layerInfoData.projectionSourceUrl || layerInfoData.sourceUrl || null
+      : layerInfoData.historicalSourceUrl || layerInfoData.sourceUrl || null
+    : null
+
   /** @type {string[]} */
   const climateLayerNames = ["Maximum temperature", "Minimum temperature", "Average temperature", "Total rainfall", "Days above 20 mm", "Dry spells"]
 
@@ -299,7 +316,7 @@
       <p class="popup-title">{currentLayerName}</p>
       {#if isShowingChange && isClimateLayer(currentLayerName)}
         <p class="info-description">
-          Projected change in {currentLayerName.toLowerCase()} compared to the baseline period ({layerInfoData.baseline || "1981–2010"}).
+          Projected change in {currentLayerName === "Average temperature" ? "" : "average "}{currentLayerName.toLowerCase()} compared to the baseline period ({layerInfoData.baseline || "1981–2010"}).
         </p>
       {:else}
         <p class="info-description">{layerInfoData.description}</p>
@@ -307,16 +324,16 @@
       <div class="info-details">
         <div class="info-row">
           <span class="info-label">Source:</span>
-          {#if layerInfoData.sourceUrl}
-            <a class="info-link" href={layerInfoData.sourceUrl} target="_blank" rel="noopener noreferrer">{layerInfoData.source}</a>
+          {#if displayedSourceUrl}
+            <a class="info-link" href={displayedSourceUrl} target="_blank" rel="noopener noreferrer">{displayedSource}</a>
           {:else}
-            <span class="info-value">{layerInfoData.source}</span>
+            <span class="info-value">{displayedSource}</span>
           {/if}
         </div>
-        {#if layerInfoData.resolution}
+        {#if displayedResolution}
           <div class="info-row">
             <span class="info-label">Resolution:</span>
-            <span class="info-value">{layerInfoData.resolution}</span>
+            <span class="info-value">{displayedResolution}</span>
           </div>
         {/if}
         {#if isShowingChange}
