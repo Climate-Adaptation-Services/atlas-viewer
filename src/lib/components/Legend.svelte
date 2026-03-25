@@ -44,7 +44,7 @@
     : null
 
   /** @type {string[]} */
-  const climateLayerNames = ["Maximum temperature", "Minimum temperature", "Average temperature", "Total rainfall", "Days above 20 mm", "Dry spells"]
+  const climateLayerNames = ["Maximum temperature", "Minimum temperature", "Average temperature", "Total rainfall", "Days above 20 mm", "Dry spells", "Days above 35°C"]
 
   /**
    * Check if a layer is one of the climate layers that show change for projections
@@ -89,8 +89,9 @@
       "Minimum temperature": "°C",
       "Average temperature": "°C",
       "Total rainfall": "mm",
-      "Days above 20 mm": "days",
-      "Dry spells": "days",
+      "Days above 20 mm": "Days",
+      "Days above 35°C": "Days",
+      "Dry spells": "dry spells",
     }
 
     for (const [key, unit] of Object.entries(changeUnitMap)) {
@@ -112,8 +113,9 @@
       "Minimum temperature": "°C",
       "Average temperature": "°C",
       "Total rainfall": "mm",
-      "Days above 20 mm": "days",
-      "Dry spells": "5 dry days in a row",
+      "Days above 20 mm": "Days",
+      "Days above 35°C": "Days",
+      "Dry spells": "Dry spells",
       "Urban population": "People",
       "River Flood": "Inundation depth",
     }
@@ -314,13 +316,9 @@
     <div class="info-popup">
       <button class="popup-close" on:click={() => (showInfo = false)}>×</button>
       <p class="popup-title">{currentLayerName}</p>
-      {#if isShowingChange && isClimateLayer(currentLayerName)}
+      {#if isShowingChange && layerInfoData.projectionDescription}
         <p class="info-description">
-          {#if layerInfoData.projectionDescription}
-            {layerInfoData.projectionDescription}
-          {:else}
-            Projected change in {currentLayerName === "Average temperature" ? "" : "average "}{currentLayerName.toLowerCase()} compared to the baseline period ({layerInfoData.baseline || "1981–2010"}).
-          {/if}
+          {layerInfoData.projectionDescription}
         </p>
       {:else}
         <p class="info-description">{layerInfoData.description}</p>

@@ -5,12 +5,17 @@
 
 /**
  * @typedef {Object} LayerInfo
- * @property {string} description - Short description of what the layer shows
- * @property {string} source - Data source/provider
- * @property {string} [sourceUrl] - URL to the data source
+ * @property {string} description - Description shown for historical data
+ * @property {string} [projectionDescription] - Description shown for projection data
+ * @property {string} [historicalSource] - Data source for historical/observational data
+ * @property {string} [historicalSourceUrl] - URL for the historical data source
+ * @property {string} [projectionSource] - Data source for projection data
+ * @property {string} [projectionSourceUrl] - URL for the projection data source
+ * @property {string} [source] - Fallback source (used when same for both periods)
+ * @property {string} [sourceUrl] - Fallback source URL
  * @property {string} [baseline] - Baseline period
- * @property {string} [resolution] - Spatial resolution
- * @property {string} [uncertainty] - Uncertainty information
+ * @property {string} [historicalResolution] - Spatial resolution for historical data
+ * @property {string} [projectionResolution] - Spatial resolution for projection data
  */
 
 /**
@@ -18,9 +23,10 @@
  * @type {Record<string, LayerInfo>}
  */
 export const layerInfo = {
-  // Climate layers
+  // Climate layers - Temperature
   'Maximum temperature': {
     description: 'Yearly mean of daily maximum temperatures.',
+    projectionDescription: 'Projected change in average maximum temperature compared to the baseline period (1981–2010).',
     historicalSource: 'ERA5',
     historicalSourceUrl: 'https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels',
     projectionSource: 'ISIMIP3B',
@@ -31,6 +37,7 @@ export const layerInfo = {
   },
   'Minimum temperature': {
     description: 'Yearly mean of daily minimum temperatures.',
+    projectionDescription: 'Projected change in average minimum temperature compared to the baseline period (1981–2010).',
     historicalSource: 'ERA5',
     historicalSourceUrl: 'https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels',
     projectionSource: 'ISIMIP3B',
@@ -41,6 +48,7 @@ export const layerInfo = {
   },
   'Average temperature': {
     description: 'Yearly average temperature.',
+    projectionDescription: 'Projected change in average temperature compared to the baseline period (1981–2010).',
     historicalSource: 'ERA5',
     historicalSourceUrl: 'https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels',
     projectionSource: 'ISIMIP3B',
@@ -49,6 +57,8 @@ export const layerInfo = {
     historicalResolution: '0.25°',
     projectionResolution: '0.5°'
   },
+
+  // Climate layers - Precipitation
   'Total rainfall': {
     description: 'Yearly rainfall.',
     projectionDescription: 'Projected change in yearly rainfall compared to the baseline period (1981–2010).',
@@ -82,10 +92,14 @@ export const layerInfo = {
     historicalResolution: '0.05°',
     projectionResolution: '0.5°'
   },
+
+  // Climate layers - Threshold
   'Days above 35°C': {
     description: 'Number of days per year where the maximum temperature exceeds 35°C.',
-    source: 'Critical Threshold Explorer',
-    sourceUrl: 'https://cte-zeta.vercel.app/?t1=35&years=2036-2065&scenario=ssp585&months=1-12',
+    historicalSource: 'Critical Threshold Explorer',
+    historicalSourceUrl: 'https://cte-zeta.vercel.app/?t1=35&years=2036-2065&scenario=ssp585&months=1-12',
+    projectionSource: 'Critical Threshold Explorer',
+    projectionSourceUrl: 'https://cte-zeta.vercel.app/?t1=35&years=2036-2065&scenario=ssp585&months=1-12',
     baseline: '1981–2010',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
