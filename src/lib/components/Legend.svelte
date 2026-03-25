@@ -316,7 +316,11 @@
       <p class="popup-title">{currentLayerName}</p>
       {#if isShowingChange && isClimateLayer(currentLayerName)}
         <p class="info-description">
-          Projected change in {currentLayerName === "Average temperature" ? "" : "average "}{currentLayerName.toLowerCase()} compared to the baseline period ({layerInfoData.baseline || "1981–2010"}).
+          {#if layerInfoData.projectionDescription}
+            {layerInfoData.projectionDescription}
+          {:else}
+            Projected change in {currentLayerName === "Average temperature" ? "" : "average "}{currentLayerName.toLowerCase()} compared to the baseline period ({layerInfoData.baseline || "1981–2010"}).
+          {/if}
         </p>
       {:else}
         <p class="info-description">{layerInfoData.description}</p>

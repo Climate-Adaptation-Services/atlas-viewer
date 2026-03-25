@@ -50,7 +50,8 @@ export const layerInfo = {
     projectionResolution: '0.5°'
   },
   'Total rainfall': {
-    description: 'Cumulative precipitation over the selected period.',
+    description: 'Yearly rainfall.',
+    projectionDescription: 'Projected change in yearly rainfall compared to the baseline period (1981–2010).',
     historicalSource: 'CHIRPSv2',
     historicalSourceUrl: 'https://www.chc.ucsb.edu/data/chirps',
     projectionSource: 'ISIMIP3B',
@@ -60,7 +61,8 @@ export const layerInfo = {
     projectionResolution: '0.5°'
   },
   'Days above 20 mm': {
-    description: 'Number of days with more than 20mm rainfall (heavy rain days).',
+    description: 'Number of days per year with more than 20mm rainfall (heavy rain days).',
+    projectionDescription: 'Projected change in the number of days per year with more than 20mm rainfall compared to the baseline period (1981–2010).',
     historicalSource: 'CHIRPSv2',
     historicalSourceUrl: 'https://www.chc.ucsb.edu/data/chirps',
     projectionSource: 'ISIMIP3B',
@@ -70,7 +72,8 @@ export const layerInfo = {
     projectionResolution: '0.5°'
   },
   'Dry spells': {
-    description: 'Number of periods with 5+ consecutive days without significant rainfall.',
+    description: 'Number of periods per year with 5 consecutive days without significant rainfall.',
+    projectionDescription: 'Projected change in the number of periods per year with 5 consecutive days without significant rainfall compared to the baseline period (1981–2010).',
     historicalSource: 'CHIRPSv2',
     historicalSourceUrl: 'https://www.chc.ucsb.edu/data/chirps',
     projectionSource: 'ISIMIP3B',
