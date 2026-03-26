@@ -125,7 +125,8 @@ export const layerInfo = {
   },
   'Agroclimatic zones': {
     description: 'Agro-ecological zones based on climate and soil conditions.',
-    source: 'Kenya Ministry of Agriculture'
+    source: 'RCMRD',
+    sourceUrl: 'https://opendata.rcmrd.org/datasets/kenya-agro-ecological-zones/about'
   }
 };
 
