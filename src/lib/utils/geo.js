@@ -61,6 +61,39 @@ export function isPointInCountry(point, country) {
   }
 }
 
+/**
+ * Precise point-in-feature test for a GeoJSON Polygon or MultiPolygon geometry.
+ * Returns true only if the point falls inside the actual shape (respecting
+ * holes), not merely its bounding box — so overlapping admin2 bounding boxes
+ * don't match the wrong polygon.
+ * @param {{lat:number, lng:number}} point
+ * @param {any} geometry - GeoJSON geometry (Polygon or MultiPolygon)
+ */
+export function isPointInGeometry(point, geometry) {
+  if (!geometry) return false;
+  if (geometry.type === 'Polygon') {
+    return isPointInRings(point, geometry.coordinates);
+  }
+  if (geometry.type === 'MultiPolygon') {
+    return geometry.coordinates.some(rings => isPointInRings(point, rings));
+  }
+  return false;
+}
+
+/**
+ * Inside the outer ring and outside every hole.
+ * @param {{lat:number, lng:number}} point
+ * @param {number[][][]} rings - first ring is the exterior, rest are holes
+ */
+function isPointInRings(point, rings) {
+  if (!rings || !rings.length) return false;
+  if (!isPointInPolygon(point, rings[0])) return false;
+  for (let i = 1; i < rings.length; i++) {
+    if (isPointInPolygon(point, rings[i])) return false;
+  }
+  return true;
+}
+
 /** Ray casting algorithm */
 function isPointInPolygon(point, polygon) {
   let inside = false;

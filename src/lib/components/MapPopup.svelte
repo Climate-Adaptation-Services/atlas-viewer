@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { datalaag, time, scenario, csvData, selectedLayer, opacityMap } from '$lib/stores.js';
   import { loadCsvData } from '$lib/utils/csv.js';
-  import { isPointInCountry } from '$lib/utils/geo.js';
+  import { isPointInCountry, isPointInGeometry } from '$lib/utils/geo.js';
   import { prepareChartData, renderPopupChart } from '$lib/utils/popupChart.js';
   import { isContextLayer, getContextLayerConfig } from '$lib/config/contextLayers.js';
   import { getClimateLayerConfig } from '$lib/config/climateLayers.js';
@@ -204,7 +204,10 @@
         const cropKey = getCropKey($datalaag);
 
         // Find the admin2 polygon under the click — iterate sub-layers of the
-        // active L.GeoJSON group and test bounds (cheap polygon proxy).
+        // active L.GeoJSON group. Use a cheap bounds prefilter, then a precise
+        // point-in-polygon test: bounding boxes of neighbouring admin2s overlap,
+        // so a bounds-only match can pick the wrong (often dataless) polygon and
+        // wrongly report "no yield projection available".
         let clickedFeature = null;
         /** @type {any} */
         let clickedSubLayer = null;
@@ -213,7 +216,8 @@
           group.eachLayer((/** @type {any} */ sub) => {
             if (clickedFeature || !sub.feature || !sub.getBounds) return;
             try {
-              if (sub.getBounds().contains(e.latlng)) {
+              if (sub.getBounds().contains(e.latlng) &&
+                  isPointInGeometry(e.latlng, sub.feature.geometry)) {
                 clickedFeature = sub.feature;
                 clickedSubLayer = sub;
               }
