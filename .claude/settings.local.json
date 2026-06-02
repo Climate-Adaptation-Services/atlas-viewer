@@ -5,7 +5,9 @@
       "Bash(curl:*)",
       "Bash(python:*)",
       "Bash(npm run dev)",
-      "WebFetch(domain:atlas-viewer.vercel.app)"
+      "WebFetch(domain:atlas-viewer.vercel.app)",
+      "PowerShell(winget --version)",
+      "PowerShell(winget install --id Python.Python.3.12 --accept-source-agreements --accept-package-agreements --silent --scope user)"
     ]
   }
 }

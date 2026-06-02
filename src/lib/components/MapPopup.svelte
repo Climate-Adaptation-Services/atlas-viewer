@@ -1,13 +1,14 @@
 <script>
   import { onMount } from 'svelte';
-  import { datalaag, time, scenario, csvData, selectedLayer } from '$lib/stores.js';
+  import { datalaag, time, scenario, csvData, selectedLayer, opacityMap } from '$lib/stores.js';
   import { loadCsvData } from '$lib/utils/csv.js';
   import { isPointInCountry } from '$lib/utils/geo.js';
   import { prepareChartData, renderPopupChart } from '$lib/utils/popupChart.js';
   import { isContextLayer, getContextLayerConfig } from '$lib/config/contextLayers.js';
   import { getClimateLayerConfig } from '$lib/config/climateLayers.js';
-  import { isGeojsonLayer } from '$lib/config/geojsonLayers.js';
+  import { isGeojsonLayer, isCropImpactLayer, getCropKey } from '$lib/config/geojsonLayers.js';
   import { getCountryConfig } from '$lib/config/countries.js';
+  import { renderCropYieldChart } from '$lib/utils/chart.js';
   import Chart from 'chart.js/auto';
 
   // Track map parameter changes
@@ -24,6 +25,53 @@
   export let countryCode = 'zimbabwe' // default country
 
   let popup = null;
+
+  // Highlight state for the currently-selected admin2 polygon (crop popup).
+  // We remember the original style so we can restore it on close.
+  /** @type {any} */
+  let highlightedLayer = null;
+  /** @type {any} */
+  let highlightedOriginalStyle = null;
+
+  function clearAdminHighlight() {
+    if (highlightedLayer && highlightedOriginalStyle) {
+      try { highlightedLayer.setStyle(highlightedOriginalStyle); } catch { /* layer may be gone */ }
+    }
+    highlightedLayer = null;
+    highlightedOriginalStyle = null;
+  }
+
+  /** @param {any} subLayer */
+  function highlightAdmin(subLayer) {
+    if (!subLayer || typeof subLayer.setStyle !== 'function') return;
+    clearAdminHighlight();
+    const opts = subLayer.options || {};
+    highlightedOriginalStyle = {
+      weight: opts.weight ?? 0.3,
+      color: opts.color ?? '#666',
+      opacity: opts.opacity ?? 0.4
+    };
+    highlightedLayer = subLayer;
+    subLayer.setStyle({ weight: 3, color: '#017e9f', opacity: 1 });
+    if (typeof subLayer.bringToFront === 'function') {
+      try { subLayer.bringToFront(); } catch { /* ignore */ }
+    }
+  }
+
+  // Re-apply the highlight after BackgroundMap's opacity-driven restyle runs,
+  // otherwise dragging the slider while a popup is open briefly clears the
+  // border. Deferred to the next tick so it lands after the restyle.
+  $: if (highlightedLayer && $opacityMap !== undefined) {
+    const layerRef = highlightedLayer;
+    setTimeout(() => {
+      if (layerRef === highlightedLayer && typeof layerRef.setStyle === 'function') {
+        layerRef.setStyle({ weight: 3, color: '#017e9f', opacity: 1 });
+        if (typeof layerRef.bringToFront === 'function') {
+          try { layerRef.bringToFront(); } catch { /* ignore */ }
+        }
+      }
+    }, 0);
+  }
 
   // Track previous store values
   let previousDatalaag = '';
@@ -83,6 +131,9 @@
     popup = L.popup({
       autoPan: true
     });
+    // Clear the admin2 polygon highlight whenever the popup is closed for any
+    // reason — X button, click outside, layer/crop/scenario switch.
+    popup.on('remove', clearAdminHighlight);
 
     map.on('click', async function (e) {
       const lat = e.latlng.lat.toFixed(6);
@@ -144,7 +195,103 @@
         return;
       }
 
-      console.log('check')
+      // --- Crop yield change popup (bar chart with p10-p90 error bars) ---
+      // Shows both emissions scenarios (Low + High) side-by-side for 2050 and
+      // 2080, so users see best/worst case in one glance regardless of the
+      // sidepanel scenario toggle. Lives before the climate branch so the
+      // wrong (rainfall) chart never renders for crop layers.
+      if (isCropImpactLayer($datalaag)) {
+        const cropKey = getCropKey($datalaag);
+
+        // Find the admin2 polygon under the click — iterate sub-layers of the
+        // active L.GeoJSON group and test bounds (cheap polygon proxy).
+        let clickedFeature = null;
+        /** @type {any} */
+        let clickedSubLayer = null;
+        map.eachLayer((/** @type {any} */ group) => {
+          if (clickedFeature || !group || typeof group.eachLayer !== 'function') return;
+          group.eachLayer((/** @type {any} */ sub) => {
+            if (clickedFeature || !sub.feature || !sub.getBounds) return;
+            try {
+              if (sub.getBounds().contains(e.latlng)) {
+                clickedFeature = sub.feature;
+                clickedSubLayer = sub;
+              }
+            } catch { /* ignore */ }
+          });
+        });
+
+        if (!clickedFeature || !cropKey) {
+          clearAdminHighlight();
+          if (popup && popup.isOpen()) popup.close();
+          return;
+        }
+
+        const props = clickedFeature.properties || {};
+        /** @param {string} key */
+        const pick = (key) => {
+          const v = props[key];
+          return typeof v === 'number' && !isNaN(v) ? v : null;
+        };
+        /** @param {string} ssp @param {string} period */
+        const statBlock = (ssp, period) => ({
+          median: pick(`${cropKey}__${ssp}__${period}__median`),
+          p10:    pick(`${cropKey}__${ssp}__${period}__p10`),
+          p90:    pick(`${cropKey}__${ssp}__${period}__p90`)
+        });
+        const chartData = {
+          low_2050:  statBlock('ssp126', 'mid'),
+          high_2050: statBlock('ssp585', 'mid'),
+          low_2080:  statBlock('ssp126', 'late'),
+          high_2080: statBlock('ssp585', 'late')
+        };
+
+        const allNull = Object.values(chartData).every(
+          (b) => b.median == null && b.p10 == null && b.p90 == null
+        );
+        const adminName = props.NAME_2 && isNaN(Number(props.NAME_2))
+          ? `${props.NAME_2}${props.NAME_1 ? ', ' + props.NAME_1 : ''}`
+          : (props.NAME_1 || 'Selected area');
+
+        Object.assign(popup.options, { maxWidth: 400, minWidth: 340 });
+        popup.setLatLng(e.latlng);
+
+        if (allNull) {
+          popup.setContent(`
+            <div class="popup-content">
+              <div class="chart-title">${$datalaag}</div>
+              <div class="chart-subtitle">${adminName}</div>
+              <div style="padding: 14px 8px; color: #666; text-align: center;">
+                No yield projection available for this admin2.
+              </div>
+            </div>`).openOn(map);
+          return;
+        }
+
+        const chartId = 'crop-chart-' + Date.now();
+        popup.setContent(`
+          <div class="popup-content">
+            <div class="chart-title">${$datalaag}</div>
+            <div class="chart-subtitle">${adminName}</div>
+            <div style="width: 340px; height: 240px; margin: 8px auto 4px; position: relative;">
+              <canvas id="${chartId}" style="display:block;"></canvas>
+            </div>
+            <div style="font-size: 11px; color: #666; text-align: center; padding: 0 6px 4px;">
+              Bar height = ensemble median. Whiskers = p10–p90 model range.
+            </div>
+          </div>`).openOn(map);
+
+        setTimeout(() => {
+          const canvas = /** @type {HTMLCanvasElement|null} */ (document.getElementById(chartId));
+          if (canvas) renderCropYieldChart(canvas, chartData);
+        }, 100);
+
+        // Highlight the selected admin2 polygon so users see which area the
+        // chart describes. Replaces any previous highlight.
+        highlightAdmin(clickedSubLayer);
+        return;
+      }
+
       // Validate point inside selected country
       const isInside = isPointInCountry(e.latlng, countryCode);
       console.log(isInside, 'check')

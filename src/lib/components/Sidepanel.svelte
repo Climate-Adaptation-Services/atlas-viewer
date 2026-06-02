@@ -3,6 +3,7 @@
   import { page } from "$app/stores"
   import { getCountryConfig } from "$lib/config/countries.js"
   import { getContextLayerNames } from "$lib/config/contextLayers.js"
+  import { cropImpactLayerNames } from "$lib/config/geojsonLayers.js"
   import { createEventDispatcher } from "svelte"
 
   const dispatch = createEventDispatcher()
@@ -53,6 +54,11 @@
   // Check if scenarios should be shown for current layer
   $: showScenarios = layerAvailability.hasScenarios && ($time === "2050" || $time === "2080")
 
+  // Filter impact (crop yield change) layers to those available for this country
+  $: impactLayerOptions = cropImpactLayerNames.filter(layer =>
+    countryConfig?.layerAvailability?.[layer] !== undefined
+  )
+
   // Filter options2 to only show available time periods
   $: availableTimeOptions = options2.filter(opt => isTimeAvailable(opt.name))
 
@@ -81,6 +87,7 @@
 
   // Collapsible state for context layers
   let contextLayersExpanded = false
+  let impactLayersExpanded = false
 
   /**
    * @param {MouseEvent} event
@@ -200,6 +207,31 @@
       {option}
     </label>
   {/each}
+
+  {#if impactLayerOptions.length > 0}
+    <button
+      class="collapsible-header"
+      on:click={() => impactLayersExpanded = !impactLayersExpanded}
+      aria-expanded={impactLayersExpanded}
+    >
+      <span class="collapse-icon" class:expanded={impactLayersExpanded}>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <h2 class="collapsible-title">Change in crop yield</h2>
+    </button>
+    {#if impactLayersExpanded}
+      <div class="collapsible-content">
+        {#each impactLayerOptions as option}
+          <label class="keuzes" class:selected={$selectedLayer === option}>
+            <input class="option" type="radio" name="laag" value={option} bind:group={$selectedLayer} />
+            {option}
+          </label>
+        {/each}
+      </div>
+    {/if}
+  {/if}
 
   {#if contextLayerOptions.length > 0}
     <button
@@ -889,6 +921,7 @@
     margin-top: 0.5vh;
     gap: 5px;
   }
+
 
   .scenario-option {
     flex: 1;

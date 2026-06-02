@@ -57,6 +57,18 @@ export const countryConfigs = {
       "Days above 35°C": { times: ["Past", "2050", "2080"], hasScenarios: true },
       // Regular map layers
       "Water Stress": { times: ["Past", "2050", "2080"], hasScenarios: true },
+      // Impact theme — crop yield change layers (all share kenya_admin2_deltas.geojson).
+      // Kenya bimodal rainy seasons: long rains (Mar–May plant, Jul–Aug harvest, main)
+      // and short rains (Oct–Nov plant, Jan–Feb harvest, secondary ~5% of area).
+      "Maize (long rains)": { times: ["2050", "2080"], hasScenarios: true },
+      "Maize (short rains)": { times: ["2050", "2080"], hasScenarios: true },
+      "Beans (long rains)": { times: ["2050", "2080"], hasScenarios: true },
+      "Beans (short rains)": { times: ["2050", "2080"], hasScenarios: true },
+      "Sorghum (long rains)": { times: ["2050", "2080"], hasScenarios: true },
+      "Sorghum (short rains)": { times: ["2050", "2080"], hasScenarios: true },
+      "Millet": { times: ["2050", "2080"], hasScenarios: true },
+      "Pigeon peas": { times: ["2050", "2080"], hasScenarios: true },
+      "Potatoes": { times: ["2050", "2080"], hasScenarios: true },
       // Context layers - Population only has Past (2025) and 2050, no scenarios
       "Urban population": { times: ["Past", "2050"], hasScenarios: false },
       "River Flood": { times: ["Past"], hasScenarios: false },

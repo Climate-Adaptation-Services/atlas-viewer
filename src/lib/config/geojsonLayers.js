@@ -36,6 +36,23 @@ function getRiverFloodColor(depth) {
 }
 
 /**
+ * Color scale function for Yield Change layer.
+ * Diverging brown→neutral→teal scale; loss = brown, gain = teal. Domain ±20% with clamping.
+ * @param {number|null|undefined} delta - Yield change in percent
+ * @returns {string} Hex color code
+ */
+function getYieldChangeColor(delta) {
+  if (delta === null || delta === undefined || isNaN(delta)) return "#d1d1d1"
+  if (delta <= -20) return "#8b3a1a"
+  if (delta <= -10) return "#c47948"
+  if (delta <= -5) return "#e6cbae"
+  if (delta < 5) return "#f5f5f5"
+  if (delta < 10) return "#a8d4b8"
+  if (delta < 20) return "#4a9d7a"
+  return "#1e5e3f"
+}
+
+/**
  * Color scale function for Water Stress layer
  * @param {number} category - Water stress category (-1 to 4)
  * @returns {string} Hex color code
@@ -50,6 +67,103 @@ function getWaterStressColor(category) {
     4: "#a41f35", // Extremely High - dark red
   }
   return colors[category] !== undefined ? colors[category] : "#d1d1d1"
+}
+
+/**
+ * Crop impact layers all share one source file (kenya_admin2_deltas.geojson).
+ * Each crop+season is exposed as its own layer that reads a different
+ * property family. Property naming: `<cropKey>__<ssp>__<period>__median`
+ *   - period: mid (~2050) | late (~2080)
+ *   - ssp: ssp126 (Low) | ssp585 (High)
+ *
+ * Kenya has a bimodal rainfall regime so Maize/Beans/Sorghum appear in two
+ * seasons. _1 = "long rains" (plant Mar–May, harvest Jul–Aug — main season,
+ * biggest area & yields). _2 = "short rains" (plant Oct–Nov, harvest Jan–Feb
+ * — ~5% of area, lower yields). Single-season crops have no suffix.
+ */
+const CROP_IMPACT_LAYERS = [
+  { name: "Maize (long rains)", cropKey: "maize_1" },
+  { name: "Maize (short rains)", cropKey: "maize_2" },
+  { name: "Beans (long rains)", cropKey: "pulses_beans_1" },
+  { name: "Beans (short rains)", cropKey: "pulses_beans_2" },
+  { name: "Sorghum (long rains)", cropKey: "tropical_cereals_sorghum_1" },
+  { name: "Sorghum (short rains)", cropKey: "tropical_cereals_sorghum_2" },
+  { name: "Millet", cropKey: "tropical_cereals_millet" },
+  { name: "Pigeon peas", cropKey: "pulses_pigeon_peas" },
+  { name: "Potatoes", cropKey: "temperate_roots" },
+]
+
+const CROP_LEGEND_ITEMS = [
+  { color: "#1e5e3f", label: "≥ +20%" },
+  { color: "#4a9d7a", label: "+10 to +20%" },
+  { color: "#a8d4b8", label: "+5 to +10%" },
+  { color: "#f5f5f5", label: "-5 to +5%" },
+  { color: "#e6cbae", label: "-10 to -5%" },
+  { color: "#c47948", label: "-20 to -10%" },
+  { color: "#8b3a1a", label: "≤ -20%" },
+  { color: "#d1d1d1", label: "No data" },
+]
+
+/**
+ * Build per-crop layer configs that all share the same source GeoJSON.
+ * @returns {Record<string, GeojsonLayerConfig>}
+ */
+function buildCropImpactLayers() {
+  /** @type {Record<string, GeojsonLayerConfig>} */
+  const entries = {}
+  for (const { name, cropKey } of CROP_IMPACT_LAYERS) {
+    entries[name] = {
+      filename: "kenya_admin2_deltas.geojson",
+      baseUrl: "https://fsn1.your-objectstorage.com/kenyaciaviewer/",
+      propertyName: `${cropKey}__ssp585__late__median`,
+      supportsTimeScenario: true,
+      singleFileMultiTime: true,
+      getStyle: (feature, time, scenario) => {
+        const period = (time || "2050") === "2080" ? "late" : "mid"
+        const ssp = (scenario || "High").toLowerCase() === "low" ? "ssp126" : "ssp585"
+        const field = `${cropKey}__${ssp}__${period}__median`
+        const delta = feature.properties?.[field]
+        return {
+          fillColor: getYieldChangeColor(delta),
+          weight: 0.3,
+          opacity: 0.4,
+          color: "#666",
+          fillOpacity: 0.75,
+        }
+      },
+      interactive: true,
+      legendItems: CROP_LEGEND_ITEMS,
+    }
+  }
+  return entries
+}
+
+/**
+ * Ordered list of crop impact layer display names — used by the sidepanel
+ * to populate the Impact-layers collapsible section.
+ */
+export const cropImpactLayerNames = CROP_IMPACT_LAYERS.map((c) => c.name)
+
+const CROP_KEY_BY_LAYER = Object.fromEntries(
+  CROP_IMPACT_LAYERS.map((c) => [c.name, c.cropKey])
+)
+
+/**
+ * @param {string} layerName
+ * @returns {boolean}
+ */
+export function isCropImpactLayer(layerName) {
+  return layerName in CROP_KEY_BY_LAYER
+}
+
+/**
+ * Property prefix in kenya_admin2_deltas.geojson for a crop impact layer.
+ * Combined with `__<ssp>__<period>__<stat>` it yields the full property key.
+ * @param {string} layerName
+ * @returns {string | null}
+ */
+export function getCropKey(layerName) {
+  return CROP_KEY_BY_LAYER[layerName] ?? null
 }
 
 /**
@@ -99,6 +213,7 @@ export const geojsonLayerConfigs = {
       { color: "#d1d1d1", label: "Arid and low water use", subtitle: "" },
     ],
   },
+  ...buildCropImpactLayers(),
   "River Flood": {
     filename: "kenya_river_flood.geojson",
     baseUrl: "https://fsn1.your-objectstorage.com/kenyaciaviewer/",
@@ -165,8 +280,9 @@ export function getGeojsonLayerUrl(layerName, time, scenario) {
 
   let filename = config.filename
 
-  // If the layer supports time periods, modify the filename
-  if (config.supportsTimeScenario) {
+  // If the layer supports time periods, modify the filename, unless all time periods
+  // are stored as properties inside a single file (singleFileMultiTime).
+  if (config.supportsTimeScenario && !config.singleFileMultiTime) {
     const timeNormalized = time ? time.toLowerCase() : "past"
     const baseName = filename.replace(".geojson", "")
 

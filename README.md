@@ -14,6 +14,23 @@ npm create svelte@latest
 npm create svelte@latest my-app
 ```
 
+## Setup
+
+Before running the project, create a `.env` file in the project root with your Hetzner Object Storage credentials:
+
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and fill in the values:
+
+```
+HETZNER_ACCESS_KEY=<your-access-key>
+HETZNER_SECRET_KEY=<your-secret-key>
+```
+
+You can find these in the Hetzner Cloud Console under **Object Storage → Access Keys**. The CSV data for the popup charts is fetched from S3-compatible buckets (`kenya-csv-data`, `zimbabwe-csv-data`) — without valid credentials the popup charts will not load.
+
 ## Developing
 
 Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:

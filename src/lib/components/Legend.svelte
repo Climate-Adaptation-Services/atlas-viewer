@@ -272,8 +272,10 @@
         src={`${wmsEndpoint}?VERSION=1.1.1&height=300&request=GetLegendGraphic&layer=${legendLayerId}&style=${legendLayerId}&service=WMS&width=50&format=png`} />
     {/if}
 
-    <!-- GeoJSON Custom Legend -->
-    {#if typeof dataType === "string" && dataType === "geojson" && browser === true}
+    <!-- GeoJSON Custom Legend (climate scalebar — only for non-configured GeoJSON layers;
+         configured layers like Crop yield / Water Stress / River Flood render their own
+         legend items in the block above) -->
+    {#if typeof dataType === "string" && dataType === "geojson" && browser === true && !isGeojsonLayer($datalaag)}
       {#key $datalaag}
         {#each [getLegendItems($datalaag, $time)] as legendData}
           {#if legendData && typeof legendData === "object" && "type" in legendData && legendData.type === "scalebar"}

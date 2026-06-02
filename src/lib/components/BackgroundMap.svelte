@@ -28,6 +28,13 @@
   let countryConfig
   /** @type {boolean} */
   let isLoading = false
+  /** @type {{ layer: string } | null} Set when a layer load fails after all retries; drives the error banner. */
+  let loadError = null
+  // Monotonic counter bumped on every reactive (re)load; lets a late-resolving
+  // stale fetch detect that a newer request has superseded it.
+  let loadToken = 0
+  // Bumped by the "Try again" button to re-trigger the load reactive block.
+  let retryNonce = 0
 
 const variableBases = ["tmax", "tmin", "tavg", "precip_total", "daysabove20", "drydays"];
 const scenarios = ["low", "high"];
@@ -158,6 +165,36 @@ function getLayerId(datalaag, time, scenario) {
   }
 
   /**
+   * Fetch JSON with a couple of retries and short linear backoff. Accepts one
+   * URL or an ordered list of fallback URLs (each tried in turn per round).
+   * Throws once every URL has failed on every attempt — callers surface that as
+   * a visible error instead of a silently blank map.
+   * @param {string|string[]} urls
+   * @param {{retries?: number, backoffMs?: number}} [opts]
+   * @returns {Promise<any>}
+   */
+  async function fetchJsonWithRetry(urls, { retries = 2, backoffMs = 400 } = {}) {
+    const candidates = Array.isArray(urls) ? urls : [urls];
+    /** @type {any} */
+    let lastError = null;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      for (const candidate of candidates) {
+        try {
+          const response = await fetch(candidate, { cache: 'no-store' });
+          if (response.ok) return await response.json();
+          lastError = new Error(`HTTP ${response.status} for ${candidate}`);
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, backoffMs * (attempt + 1)));
+      }
+    }
+    throw lastError ?? new Error('Fetch failed');
+  }
+
+  /**
    * Function to create and load GeoJSON layers for current parameters
    * @param {string} layerId - Layer ID to load
    * @returns {Promise<any|null>} The loaded GeoJSON layer or null if there was an error
@@ -175,19 +212,23 @@ function getLayerId(datalaag, time, scenario) {
         try {
           const baseUrl = getGeojsonLayerUrl($datalaag, $time, $scenario);
           if (!baseUrl) throw new Error(`No URL configured for ${$datalaag}`);
-          const url = baseUrl;
 
-          const response = await fetch(url, { cache: 'no-store' });
-          if (!response.ok) throw new Error(`Failed to fetch ${$datalaag}: ${response.status}`);
-          const data = await response.json();
+          const data = await fetchJsonWithRetry(baseUrl);
 
           geojsonLayers[cacheKey] = L.geoJSON(data, {
-            style: (feature) => config.getStyle(feature, $time, $scenario),
+            style: (feature) => {
+              const base = config.getStyle(feature, $time, $scenario);
+              return {
+                ...base,
+                opacity: (base.opacity ?? 1) * $opacityMap,
+                fillOpacity: $opacityMap,
+              };
+            },
             interactive: config.interactive
           });
         } catch (error) {
           console.error(`Error loading ${$datalaag}:`, error);
-          return null;
+          throw error;
         }
       }
       return geojsonLayers[cacheKey];
@@ -207,9 +248,7 @@ function getLayerId(datalaag, time, scenario) {
       // Check if we already have this layer cached
       if (!geojsonLayers[layerId]) {
         console.log('[MAP] Fetching URL:', url);
-        const response = await fetch(url, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`Failed to fetch GeoJSON: ${response.status}`);
-        const data = await response.json();
+        const data = await fetchJsonWithRetry(url);
         console.log('[MAP] Response features:', data?.features?.length);
         geojsonLayers[layerId] = L.geoJSON(data, {
           style: styleGeoJson,
@@ -229,7 +268,7 @@ function getLayerId(datalaag, time, scenario) {
       return geojsonLayers[layerId];
     } catch (error) {
       console.error('Error loading GeoJSON:', error);
-      return null;
+      throw error;
     }
   }
 
@@ -335,29 +374,22 @@ function getLayerId(datalaag, time, scenario) {
       if (!contextLayerInstances[cacheKey]) {
         // Check if the layer config has a direct URL
         const layerConfig = getContextLayerConfig(layerName);
-        let url;
-        let response;
+        /** @type {string[]} */
+        let candidateUrls;
 
         if (layerConfig?.url) {
           // Use the direct URL from config
-          url = layerConfig.url;
-          response = await fetch(url, { cache: 'no-store' });
+          candidateUrls = [layerConfig.url];
         } else {
-          // Use filename-based lookup
+          // Filename-based lookup; try local static folder first, then S3
           const filename = getContextLayerFilename(layerName, time, scenario);
-          // Try local static folder first, then S3
-          url = `/${filename}`;
-          response = await fetch(url, { cache: 'no-store' });
-
-          // If local fetch fails, try S3
-          if (!response.ok && countryConfig.geojsonBaseUrl) {
-            url = `${countryConfig.geojsonBaseUrl}${filename}`;
-            response = await fetch(url, { cache: 'no-store' });
+          candidateUrls = [`/${filename}`];
+          if (countryConfig.geojsonBaseUrl) {
+            candidateUrls.push(`${countryConfig.geojsonBaseUrl}${filename}`);
           }
         }
 
-        if (!response.ok) throw new Error(`Failed to fetch context layer: ${response.status}`);
-        const data = await response.json();
+        const data = await fetchJsonWithRetry(candidateUrls);
 
         if (layerName.toLowerCase() === 'urban population') {
           // Use point-to-layer for population circles
@@ -420,24 +452,35 @@ function getLayerId(datalaag, time, scenario) {
       return contextLayerInstances[cacheKey];
     } catch (error) {
       console.error(`Error loading context layer ${layerName}:`, error);
-      return null;
+      throw error;
     }
   }
   
-  // Update GeoJSON layers when opacity, datalaag, or time changes
+  // Update GeoJSON layers when opacity, datalaag, or time changes.
+  // Two paths: configured GeoJSON layers (Water Stress, River Flood, Crop yield
+  // change) keep their own getStyle but with fillOpacity scaled by the slider;
+  // climate-style layers use the generic styleGeoJsonFeature.
   $: {
     if (map && countryConfig && countryConfig.dataType === "geojson" &&
         (Object.keys(geojsonLayers).length > 0)) {
-      // Force style update when time, datalaag, or opacity changes
       const normalizedTime = $time ? $time.toLowerCase() : 'past';
+      const configuredConfig = isGeojsonLayer($datalaag) ? getGeojsonLayerConfig($datalaag) : null;
 
-      // Update all visible GeoJSON layers
       Object.values(geojsonLayers).forEach(/**@type {any}*/ layer => {
-        if (layer && map.hasLayer(layer)) {
-          // Use setStyle with a new function instance to ensure re-evaluation
-          layer.setStyle((feature) => {
-            return styleGeoJsonFeature(feature, $datalaag, $opacityMap, normalizedTime);
+        if (!layer || !map.hasLayer(layer)) return;
+        if (configuredConfig) {
+          layer.setStyle((/** @type {any} */ feature) => {
+            const base = configuredConfig.getStyle(feature, $time, $scenario);
+            return {
+              ...base,
+              opacity: (base.opacity ?? 1) * $opacityMap,
+              fillOpacity: $opacityMap,
+            };
           });
+        } else {
+          layer.setStyle((/** @type {any} */ feature) =>
+            styleGeoJsonFeature(feature, $datalaag, $opacityMap, normalizedTime)
+          );
         }
       });
     }
@@ -502,7 +545,14 @@ function getLayerId(datalaag, time, scenario) {
   $: isCurrentLayerContext = isContextLayer($selectedLayer);
 
   $: if (map && $selectedLayer && $time && $scenario && countryConfig) {
+    retryNonce; // referenced so the "Try again" button can re-run this block
     const normalizedTime = $time ? $time.toLowerCase() : 'past';
+
+    // Each (re)load gets a monotonic token. A stale in-flight load that resolves
+    // after a newer selection started will see token !== loadToken and bail, so
+    // it can't add the wrong layer or clear a spinner that isn't its own.
+    const token = ++loadToken;
+    loadError = null;
 
     // Clear all existing layers (both climate and context)
     Object.values(wmsLayers).forEach((layer) => {
@@ -524,27 +574,34 @@ function getLayerId(datalaag, time, scenario) {
     activeContextLayer = null;
     geojsonLayers = {};
 
+    /** @param {string} label @returns {(err: any) => void} */
+    const handleFailure = (label) => (err) => {
+      console.error(`Error loading layer ${label}:`, err);
+      if (token === loadToken) loadError = { layer: label };
+    };
+    const finishLoading = () => { if (token === loadToken) isLoading = false; };
+
     if (isCurrentLayerContext) {
       // Load context layer (e.g., Population, Agroclimatic zones)
       isLoading = true;
       loadContextLayer($selectedLayer, $time, $scenario).then(layer => {
+        if (token !== loadToken) return; // a newer selection superseded this load
         if (layer && map) {
           if (!map.hasLayer(layer)) {
             layer.addTo(map);
           }
           activeContextLayer = layer;
         }
-      }).catch(err => console.error(`Error adding context layer ${$selectedLayer}:`, err))
-        .finally(() => isLoading = false);
+      }).catch(handleFailure($selectedLayer)).finally(finishLoading);
     } else if (isGeojsonLayer($datalaag)) {
       // Load GeoJSON-based map layer (e.g., River Flood)
       isLoading = true;
       loadGeoJsonLayer(null).then(layer => {
+        if (token !== loadToken) return;
         if (layer && map) {
           layer.addTo(map);
         }
-      }).catch(err => console.error(`Error adding GeoJSON layer ${$datalaag}:`, err))
-        .finally(() => isLoading = false);
+      }).catch(handleFailure($datalaag)).finally(finishLoading);
     } else {
       // Load standard climate layer
       const layerId = getLayerId($selectedLayer, $time, $scenario);
@@ -560,12 +617,12 @@ function getLayerId(datalaag, time, scenario) {
         // Load and add GeoJSON layer for GeoJSON-based countries
         isLoading = true;
         loadGeoJsonLayer(layerId).then(layer => {
+          if (token !== loadToken) return;
           console.log('[MAP] GeoJSON loaded:', layerId, layer ? `${layer.getLayers().length} features` : 'null');
           if (layer && map) {
             layer.addTo(map);
           }
-        }).catch(err => console.error('Error adding GeoJSON layer:', err))
-          .finally(() => isLoading = false);
+        }).catch(handleFailure($selectedLayer)).finally(finishLoading);
       }
     }
   }
@@ -580,6 +637,14 @@ function getLayerId(datalaag, time, scenario) {
   {#if isLoading}
     <div class="loading-overlay">
       <div class="spinner"></div>
+    </div>
+  {/if}
+
+  <!-- Load failure banner (after retries) -->
+  {#if loadError && !isLoading}
+    <div class="load-error" role="alert">
+      <span class="load-error-text">Couldn't load “{loadError.layer}”. Check your connection.</span>
+      <button class="load-error-retry" on:click={() => { loadError = null; retryNonce++; }}>Try again</button>
     </div>
   {/if}
 
@@ -642,5 +707,43 @@ function getLayerId(datalaag, time, scenario) {
     to {
       transform: rotate(360deg);
     }
+  }
+
+  .load-error {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    max-width: 280px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    text-align: center;
+  }
+
+  .load-error-text {
+    font-size: 13px;
+    color: #333;
+  }
+
+  .load-error-retry {
+    padding: 6px 16px;
+    background: #017e9f;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .load-error-retry:hover {
+    background: #016580;
   }
 </style>
