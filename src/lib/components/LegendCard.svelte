@@ -60,8 +60,23 @@
     showTip = false
   }
 
+  /**
+   * Abbreviate temperature layer names for the legend header display only.
+   * @param {string} name
+   * @returns {string}
+   */
+  const abbreviateLayerName = (name) => {
+    if (!name) return name
+    return name
+      .replace(/Maximum/gi, "Max")
+      .replace(/Minimum/gi, "Min")
+      .replace(/Average/gi, "Avg")
+      .replace(/temperature/gi, "temp")
+  }
+
   // Derived state
   $: isShowingChange = time === "2050" || time === "2080"
+  $: displayedLayerName = abbreviateLayerName(layerName)
   $: layerInfoData = getLayerInfo(layerName)
 
   // Get scenario label for display
@@ -99,9 +114,9 @@
 
   const formatLegendTitle = (title) => {
     const titleMap = {
-      "Maximum temperature": "Maximum temp.",
-      "Minimum temperature": "Minimum temp.",
-      "Average temperature": "Average temp.",
+      "Maximum temperature": "Max temp.",
+      "Minimum temperature": "Min temp.",
+      "Average temperature": "Avg temp.",
       "Total rainfall": "Total rainfall",
       "Days above 20 mm": "Days above 20mm",
       "Dry spells": "Dry spells",
@@ -221,7 +236,7 @@
   <div class="legend-content">
     <!-- Legend Header -->
     <div class="legend-header">
-      <span class="legend-name">{layerName}</span>
+      <span class="legend-name">{displayedLayerName}</span>
       {#if layerInfoData}
         <button
           class="info-icon-inline"
