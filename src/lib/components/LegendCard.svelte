@@ -41,6 +41,25 @@
     }
   }
 
+  // Hover hint on the "i". Like the info popup, it uses position: fixed with
+  // viewport coordinates so the legend stack's overflow can't clip it — and we
+  // anchor its right edge to the icon so it extends leftward over the card
+  // instead of spilling past the card's right edge.
+  let showTip = false
+  let tipStyle = ""
+  /** @param {MouseEvent} event */
+  function showTooltip(event) {
+    if (!browser) return
+    const r = /** @type {HTMLElement} */ (event.currentTarget).getBoundingClientRect()
+    const right = Math.round(window.innerWidth - r.right)
+    const bottom = Math.round(window.innerHeight - r.top + 8)
+    tipStyle = `right:${right}px; bottom:${bottom}px;`
+    showTip = true
+  }
+  function hideTooltip() {
+    showTip = false
+  }
+
   // Derived state
   $: isShowingChange = time === "2050" || time === "2080"
   $: layerInfoData = getLayerInfo(layerName)
@@ -204,9 +223,14 @@
     <div class="legend-header">
       <span class="legend-name">{layerName}</span>
       {#if layerInfoData}
-        <button class="info-icon-inline" on:click={toggleInfo}>
+        <button
+          class="info-icon-inline"
+          on:click={toggleInfo}
+          on:mouseenter={showTooltip}
+          on:mouseleave={hideTooltip}
+        >
           i
-          <span class="info-tooltip">About this layer</span>
+          <span class="info-tooltip" class:visible={showTip} style={tipStyle}>About this layer</span>
         </button>
       {/if}
     </div>
@@ -439,10 +463,9 @@
   .info-tooltip {
     visibility: hidden;
     opacity: 0;
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
+    /* position: fixed (coords set inline from the icon's viewport rect) so the
+       legend stack's overflow can't clip it. */
+    position: fixed;
     background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
     color: #017e9f;
     font-size: 11px;
@@ -450,15 +473,16 @@
     padding: 5px 10px;
     border-radius: 8px;
     white-space: nowrap;
-    z-index: 1000;
+    z-index: 1000000001;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(1, 126, 159, 0.15);
+    pointer-events: none;
     transition:
       opacity 0.2s,
       visibility 0.2s;
   }
 
-  .info-icon-inline:hover .info-tooltip {
+  .info-tooltip.visible {
     visibility: visible;
     opacity: 1;
   }

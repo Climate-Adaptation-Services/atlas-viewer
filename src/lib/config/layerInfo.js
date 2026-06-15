@@ -149,8 +149,8 @@ export const layerInfo = {
 // (long rains / short rains) reflect Kenya's bimodal rainfall regime — two
 // distinct growing seasons per year, modelled separately.
 const SEASON_INFO = {
-  'long rains': 'long rains growing season — planted Mar–May, harvested Jul–Aug, nationally the main season with the largest cultivated area and higher yields',
-  'short rains': 'short rains growing season — planted Oct–Nov, harvested Jan–Feb, nationally the secondary season covering ~5% of the cultivated area with lower yields'
+  'long rains': 'long rains growing season',
+  'short rains': 'short rains growing season'
 };
 // Shared model/methodology tail, identical for every crop+season.
 const CROP_MODEL_NOTE = 'Future window (2036–2065 or 2066–2095) vs. 1981–2010 reference, CMIP6 multi-model ensemble median (10 GCMs), LPJmL crop model with FAO-scaled yields and unlimited nitrogen — note that projected gains may be overstated under real-world nutrient limits. Low scenario = SSP1-2.6, high scenario = SSP5-8.5.';
@@ -173,7 +173,7 @@ for (const name of cropLayerNames) {
   layerInfo[name] = {
     description: fullText,
     projectionDescription: fullText,
-    projectionSource: 'LPJmL (CMIP6 forcing, FAO-scaled), ISIMIP3b',
+    projectionSource: 'Ignacio Saldivia Gonzatti; LPJmL (CMIP6 forcing, FAO-scaled), ISIMIP3b',
     projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
     projectionResolution: 'GADM admin2'
