@@ -129,7 +129,7 @@ export function renderCropYieldChart(canvas, data) {
       plugins: {
         legend: {
           display: true,
-          position: 'bottom',
+          position: 'top',
           labels: { boxWidth: 12, boxHeight: 12, padding: 8, font: { size: 11 } }
         },
         tooltip: {

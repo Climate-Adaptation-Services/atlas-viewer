@@ -72,7 +72,9 @@ export const countryConfigs = {
       // Context layers - Population only has Past (2025) and 2050, no scenarios
       "Urban population": { times: ["Past", "2050"], hasScenarios: false },
       "River Flood": { times: ["Past"], hasScenarios: false },
-      "Agroclimatic zones": { times: ["Past"], hasScenarios: false }
+      "Agroclimatic zones": { times: ["Past"], hasScenarios: false },
+      "Bund suitability": { times: ["Past"], hasScenarios: false },
+      "Tree cover (FMNR) suitability": { times: ["Past"], hasScenarios: false }
     }
   },
   ghana: {

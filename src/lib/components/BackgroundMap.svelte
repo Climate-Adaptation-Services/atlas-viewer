@@ -1,8 +1,9 @@
 <script>
   import { browser } from "$app/environment"
   import { onMount } from "svelte"
+  import { get } from "svelte/store"
   import { page } from "$app/stores"
-  import { datalaag, opacityMap, time, scenario, selectedLayer } from "$lib/stores.js"
+  import { selectedLayers, layerOpacity, layerTime, layerScenario } from "$lib/stores.js"
   import MapPopup from "./MapPopup.svelte"
   import Legend from "./Legend.svelte"
   import { getCountryConfig } from "$lib/config/countries.js"
@@ -16,12 +17,15 @@
   let esri
   /** @type {Record<string, any>} */
   let wmsLayers = {}
-  /** @type {Record<string, any>} */
-  let geojsonLayers = {}
-  /** @type {Record<string, any>} */
-  let contextLayerInstances = {}
-  /** @type {any} */
-  let activeContextLayer = null
+  // Multi-layer render engine state:
+  /** Cache of built layers keyed by signature. @type {Record<string, {layer:any, restyle:(op:number)=>void}>} */
+  let layerCache = {}
+  /** Currently-on-map layers keyed by layer name. @type {Record<string, {layer:any, restyle:(op:number)=>void}>} */
+  let renderedLayers = {}
+  /** Signature (name|time|scenario) of each rendered layer, to detect stale renders. @type {Record<string, string>} */
+  let renderedSig = {}
+  /** Names with an in-flight load, to avoid duplicate concurrent fetches. @type {Set<string>} */
+  let loadingNames = new Set()
   /** @type {any} */
   let L
   /** @type {any} */
@@ -114,8 +118,23 @@ function getLayerId(datalaag, time, scenario) {
   $: countryCode = $page.url.searchParams.get('country') || 'zimbabwe';
   $: countryConfig = getCountryConfig(countryCode);
 
-  // Reactive legend layer name
-  $: legendLayerId = getLayerId($datalaag, $time, $scenario);
+  // One legend descriptor per active layer (top layer first), for the stacked Legend.
+  // Each carries the layer's own time/scenario so its legend matches what's drawn.
+  $: legendDescriptors = $selectedLayers
+    .filter(l => countryConfig?.layerAvailability?.[l] !== undefined)
+    .map(name => {
+      const lTime = timeOf($layerTime, name);
+      const lScenario = scenOf($layerScenario, name);
+      return {
+        name,
+        dataType: isContextLayer(name) ? 'context' : countryConfig?.dataType,
+        legendLayerId: getLayerId(name, lTime, lScenario),
+        legendUrl: getContextLayerConfig(name)?.legendUrl ?? null,
+        time: lTime,
+        scenario: lScenario,
+      };
+    })
+    .reverse();
   
 
   
@@ -153,15 +172,27 @@ function getLayerId(datalaag, time, scenario) {
     return `${countryConfig.geojsonBaseUrl}${filename}`;
   }
 
-  /**
-   * Wrapper function for styling GeoJSON features using the imported utility
-   * @param {any} feature - GeoJSON feature with properties
-   * @returns {Object} Leaflet path style object
-   */
-  function styleGeoJson(feature) {
-    // Normalize time parameter to lowercase for consistent handling
-    const normalizedTime = $time ? $time.toLowerCase() : 'past';
-    return styleGeoJsonFeature(feature, $datalaag, $opacityMap, normalizedTime);
+  /** Per-layer opacity (defaults to 1). @param {string} name */
+  function getOpacity(name) {
+    const o = $layerOpacity[name];
+    return (o === undefined || o === null) ? 1 : o;
+  }
+
+  /** A point-type context layer (circle markers — kept on top of the stack). @param {string} name */
+  function isPointLayer(name) {
+    return isContextLayer(name) && getContextLayerConfig(name)?.type === 'point';
+  }
+
+  /** Whether a layer's data/style depends on the global time/scenario. @param {string} name */
+  function isTimeSensitive(name) {
+    if (isContextLayer(name)) return name.toLowerCase() === 'urban population';
+    if (isGeojsonLayer(name)) return !!(/** @type {any} */ (getGeojsonLayerConfig(name))?.supportsTimeScenario);
+    return baseLayerCodes[name] !== undefined; // climate layers
+  }
+
+  /** Cache/identity key for a layer at a given time/scenario. @param {string} name @param {string} time @param {string} scenario */
+  function layerSignature(name, time, scenario) {
+    return isTimeSensitive(name) ? `${name}|${time}|${scenario}` : name;
   }
 
   /**
@@ -195,81 +226,49 @@ function getLayerId(datalaag, time, scenario) {
   }
 
   /**
-   * Function to create and load GeoJSON layers for current parameters
-   * @param {string} layerId - Layer ID to load
-   * @returns {Promise<any|null>} The loaded GeoJSON layer or null if there was an error
+   * Load a climate or configured-GeoJSON layer by name, styled for the given
+   * time/scenario and the layer's own opacity.
+   * @param {string} layerName
+   * @param {string} time
+   * @param {string} scenario
+   * @returns {Promise<{layer:any, restyle:(op:number)=>void}|null>}
    */
-  async function loadGeoJsonLayer(layerId) {
-    // Check if this is a configured GeoJSON layer (like River Flood, Water Stress)
-    if (isGeojsonLayer($datalaag)) {
-      const config = getGeojsonLayerConfig($datalaag);
-      // Include time and scenario in cache key for layers that support it
-      const cacheKey = config?.supportsTimeScenario
-        ? `${$datalaag.toLowerCase().replace(/\s+/g, '_')}_${$time}_${$scenario}`
-        : $datalaag.toLowerCase().replace(/\s+/g, '_');
+  async function loadGeoJsonLayer(layerName, time, scenario) {
+    const normalizedTime = time ? time.toLowerCase() : 'past';
 
-      if (!geojsonLayers[cacheKey] && config) {
-        try {
-          const baseUrl = getGeojsonLayerUrl($datalaag, $time, $scenario);
-          if (!baseUrl) throw new Error(`No URL configured for ${$datalaag}`);
-
-          const data = await fetchJsonWithRetry(baseUrl);
-
-          geojsonLayers[cacheKey] = L.geoJSON(data, {
-            style: (feature) => {
-              const base = config.getStyle(feature, $time, $scenario);
-              return {
-                ...base,
-                opacity: (base.opacity ?? 1) * $opacityMap,
-                fillOpacity: $opacityMap,
-              };
-            },
-            interactive: config.interactive
-          });
-        } catch (error) {
-          console.error(`Error loading ${$datalaag}:`, error);
-          throw error;
-        }
-      }
-      return geojsonLayers[cacheKey];
+    // Configured GeoJSON layer (River Flood, Water Stress, Crop yield change)
+    if (isGeojsonLayer(layerName)) {
+      const config = getGeojsonLayerConfig(layerName);
+      if (!config) return null;
+      const baseUrl = getGeojsonLayerUrl(layerName, time, scenario);
+      if (!baseUrl) throw new Error(`No URL configured for ${layerName}`);
+      const data = await fetchJsonWithRetry(baseUrl);
+      /** @param {number} op */
+      const styleFor = (op) => (/** @type {any} */ feature) => {
+        const base = config.getStyle(feature, time, scenario);
+        return { ...base, opacity: (base.opacity ?? 1) * op, fillOpacity: op };
+      };
+      const layer = L.geoJSON(data, { style: styleFor(getOpacity(layerName)), interactive: config.interactive });
+      return { layer, restyle: (op) => layer.setStyle(styleFor(op)) };
     }
 
-    // Standard climate layer handling
-    if (!layerId) return null;
-
-    // Get base code from layerId by matching against known codes
-    const base = baseLayerCodes[$datalaag];
-    const baseCode = base || layerId.split('_')[0];
-    const url = getGeoJsonUrl(baseCode, $time, $scenario);
-
+    // Standard climate layer
+    const baseCode = baseLayerCodes[layerName];
+    if (!baseCode) return null;
+    const url = getGeoJsonUrl(baseCode, time, scenario);
     if (!url) return null;
-
-    try {
-      // Check if we already have this layer cached
-      if (!geojsonLayers[layerId]) {
-        console.log('[MAP] Fetching URL:', url);
-        const data = await fetchJsonWithRetry(url);
-        console.log('[MAP] Response features:', data?.features?.length);
-        geojsonLayers[layerId] = L.geoJSON(data, {
-          style: styleGeoJson,
-          interactive: false, // Make layer non-interactive to allow clicks to pass through
-          onEachFeature: (/**@type {any}*/ feature, /**@type {any}*/ layer) => {
-            if (feature?.properties?.value !== undefined) {
-              const unit = getLegendUnit($datalaag);
-              // Don't use bindPopup since we want MapPopup to handle clicks
-              // instead, store the value in the feature properties
-              feature._value = feature.properties.value;
-            }
-          }
-});
-
+    const data = await fetchJsonWithRetry(url);
+    /** @param {number} op */
+    const styleFor = (op) => (/** @type {any} */ feature) =>
+      styleGeoJsonFeature(feature, layerName, op, normalizedTime);
+    const layer = L.geoJSON(data, {
+      style: styleFor(getOpacity(layerName)),
+      interactive: false, // clicks pass through; MapPopup handles them
+      onEachFeature: (/**@type {any}*/ feature) => {
+        if (feature?.properties?.value !== undefined) feature._value = feature.properties.value;
       }
-
-      return geojsonLayers[layerId];
-    } catch (error) {
-      console.error('Error loading GeoJSON:', error);
-      throw error;
-    }
+    });
+    return { layer, restyle: (op) => layer.setStyle(styleFor(op)) };
   }
 
   /**
@@ -358,146 +357,177 @@ function getLayerId(datalaag, time, scenario) {
   }
 
   /**
-   * Function to load a context layer (e.g., population)
-   * @param {string} layerName - Name of the context layer
-   * @param {string} time - Current time period
-   * @param {string} scenario - Current scenario (low/high)
-   * @returns {Promise<any|null>} The loaded GeoJSON layer or null if there was an error
+   * Load a context layer (population, agroclimatic zones, WMS overlays) styled
+   * for the given time and the layer's own opacity.
+   * @param {string} layerName
+   * @param {string} time
+   * @param {string} scenario
+   * @returns {Promise<{layer:any, restyle:(op:number)=>void}|null>}
    */
   async function loadContextLayer(layerName, time, scenario) {
     if (!layerName || !countryConfig) return null;
+    const layerConfig = getContextLayerConfig(layerName);
 
-    const cacheKey = `${layerName}_${time}_${scenario || 'none'}`;
-
-    try {
-      // Check if we already have this layer cached
-      if (!contextLayerInstances[cacheKey]) {
-        // Check if the layer config has a direct URL
-        const layerConfig = getContextLayerConfig(layerName);
-        /** @type {string[]} */
-        let candidateUrls;
-
-        if (layerConfig?.url) {
-          // Use the direct URL from config
-          candidateUrls = [layerConfig.url];
-        } else {
-          // Filename-based lookup; try local static folder first, then S3
-          const filename = getContextLayerFilename(layerName, time, scenario);
-          candidateUrls = [`/${filename}`];
-          if (countryConfig.geojsonBaseUrl) {
-            candidateUrls.push(`${countryConfig.geojsonBaseUrl}${filename}`);
-          }
-        }
-
-        const data = await fetchJsonWithRetry(candidateUrls);
-
-        if (layerName.toLowerCase() === 'urban population') {
-          // Use point-to-layer for population circles
-          contextLayerInstances[cacheKey] = L.geoJSON(data, {
-            pointToLayer: (feature, latlng) => {
-              // Get population based on time period
-              let popProperty = 'Population_2025'; // default
-              const timeNormalized = time ? time.toLowerCase() : 'past';
-
-              if (timeNormalized === '2050' || timeNormalized === '2080') {
-                popProperty = 'Population_2050';
-              } else if (timeNormalized === 'past' || timeNormalized === 'hist') {
-                popProperty = 'Population_2025';
-              }
-
-              const pop = feature.properties?.[popProperty] || 0;
-              const style = getPopulationStyle(pop);
-
-              return L.circleMarker(latlng, {
-                radius: style.radius,
-                fillColor: style.color,
-                color: '#333333',
-                weight: 0.5,
-                opacity: 0.8,
-                fillOpacity: 0.7
-              });
-            },
-            interactive: false
-          });
-        } else if (layerName.toLowerCase() === 'agroclimatic zones') {
-          // Style Agroclimatic zones by AEZ_Name
-          contextLayerInstances[cacheKey] = L.geoJSON(data, {
-            style: (feature) => {
-              const aezName = feature.properties?.AEZ_Name || '';
-              return {
-                fillColor: getAEZColor(aezName),
-                weight: 1,
-                opacity: 1,
-                color: '#333333',
-                fillOpacity: 0.7
-              };
-            },
-            interactive: false
-          });
-        } else {
-          // Default styling for other context layers
-          contextLayerInstances[cacheKey] = L.geoJSON(data, {
-            style: {
-              fillColor: "#888888",
-              weight: 1,
-              opacity: 1,
-              color: '#666666',
-              fillOpacity: 0.3
-            },
-            interactive: false
-          });
-        }
-      }
-
-      return contextLayerInstances[cacheKey];
-    } catch (error) {
-      console.error(`Error loading context layer ${layerName}:`, error);
-      throw error;
+    // WMS context overlays (e.g. Bunds, Tree cover) — raster tiles.
+    if (layerConfig?.type === "wms") {
+      const layer = L.tileLayer.wms(layerConfig.wmsEndpoint, {
+        layers: layerConfig.wmsLayer,
+        styles: layerConfig.wmsStyle || "",
+        format: "image/png",
+        transparent: true,
+        version: layerConfig.wmsVersion || "1.3.0",
+        opacity: getOpacity(layerName),
+        attribution: layerConfig.attribution || "WMS Layer",
+      });
+      return { layer, restyle: (op) => layer.setOpacity(op) };
     }
+
+    /** @type {string[]} */
+    let candidateUrls;
+    if (layerConfig?.url) {
+      candidateUrls = [layerConfig.url];
+    } else {
+      const filename = getContextLayerFilename(layerName, time, scenario);
+      candidateUrls = [`/${filename}`];
+      if (countryConfig.geojsonBaseUrl) candidateUrls.push(`${countryConfig.geojsonBaseUrl}${filename}`);
+    }
+    const data = await fetchJsonWithRetry(candidateUrls);
+
+    if (layerName.toLowerCase() === 'urban population') {
+      const timeNormalized = time ? time.toLowerCase() : 'past';
+      const popProperty = (timeNormalized === '2050' || timeNormalized === '2080') ? 'Population_2050' : 'Population_2025';
+      const layer = L.geoJSON(data, {
+        pointToLayer: (/** @type {any} */ feature, /** @type {any} */ latlng) => {
+          const pop = feature.properties?.[popProperty] || 0;
+          const style = getPopulationStyle(pop);
+          const op = getOpacity(layerName);
+          return L.circleMarker(latlng, {
+            radius: style.radius, fillColor: style.color, color: '#333333',
+            weight: 0.5, opacity: 0.8 * op, fillOpacity: 0.7 * op
+          });
+        },
+        interactive: false
+      });
+      return { layer, restyle: (op) => layer.setStyle({ opacity: 0.8 * op, fillOpacity: 0.7 * op }) };
+    }
+
+    if (layerName.toLowerCase() === 'agroclimatic zones') {
+      /** @param {number} op */
+      const styleFor = (op) => (/** @type {any} */ feature) => ({
+        fillColor: getAEZColor(feature.properties?.AEZ_Name || ''),
+        weight: 1, opacity: 1, color: '#333333', fillOpacity: 0.7 * op
+      });
+      const layer = L.geoJSON(data, { style: styleFor(getOpacity(layerName)), interactive: false });
+      return { layer, restyle: (op) => layer.setStyle(styleFor(op)) };
+    }
+
+    /** @param {number} op */
+    const styleFor = (op) => ({ fillColor: "#888888", weight: 1, opacity: 1, color: '#666666', fillOpacity: 0.3 * op });
+    const layer = L.geoJSON(data, { style: styleFor(getOpacity(layerName)), interactive: false });
+    return { layer, restyle: (op) => layer.setStyle(styleFor(op)) };
+  }
+
+  /**
+   * Dispatch to the right loader for any layer name, with a signature-keyed cache.
+   * @param {string} name @param {string} time @param {string} scenario
+   * @returns {Promise<{layer:any, restyle:(op:number)=>void}|null>}
+   */
+  async function loadAnyLayer(name, time, scenario) {
+    const sig = layerSignature(name, time, scenario);
+    if (layerCache[sig]) { layerCache[sig].restyle(getOpacity(name)); return layerCache[sig]; }
+
+    /** @type {{layer:any, restyle:(op:number)=>void}|null} */
+    let result = null;
+    if (isContextLayer(name)) {
+      result = await loadContextLayer(name, time, scenario);
+    } else if (isGeojsonLayer(name)) {
+      result = await loadGeoJsonLayer(name, time, scenario);
+    } else if (countryConfig?.dataType === "wms") {
+      // Pre-created WMS climate layer (e.g. Zimbabwe)
+      const layerId = getLayerId(name, time, scenario);
+      const layer = layerId ? wmsLayers[layerId] : null;
+      if (layer) { layer.setOpacity(getOpacity(name)); result = { layer, restyle: (op) => layer.setOpacity(op) }; }
+    } else {
+      result = await loadGeoJsonLayer(name, time, scenario);
+    }
+    if (result) layerCache[sig] = result;
+    return result;
+  }
+
+  /**
+   * Reconcile the rendered layers with the current selection / time / scenario.
+   * Adds new layers, removes deselected/stale ones, applies per-layer opacity and stacking order.
+   */
+  /** Per-layer time, falling back to the layer's first available period. @param {Record<string,string>} lt @param {string} n */
+  function timeOf(lt, n) {
+    return lt[n] ?? countryConfig?.layerAvailability?.[n]?.times?.[0] ?? "Past";
+  }
+  /** Per-layer scenario. @param {Record<string,string>} lsc @param {string} n */
+  function scenOf(lsc, n) {
+    return lsc[n] ?? "High";
+  }
+
+  /** @param {string[]} snapLayers @param {Record<string,string>} snapLT @param {Record<string,string>} snapLSC */
+  async function syncLayers(snapLayers, snapLT, snapLSC) {
+    if (!map || !L || !countryConfig) return;
+    const desired = snapLayers.filter(l => countryConfig.layerAvailability?.[l] !== undefined);
+    /** @param {string} n */
+    const sigOf = (n) => layerSignature(n, timeOf(snapLT, n), scenOf(snapLSC, n));
+
+    // Remove layers no longer wanted, or whose time/scenario signature changed.
+    for (const name of Object.keys(renderedLayers)) {
+      if (!desired.includes(name) || renderedSig[name] !== sigOf(name)) {
+        const e = renderedLayers[name];
+        if (e?.layer && map.hasLayer(e.layer)) map.removeLayer(e.layer);
+        delete renderedLayers[name];
+        delete renderedSig[name];
+      }
+    }
+
+    // Add desired layers that aren't on the map yet, each at its own time/scenario.
+    for (const name of desired) {
+      if (renderedLayers[name] || loadingNames.has(name)) continue;
+      const sig = sigOf(name);
+      loadingNames.add(name);
+      isLoading = true;
+      try {
+        const entry = await loadAnyLayer(name, timeOf(snapLT, name), scenOf(snapLSC, name));
+        // Re-validate against the latest state (selection/settings may have changed during the await).
+        // Use get() rather than $-syntax: auto-subscription isn't allowed after an await.
+        const liveLT = get(layerTime), liveLSC = get(layerScenario);
+        const stillWanted = get(selectedLayers).includes(name)
+          && layerSignature(name, timeOf(liveLT, name), scenOf(liveLSC, name)) === sig;
+        if (entry?.layer && map && stillWanted && !renderedLayers[name]) {
+          entry.layer.addTo(map);
+          renderedLayers[name] = entry;
+          renderedSig[name] = sig;
+          entry.restyle(getOpacity(name));
+        }
+      } catch (err) {
+        console.error(`Error loading layer ${name}:`, err);
+        loadError = { layer: name };
+      } finally {
+        loadingNames.delete(name);
+      }
+    }
+    isLoading = loadingNames.size > 0;
+    reorderLayers(desired);
+  }
+
+  /**
+   * Stack layers in selection order (later = on top); point layers always on top.
+   * @param {string[]} desired
+   */
+  function reorderLayers(desired) {
+    for (const name of desired) renderedLayers[name]?.layer?.bringToFront?.();
+    for (const name of desired) if (isPointLayer(name)) renderedLayers[name]?.layer?.bringToFront?.();
   }
   
-  // Update GeoJSON layers when opacity, datalaag, or time changes.
-  // Two paths: configured GeoJSON layers (Water Stress, River Flood, Crop yield
-  // change) keep their own getStyle but with fillOpacity scaled by the slider;
-  // climate-style layers use the generic styleGeoJsonFeature.
-  $: {
-    if (map && countryConfig && countryConfig.dataType === "geojson" &&
-        (Object.keys(geojsonLayers).length > 0)) {
-      const normalizedTime = $time ? $time.toLowerCase() : 'past';
-      const configuredConfig = isGeojsonLayer($datalaag) ? getGeojsonLayerConfig($datalaag) : null;
-
-      Object.values(geojsonLayers).forEach(/**@type {any}*/ layer => {
-        if (!layer || !map.hasLayer(layer)) return;
-        if (configuredConfig) {
-          layer.setStyle((/** @type {any} */ feature) => {
-            const base = configuredConfig.getStyle(feature, $time, $scenario);
-            return {
-              ...base,
-              opacity: (base.opacity ?? 1) * $opacityMap,
-              fillOpacity: $opacityMap,
-            };
-          });
-        } else {
-          layer.setStyle((/** @type {any} */ feature) =>
-            styleGeoJsonFeature(feature, $datalaag, $opacityMap, normalizedTime)
-          );
-        }
-      });
+  // Apply per-layer opacity whenever any layer's opacity changes.
+  $: if (map && $layerOpacity) {
+    for (const name of Object.keys(renderedLayers)) {
+      renderedLayers[name]?.restyle(getOpacity(name));
     }
-  }
-
-  // Update context layers (like Agroclimatic zones) when opacity changes
-  $: if (map && activeContextLayer && $selectedLayer?.toLowerCase() === 'agroclimatic zones') {
-    activeContextLayer.setStyle((/** @type {any} */ feature) => {
-      const aezName = feature?.properties?.AEZ_Name || '';
-      return {
-        fillColor: getAEZColor(aezName),
-        weight: 1,
-        opacity: 1,
-        color: '#333333',
-        fillOpacity: $opacityMap
-      };
-    });
   }
 
   $: if (esri && L && !map) {
@@ -541,92 +571,14 @@ function getLayerId(datalaag, time, scenario) {
     }
   }
 
-  // Check if selected layer is a context layer
-  $: isCurrentLayerContext = isContextLayer($selectedLayer);
-
-  $: if (map && $selectedLayer && $time && $scenario && countryConfig) {
+  // Render engine: reconcile the map's layers with the current selection,
+  // time and scenario. Re-runs whenever any of those change.
+  $: if (map && L && countryConfig) {
     retryNonce; // referenced so the "Try again" button can re-run this block
-    const normalizedTime = $time ? $time.toLowerCase() : 'past';
-
-    // Each (re)load gets a monotonic token. A stale in-flight load that resolves
-    // after a newer selection started will see token !== loadToken and bail, so
-    // it can't add the wrong layer or clear a spinner that isn't its own.
-    const token = ++loadToken;
     loadError = null;
-
-    // Clear all existing layers (both climate and context)
-    Object.values(wmsLayers).forEach((layer) => {
-      if (map.hasLayer(layer)) {
-        map.removeLayer(layer);
-      }
-    });
-
-    // Remove all GeoJSON layers
-    if (map) {
-      map.eachLayer(layer => {
-        if (layer instanceof L.GeoJSON) {
-          map.removeLayer(layer);
-        }
-      });
-    }
-
-    // Clear references
-    activeContextLayer = null;
-    geojsonLayers = {};
-
-    /** @param {string} label @returns {(err: any) => void} */
-    const handleFailure = (label) => (err) => {
-      console.error(`Error loading layer ${label}:`, err);
-      if (token === loadToken) loadError = { layer: label };
-    };
-    const finishLoading = () => { if (token === loadToken) isLoading = false; };
-
-    if (isCurrentLayerContext) {
-      // Load context layer (e.g., Population, Agroclimatic zones)
-      isLoading = true;
-      loadContextLayer($selectedLayer, $time, $scenario).then(layer => {
-        if (token !== loadToken) return; // a newer selection superseded this load
-        if (layer && map) {
-          if (!map.hasLayer(layer)) {
-            layer.addTo(map);
-          }
-          activeContextLayer = layer;
-        }
-      }).catch(handleFailure($selectedLayer)).finally(finishLoading);
-    } else if (isGeojsonLayer($datalaag)) {
-      // Load GeoJSON-based map layer (e.g., River Flood)
-      isLoading = true;
-      loadGeoJsonLayer(null).then(layer => {
-        if (token !== loadToken) return;
-        if (layer && map) {
-          layer.addTo(map);
-        }
-      }).catch(handleFailure($datalaag)).finally(finishLoading);
-    } else {
-      // Load standard climate layer
-      const layerId = getLayerId($selectedLayer, $time, $scenario);
-      console.log('[MAP] Standard layer:', { selectedLayer: $selectedLayer, datalaag: $datalaag, time: $time, scenario: $scenario, layerId, dataType: countryConfig.dataType });
-
-      if (!layerId) { console.log('[MAP] No valid layerId, skipping'); }
-      else if (countryConfig.dataType === "wms" && wmsLayers[layerId]) {
-        // Add WMS layer for WMS-based countries
-        wmsLayers[layerId].addTo(map);
-        wmsLayers[layerId].setOpacity($opacityMap);
-      }
-      else if (countryConfig.dataType === "geojson") {
-        // Load and add GeoJSON layer for GeoJSON-based countries
-        isLoading = true;
-        loadGeoJsonLayer(layerId).then(layer => {
-          if (token !== loadToken) return;
-          console.log('[MAP] GeoJSON loaded:', layerId, layer ? `${layer.getLayers().length} features` : 'null');
-          if (layer && map) {
-            layer.addTo(map);
-          }
-        }).catch(handleFailure($selectedLayer)).finally(finishLoading);
-      }
-    }
+    syncLayers($selectedLayers, $layerTime, $layerScenario);
   }
-  
+
 </script>
 
 <div class="backgroundmap">
@@ -659,14 +611,9 @@ function getLayerId(datalaag, time, scenario) {
     />
   {/if}
   
-  <!-- Legend -->
-  {#if browser && $selectedLayer}
-    <Legend
-      dataType={isCurrentLayerContext ? 'context' : countryConfig?.dataType}
-      {legendLayerId}
-      wmsEndpoint={countryConfig?.wmsEndpoint}
-      layerName={$selectedLayer}
-    />
+  <!-- Legend — one card per active layer, stacked -->
+  {#if browser && legendDescriptors.length}
+    <Legend layers={legendDescriptors} wmsEndpoint={countryConfig?.wmsEndpoint} />
   {/if}
 </div>
 

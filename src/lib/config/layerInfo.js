@@ -129,6 +129,18 @@ export const layerInfo = {
     description: 'Agro-ecological zones based on climate and soil conditions.',
     source: 'RCMRD',
     sourceUrl: 'https://opendata.rcmrd.org/datasets/kenya-agro-ecological-zones/about'
+  },
+
+  // Solution layers (Justdiggit suitability rasters)
+  'Bund suitability': {
+    description: 'Areas suitable for constructing water-retention bunds — earthen structures that capture rainwater and reduce runoff to restore degraded land.',
+    source: 'Justdiggit',
+    sourceUrl: 'https://justdiggit.org/'
+  },
+  'Tree cover (FMNR) suitability': {
+    description: 'Areas suitable for Farmer Managed Natural Regeneration (FMNR), a low-cost restoration technique that regrows trees and shrubs from existing rootstock and seeds.',
+    source: 'Justdiggit',
+    sourceUrl: 'https://justdiggit.org/'
   }
 };
 

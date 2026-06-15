@@ -6,11 +6,18 @@
 /**
  * @typedef {Object} ContextLayerConfig
  * @property {string} name - Display name of the layer
- * @property {string} type - Type of layer ('point', 'polygon', etc.)
+ * @property {string} type - Type of layer ('point', 'polygon', 'wms', etc.)
  * @property {Function} getPopupContent - Function to generate popup content for this layer
  * @property {number} clickThreshold - Distance threshold for click detection (in meters)
  * @property {Object} popupOptions - Leaflet popup options for this layer
  * @property {string} [url] - Optional full URL for the layer data (overrides default filename logic)
+ * @property {string} [wmsEndpoint] - WMS service endpoint (when type is 'wms')
+ * @property {string} [wmsLayer] - WMS layer name (when type is 'wms')
+ * @property {string} [wmsStyle] - WMS style name (when type is 'wms')
+ * @property {string} [wmsVersion] - WMS version, e.g. '1.3.0' (when type is 'wms')
+ * @property {string} [legendUrl] - Full GetLegendGraphic URL (when type is 'wms')
+ * @property {string} [attribution] - Map attribution string (when type is 'wms')
+ * @property {{present?: string, absent?: string, none?: string}} [wmsValueLabels] - Popup labels for a binary GRAY_INDEX raster (1 = present, 0 = absent, no feature = none)
  */
 
 /**
@@ -113,6 +120,48 @@ export const contextLayerConfigs = {
     getPopupContent: () => null, // No popup for this layer
     clickThreshold: 0,
     popupOptions: {},
+  },
+  "Bund suitability": {
+    name: "Bund suitability",
+    type: "wms",
+    wmsEndpoint:
+      "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_kenya/wms",
+    wmsLayer: "kenya_bunds_justdiggit_v20260603",
+    wmsStyle: "kenya_bunds_burgundy_binary_raster",
+    wmsVersion: "1.3.0",
+    legendUrl:
+      "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_kenya/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image%2Fpng&width=20&height=20&layer=kenya_bunds_justdiggit_v20260603",
+    attribution: "Justdiggit",
+    // Binary suitability raster: GRAY_INDEX 1 = suitable, 0 = not suitable.
+    wmsValueLabels: {
+      present: "Suitable for bunds",
+      absent: "Not suitable",
+      none: "No data at this location",
+    },
+    getPopupContent: () => null,
+    clickThreshold: 0,
+    popupOptions: { maxWidth: 300, minWidth: 200, className: "compact-popup" },
+  },
+  "Tree cover (FMNR) suitability": {
+    name: "Tree cover (FMNR) suitability",
+    type: "wms",
+    wmsEndpoint:
+      "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_kenya/wms",
+    wmsLayer: "kenya_treecover_fmnr_justdiggit_v20260603",
+    wmsStyle: "kenya_treecover_fmnr_purple_binary_raster",
+    wmsVersion: "1.3.0",
+    legendUrl:
+      "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_kenya/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image%2Fpng&width=20&height=20&layer=kenya_treecover_fmnr_justdiggit_v20260603",
+    attribution: "Justdiggit",
+    // Binary suitability raster: GRAY_INDEX 1 = suitable, 0 = not suitable.
+    wmsValueLabels: {
+      present: "Suitable for tree cover (FMNR)",
+      absent: "Not suitable",
+      none: "No data at this location",
+    },
+    getPopupContent: () => null,
+    clickThreshold: 0,
+    popupOptions: { maxWidth: 300, minWidth: 200, className: "compact-popup" },
   },
 }
 

@@ -144,6 +144,54 @@
 
       // For context layers, show different popup content
       if (layerConfig) {
+        // WMS-backed context layers: query the value via WMS GetFeatureInfo
+        // instead of scanning local GeoJSON features.
+        if (layerConfig.type === 'wms') {
+          const size = map.getSize();
+          const pt = map.latLngToContainerPoint(e.latlng);
+          const crs = map.options.crs; // L.CRS.EPSG3857
+          const sw = crs.project(map.getBounds().getSouthWest());
+          const ne = crs.project(map.getBounds().getNorthEast());
+          const params = new URLSearchParams({
+            service: 'WMS', version: '1.3.0', request: 'GetFeatureInfo',
+            layers: layerConfig.wmsLayer || '', query_layers: layerConfig.wmsLayer || '',
+            styles: layerConfig.wmsStyle || '', crs: 'EPSG:3857',
+            bbox: `${sw.x},${sw.y},${ne.x},${ne.y}`, // 3857 axis order: minx,miny,maxx,maxy
+            width: String(size.x), height: String(size.y),
+            i: String(Math.round(pt.x)), j: String(Math.round(pt.y)),
+            info_format: 'application/json'
+          });
+          const url = `${layerConfig.wmsEndpoint}?${params}`;
+
+          Object.assign(popup.options, layerConfig.popupOptions);
+          popup.setLatLng(e.latlng)
+            .setContent('<div class="popup-content">Loading…</div>')
+            .openOn(map);
+
+          try {
+            const resp = await fetch(url);
+            const data = await resp.json();
+            const props = data?.features?.[0]?.properties || {};
+            // Binary raster: GRAY_INDEX 1 = present, 0 = absent. Labels are
+            // configurable per layer via wmsValueLabels.
+            const raw = props.GRAY_INDEX;
+            const valueLabels = layerConfig.wmsValueLabels || {};
+            let label;
+            if (raw === 1 || raw === '1') label = valueLabels.present || 'Present';
+            else if (raw === 0 || raw === '0') label = valueLabels.absent || 'Absent';
+            else if (raw === undefined || raw === null) label = valueLabels.none || 'No data at this location';
+            else label = `${raw}`;
+            popup.setContent(`
+              <div class="popup-content">
+                <div class="value-text"><strong>${label}</strong></div>
+              </div>`);
+          } catch (error) {
+            console.error('Error fetching WMS GetFeatureInfo:', error);
+            popup.setContent('<div class="popup-content">Error loading value</div>');
+          }
+          return;
+        }
+
         // Find the clicked feature based on layer type
         let clickedFeature = null;
         let minDistance = Infinity;
