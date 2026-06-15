@@ -121,8 +121,14 @@
 
   $: isTimeAvailable = (/** @type {string} */ timeName) => focusedAvail.times.includes(timeName)
 
+  // The focused layer's own time. Read from layerTime (set synchronously when the
+  // layer is shown) rather than the global $time store, which lags by one cycle on
+  // first focus because the sync block writes it via time.set() — a call Svelte's
+  // compiler can't order ahead of this reactive, so $time would be stale here.
+  $: focusedTime = focused ? ($layerTime[focused] ?? defaultTimeFor(focused)) : $time
+
   // Show scenarios if the focused layer has scenarios and we're on a future period
-  $: showScenarios = focusedAvail.hasScenarios && ($time === "2050" || $time === "2080")
+  $: showScenarios = focusedAvail.hasScenarios && (focusedTime === "2050" || focusedTime === "2080")
 
   // Filter impact (crop yield change) layers to those available for this country
   $: impactLayerOptions = impactLayers.filter(isLayerAvailable)
