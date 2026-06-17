@@ -40,11 +40,13 @@
 		type="button"
 	>
 		<span class="tooltip">{open ? "Close panel" : "Open panel"}</span>
-		{#if open}
-			&larr;
-		{:else}
-			&rarr;
-		{/if}
+		<svg class="toggle-arrow-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+			{#if open}
+				<path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			{:else}
+				<path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			{/if}
+		</svg>
 	</button>
 
 	<div class='map' bind:clientWidth={w} bind:clientHeight={h} >
@@ -146,18 +148,45 @@
 	left: 25px; /* Default: visible at left when closed, just outside panel edge */
 	cursor: pointer;
 	background-color: #fff;
-	border: 1px solid #ccc;
-	padding: 5px;
+	border: 1px solid rgba(0, 0, 0, 0.08);
+	width: 30px;
+	height: 30px;
+	padding: 0;
 	border-radius: 50%;
-	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 	z-index: 2000001;
-	transition: left 0.3s ease;
+	transition: left 0.3s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 	appearance: none;
 	line-height: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #5a6b7b;
+}
+
+.toggle-arrow:hover {
+	color: #017e9f;
+	border-color: rgba(1, 126, 159, 0.35);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+}
+
+.toggle-arrow-icon {
+	display: block;
+	width: 16px;
+	height: 16px;
 }
 
 .toggle-arrow.panel-open {
 	left: calc(1vw + 18vw - 10px); /* Position at right edge when open */
+}
+
+/* On large screens the fixed -10px overlap reads as the button sitting too far
+   inside the panel; nudge it right so it keeps hugging the right edge. Small /
+   laptop screens are intentionally left untouched. */
+@media (min-width: 1600px) {
+	.toggle-arrow.panel-open {
+		left: calc(1vw + 18vw + 6px);
+	}
 }
 
 /* Position the toggle arrow for mobile */
@@ -165,8 +194,6 @@
 	.toggle-arrow {
 		top: 12px;
 		left: 25px;
-		padding: 5px 7px;
-		font-size: 14px;
 		background-color: rgba(255, 255, 255, 0.9);
 		border: 1px solid rgba(0, 0, 0, 0.1);
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);

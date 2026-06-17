@@ -37,7 +37,8 @@ function getRiverFloodColor(depth) {
 
 /**
  * Color scale function for Yield Change layer.
- * Diverging brown→neutral→teal scale; loss = brown, gain = teal. Domain ±100% with clamping.
+ * Diverging brown→teal scale split at 0; loss = brown, gain = teal — sign is
+ * never grouped into one neutral bucket. Capped at ±75%.
  * @param {number|null|undefined} delta - Yield change in percent
  * @returns {string} Hex color code
  */
@@ -46,7 +47,8 @@ function getYieldChangeColor(delta) {
   if (delta <= -75) return "#8b3a1a"
   if (delta <= -50) return "#c47948"
   if (delta <= -25) return "#e6cbae"
-  if (delta < 25) return "#f5f5f5"
+  if (delta < 0) return "#f3e2d0"
+  if (delta < 25) return "#d9ede0"
   if (delta < 50) return "#a8d4b8"
   if (delta < 75) return "#4a9d7a"
   return "#1e5e3f"
@@ -97,7 +99,8 @@ const CROP_LEGEND_ITEMS = [
   { color: "#1e5e3f", label: "≥ +75%" },
   { color: "#4a9d7a", label: "+50 to +75%" },
   { color: "#a8d4b8", label: "+25 to +50%" },
-  { color: "#f5f5f5", label: "-25 to +25%" },
+  { color: "#d9ede0", label: "0 to +25%" },
+  { color: "#f3e2d0", label: "-25 to 0%" },
   { color: "#e6cbae", label: "-50 to -25%" },
   { color: "#c47948", label: "-75 to -50%" },
   { color: "#8b3a1a", label: "≤ -75%" },

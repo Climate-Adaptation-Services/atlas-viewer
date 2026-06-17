@@ -153,7 +153,7 @@ const SEASON_INFO = {
   'short rains': 'short rains growing season'
 };
 // Shared model/methodology tail, identical for every crop+season.
-const CROP_MODEL_NOTE = 'Future window (2036–2065 or 2066–2095) vs. 1981–2010 reference, CMIP6 multi-model ensemble median (10 GCMs), LPJmL crop model with FAO-scaled yields and unlimited nitrogen — note that projected gains may be overstated under real-world nutrient limits. Low scenario = SSP1-2.6, high scenario = SSP5-8.5.';
+const CROP_MODEL_NOTE = 'Future window (2036–2065 or 2066–2095) vs. 1981–2010 reference, CMIP6 multi-model ensemble median (10 GCMs), LPJmL crop model. Projected gains may be overstated because LPJmL includes CO2 fertilization and assumes unlimited nitrogen, while real-world nutrient limitations may constrain these benefits.';
 const cropLayerNames = [
   'Maize (long rains)',
   'Maize (short rains)',
@@ -173,8 +173,8 @@ for (const name of cropLayerNames) {
   layerInfo[name] = {
     description: fullText,
     projectionDescription: fullText,
-    projectionSource: 'Ignacio Saldivia Gonzatti; LPJmL (CMIP6 forcing, FAO-scaled), ISIMIP3b',
-    projectionSourceUrl: 'https://www.isimip.org/',
+    projectionSource: 'Ignacio Saldivia Gonzatti; LPJmL crop model',
+    projectionSourceUrl: null,
     baseline: '1981–2010',
     projectionResolution: 'GADM admin2'
   };

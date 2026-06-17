@@ -46,9 +46,9 @@ export const hazardThemes = [
 
 // Top-level category buttons (description shown as a hover tooltip on each pill)
 export const categories = [
-  { id: "hazard", name: "Hazard", description: "Climate threats: heat, drought and extreme rainfall." },
-  { id: "impact", name: "Impact", description: "Consequences of climate change, e.g. changes in crop yields." },
-  { id: "solution", name: "Solution", description: "Adaptation measures and where they are suitable." },
+  { id: "hazard", name: "Hazards", description: "Climate threats: heat, drought and extreme rainfall." },
+  { id: "impact", name: "Impacts", description: "Consequences of climate change, e.g. changes in crop yields." },
+  { id: "solution", name: "Solutions", description: "Adaptation measures and where they are suitable." },
   { id: "context", name: "Context", description: "Background data to help interpret the maps." },
 ]
 

@@ -274,6 +274,24 @@
     }
 
     document.body.appendChild(tooltip)
+
+    // Keep the tooltip inside the viewport: the buttons sit near the panel's
+    // left edge, so a centered tooltip would otherwise spill off-screen. Drop
+    // the centering transform and clamp left/top to the visible area; flip
+    // above the trigger if there isn't room below.
+    const margin = 8
+    const ttRect = tooltip.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    let left = centerX - ttRect.width / 2
+    left = Math.max(margin, Math.min(left, window.innerWidth - ttRect.width - margin))
+    let top = rect.bottom + 4
+    if (top + ttRect.height > window.innerHeight - margin) {
+      top = rect.top - ttRect.height - 4
+    }
+    top = Math.max(margin, top)
+    tooltip.style.left = `${left}px`
+    tooltip.style.top = `${top}px`
+    tooltip.style.transform = 'none'
   }
 
   function hideTooltip() {
@@ -769,12 +787,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 14px;
-    height: 14px;
+    /* Scale with the h2 headings (2vh) on large screens; px floor keeps small
+       screens unchanged. */
+    width: max(14px, 1.6vh);
+    height: max(14px, 1.6vh);
     background-color: rgba(0, 0, 0, 0.08);
     border-radius: 50%;
     font-family: Georgia, serif;
-    font-size: 10px;
+    font-size: max(10px, 1.1vh);
     font-weight: 500;
     color: #888;
     cursor: help;
@@ -1037,13 +1057,15 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 18px;
-    height: 18px;
+    /* Scale with the title (2.6vh) on large screens; px floor keeps small
+       screens unchanged. */
+    width: max(18px, 2vh);
+    height: max(18px, 2vh);
     background-color: rgba(0, 0, 0, 0.08);
     border: none;
     border-radius: 50%;
     font-family: Georgia, serif;
-    font-size: 12px;
+    font-size: max(12px, 1.3vh);
     font-weight: 500;
     color: #888;
     cursor: pointer;
