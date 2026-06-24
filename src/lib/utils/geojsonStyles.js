@@ -173,10 +173,13 @@ export function styleGeoJsonFeature(feature, layerType, opacityValue = 1, time =
   }
   
   return {
+    // Stroke each cell in its own fill colour (not transparent) so the ~1px
+    // anti-aliasing seams between adjacent raster cells are covered — otherwise
+    // the basemap shows through the gaps as faint grid lines.
     fillColor: color,
-    weight: 0.5,
-    opacity: 1,
-    color: 'transparent',
+    weight: 1,
+    opacity: opacityValue,
+    color: color,
     fillOpacity: opacityValue
   };
 }
