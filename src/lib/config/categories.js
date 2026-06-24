@@ -23,7 +23,7 @@ export const hazardThemeLayerMap = {
 // Layer lists per category (UI grouping only)
 export const impactLayers = cropImpactLayerNames
 export const solutionLayers = ["Bund suitability", "Tree cover (FMNR) suitability"]
-export const contextLayers = ["Urban population", "Agroclimatic zones"]
+export const contextLayers = ["Urban population", "Agroclimatic zones", "Livestock density"]
 
 // Hazard sub-theme buttons (id, label, icon)
 export const hazardThemes = [

@@ -289,6 +289,9 @@ function getLayerId(datalaag, time, scenario) {
       }
       return 'africapolis_agglomerations_ken_2025.geojson'; // default
     }
+    if (layerName.toLowerCase() === 'livestock density') {
+      return 'kenya_livestock_tlu.geojson';
+    }
     // For other context layers in the future
     return `${layerName}.geojson`;
   }
@@ -357,6 +360,22 @@ function getLayerId(datalaag, time, scenario) {
   }
 
   /**
+   * Get livestock-density choropleth color (TLU per km²). Sequential purple
+   * scale, quantile-aligned class breaks; null/no-data -> light gray.
+   * @param {number|null|undefined} density - Total Livestock Units per km²
+   * @returns {string} Hex color
+   */
+  function getLivestockColor(density) {
+    if (density === null || density === undefined || isNaN(density)) return '#d1d1d1';
+    if (density < 25) return '#f2f0f7';
+    if (density < 50) return '#dadaeb';
+    if (density < 75) return '#bcbddc';
+    if (density < 100) return '#9e9ac8';
+    if (density < 125) return '#756bb1';
+    return '#54278f';
+  }
+
+  /**
    * Load a context layer (population, agroclimatic zones, WMS overlays) styled
    * for the given time and the layer's own opacity.
    * @param {string} layerName
@@ -416,6 +435,19 @@ function getLayerId(datalaag, time, scenario) {
       const styleFor = (op) => (/** @type {any} */ feature) => ({
         fillColor: getAEZColor(feature.properties?.AEZ_Name || ''),
         weight: 1, opacity: 1, color: '#333333', fillOpacity: 0.7 * op
+      });
+      const layer = L.geoJSON(data, { style: styleFor(getOpacity(layerName)), interactive: false });
+      return { layer, restyle: (op) => layer.setStyle(styleFor(op)) };
+    }
+
+    if (layerName.toLowerCase() === 'livestock density') {
+      // County choropleth painted on admin2 polygons: every constituency in a
+      // county shares one density value, so internal borders are hidden (weight 0)
+      // to read as solid county blocks.
+      /** @param {number} op */
+      const styleFor = (op) => (/** @type {any} */ feature) => ({
+        fillColor: getLivestockColor(feature.properties?.tlu_density),
+        weight: 0, opacity: 0, color: 'transparent', fillOpacity: op
       });
       const layer = L.geoJSON(data, { style: styleFor(getOpacity(layerName)), interactive: false });
       return { layer, restyle: (op) => layer.setStyle(styleFor(op)) };

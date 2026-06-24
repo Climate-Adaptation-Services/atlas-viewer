@@ -121,6 +121,16 @@ export const contextLayerConfigs = {
     clickThreshold: 0,
     popupOptions: {},
   },
+  "Livestock density": {
+    name: "Livestock density",
+    type: "polygon",
+    // No `url`: the loader builds the filename (kenya_livestock_tlu.geojson) and
+    // tries the local static/ copy first, then falls back to the Hetzner bucket
+    // once the file is uploaded there for production.
+    getPopupContent: () => null, // Polygon popups are not yet supported (see MapPopup.svelte)
+    clickThreshold: 0,
+    popupOptions: {},
+  },
   "Bund suitability": {
     name: "Bund suitability",
     type: "wms",

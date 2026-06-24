@@ -394,18 +394,20 @@
       {/if}
     {/each}
   {:else}
-    {#each visibleLayers as option}
-      <div class="keuzes" class:selected={$selectedLayers.includes(option)}>
-        <button class="layer-name-btn" on:click={() => showLayer(option)}>{option}</button>
-        <button
-          class="layer-add-btn"
-          class:added={$selectedLayers.includes(option)}
-          on:click|stopPropagation={() => toggleCompare(option)}
-          title={$selectedLayers.includes(option) ? "In comparison — click to remove" : "Add to comparison"}
-          aria-label={$selectedLayers.includes(option) ? `Remove ${option} from comparison` : `Add ${option} to comparison`}
-        >{$selectedLayers.includes(option) ? "✓" : "+"}</button>
-      </div>
-    {/each}
+    <div class="layer-list">
+      {#each visibleLayers as option}
+        <div class="keuzes" class:selected={$selectedLayers.includes(option)}>
+          <button class="layer-name-btn" on:click={() => showLayer(option)}>{option}</button>
+          <button
+            class="layer-add-btn"
+            class:added={$selectedLayers.includes(option)}
+            on:click|stopPropagation={() => toggleCompare(option)}
+            title={$selectedLayers.includes(option) ? "In comparison — click to remove" : "Add to comparison"}
+            aria-label={$selectedLayers.includes(option) ? `Remove ${option} from comparison` : `Add ${option} to comparison`}
+          >{$selectedLayers.includes(option) ? "✓" : "+"}</button>
+        </div>
+      {/each}
+    </div>
   {/if}
 
   {#if availableTimeOptions.length > 1}
@@ -720,13 +722,24 @@
     color: #017e9f;
   }
 
+  /* Flat layer lists (Context / Solution categories). Mirrors the left padding
+     of .accordion-content so the highlighted row insets from the panel edge the
+     same way it does under the Hazard/Impact accordions, instead of the negative
+     margin-left bleeding all the way to the edge. */
+  .layer-list {
+    padding-left: 1.6vw;
+  }
+
   .keuzes {
     display: flex;
     align-items: center;
     gap: 0.4em;
     transition: all 0.2s ease-in-out;
     font-size: 1.8vh;
-    padding: 0.3vh 1vw;
+    /* Enough vertical padding that the ~17px toggle circle has room above and
+       below — at 0.3vh the row was barely taller than the circle, so it looked
+       jammed against the top/bottom of the highlighted box instead of centered. */
+    padding: 0.6vh 1vw;
     margin: 0.2vh 0;
     border-radius: 8px;
     margin-left: -1vw;
@@ -760,6 +773,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    /* align-items:center on the row centres this on the text's line box, but
+       Latin text ink sits slightly below the line-box centre (ascent/descent
+       asymmetry), so the circle looks ~0.2em too high. Nudge it down to match
+       the text's visual centre. Relative unit keeps it correct across sizes. */
+    position: relative;
+    top: 0.22em;
     border: 1px solid rgba(0, 0, 0, 0.15);
     border-radius: 50%;
     background: transparent;
@@ -808,7 +827,11 @@
 
   .keuzes.selected {
     background-color: rgba(1, 126, 159, 0.15);
-    border-left: 3px solid #017e9f;
+    /* Inset shadow instead of border-left: with box-sizing:border-box a real
+       border would eat into the padding and shift the text 3px right, breaking
+       alignment with the unselected rows. A shadow paints the bar without
+       consuming layout. */
+    box-shadow: inset 3px 0 0 #017e9f;
     font-weight: 500;
   }
 
@@ -1011,17 +1034,20 @@
     padding: 0.8vh 0.8vw;
     border: 2px solid transparent;
     border-radius: 8px;
-    background: rgba(0, 0, 0, 0.03);
+    background: rgba(0, 0, 0, 0.05);
     cursor: pointer;
     transition: all 0.2s ease-in-out;
-    opacity: 0.5;
+    /* Not 0.5: at half opacity these read as disabled/unavailable rather than
+       just "not selected". The active button is already distinguished by its
+       teal border + tint, so inactive ones can stay clearly legible. */
+    opacity: 0.72;
     flex: 1;
     max-width: 30%;
   }
 
   .theme-btn:hover {
     background: rgba(1, 126, 159, 0.1);
-    opacity: 0.8;
+    opacity: 0.9;
   }
 
   .theme-btn.active {
@@ -1057,6 +1083,11 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    /* align-items:center on .app-header centres this on the title's line box,
+       but the title ink sits below that centre (ascent/descent), so the circle
+       looks a few px too high. Nudge down to the title's visual centre. */
+    position: relative;
+    top: 0.3em;
     /* Scale with the title (2.6vh) on large screens; px floor keeps small
        screens unchanged. */
     width: max(18px, 2vh);
@@ -1157,12 +1188,18 @@
 
   .category-btn {
     max-width: none;
-    padding: 0.9vh 0.4vw;
+    /* min-width:0 lets the 4 buttons share the row evenly; without it flex
+       items keep their content width and "Solutions"/"Context" overflow the
+       panel's right edge. */
+    min-width: 0;
+    padding: 0.9vh 0.3vw;
     min-height: 4.5vh;
   }
 
   .category-btn .caption {
     margin-top: 0;
+    font-size: clamp(11px, 1.5vh, 14px);
+    white-space: nowrap;
   }
 
   /* Hazard theme accordions */

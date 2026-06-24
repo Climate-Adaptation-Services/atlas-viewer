@@ -73,6 +73,7 @@ export const countryConfigs = {
       "Urban population": { times: ["Past", "2050"], hasScenarios: false },
       "River Flood": { times: ["Past"], hasScenarios: false },
       "Agroclimatic zones": { times: ["Past"], hasScenarios: false },
+      "Livestock density": { times: ["Past"], hasScenarios: false },
       "Bund suitability": { times: ["Past"], hasScenarios: false },
       "Tree cover (FMNR) suitability": { times: ["Past"], hasScenarios: false }
     }

@@ -130,6 +130,13 @@ export const layerInfo = {
     source: 'RCMRD',
     sourceUrl: 'https://opendata.rcmrd.org/datasets/kenya-agro-ecological-zones/about'
   },
+  'Livestock density': {
+    description: 'Total Livestock Units (TLU) per km² by county. Livestock numbers are expressed in Tropical Livestock Units (TLU), a standardised measure that allows different animal species to be compared and aggregated. Conversion factors follow Jahnke (1982), the standard reference for sub-Saharan Africa. The following species are included: cattle (dairy and beef), camels, donkeys, horses, goats (dairy and meat), sheep (hair and wool), pigs, rabbits, ostriches, and all poultry (chickens, turkeys, geese, ducks, guinea fowl, pigeons, doves, and quails). Beehives and crocodiles are excluded.',
+    source: 'Ministry of Agriculture and Livestock Development, State Department for Livestock Development',
+    sourceUrl: null,
+    baseline: '2024',
+    projectionResolution: 'County (GADM admin1)'
+  },
 
   // Solution layers (Justdiggit suitability rasters)
   'Bund suitability': {

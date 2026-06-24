@@ -171,6 +171,7 @@
       "Dry spells": "Dry spells",
       "Urban population": "People",
       "River Flood": "Inundation depth",
+      "Livestock density": "TLU/km²",
     }
 
     for (const [key, value] of Object.entries(unitMap)) {
@@ -228,6 +229,21 @@
       { color: "#1B4332", label: "Upper Highland" },
       { color: "#95D5B2", label: "Upper Midland" },
       { color: "#48CAE4", label: "Waterbody" },
+    ]
+  }
+
+  /**
+   * Get livestock-density legend items (TLU per km², quantile-aligned classes)
+   * @returns {Array<{color: string, label: string}>}
+   */
+  const getLivestockLegendItems = () => {
+    return [
+      { color: "#54278f", label: "≥ 125" },
+      { color: "#756bb1", label: "100 – 125" },
+      { color: "#9e9ac8", label: "75 – 100" },
+      { color: "#bcbddc", label: "50 – 75" },
+      { color: "#dadaeb", label: "25 – 50" },
+      { color: "#f2f0f7", label: "< 25" },
     ]
   }
 </script>
@@ -302,6 +318,18 @@
           <div style="display: flex; align-items: center; gap: 6px;">
             <div class="color-box" style="background-color: {item.color}; flex-shrink: 0;"></div>
             <span style="font-size: 11px; line-height: 1.2;">{item.label}</span>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+    <!-- Livestock density Context Layer Legend -->
+    {#if dataType === "context" && layerName === "Livestock density"}
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 4px 0;">
+        {#each getLivestockLegendItems() as item}
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="color-box" style="background-color: {item.color}; flex-shrink: 0;"></div>
+            <span style="font-size: 13px; line-height: 1.2;">{item.label}</span>
           </div>
         {/each}
       </div>
