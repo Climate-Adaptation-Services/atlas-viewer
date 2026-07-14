@@ -15,6 +15,7 @@
  * @property {string} wmsEndpoint - URL for the WMS service (when dataType is 'wms')
  * @property {string} mask - Country mask parameter for WMS (when dataType is 'wms')
  * @property {string} [geojsonBaseUrl] - Base URL for GeoJSON data files (when dataType is 'geojson')
+ * @property {string} [cropDeltasFilename] - Filename of the admin2 crop-yield deltas GeoJSON for this country (crop impact layers all read this one file)
  * @property {Record<string, LayerAvailability>} [layerAvailability] - Data availability per layer
  */
 
@@ -45,6 +46,7 @@ export const countryConfigs = {
     zoom: 6,
     dataType: "geojson",
     geojsonBaseUrl: "https://fsn1.your-objectstorage.com/kenyaciaviewer/",
+    cropDeltasFilename: "kenya_admin2_deltas.geojson",
     mask: "kenya",
     layerAvailability: {
       // Climate layers - all have Past, 2050, 2080 with low/high scenarios
@@ -83,10 +85,24 @@ export const countryConfigs = {
     center: [7.9465, -1.0232], // Ghana's geographic center
     zoom: 7,
     dataType: "geojson",
-    geojsonBaseUrl: "/", // Local files
+    geojsonBaseUrl: "https://fsn1.your-objectstorage.com/ghanaciaviewer/",
+    cropDeltasFilename: "ghana_admin2_deltas.geojson",
     layerAvailability: {
-      // Only River Flood for now
-      "River Flood": { times: ["Past"], hasScenarios: false }
+      // Impact theme — crop yield change layers (share ghana_admin2_deltas.geojson).
+      // Ghana has a single growing season (not bimodal like Kenya), so crops have
+      // no long/short rains suffix. The source file carries 11 crops; per-feature
+      // properties are sparse, so districts lacking a crop render as "no data".
+      "Maize": { times: ["2050", "2080"], hasScenarios: true },
+      "Rice": { times: ["2050", "2080"], hasScenarios: true },
+      "Sorghum": { times: ["2050", "2080"], hasScenarios: true },
+      "Millet": { times: ["2050", "2080"], hasScenarios: true },
+      "Beans": { times: ["2050", "2080"], hasScenarios: true },
+      "Pulses": { times: ["2050", "2080"], hasScenarios: true },
+      "Groundnuts": { times: ["2050", "2080"], hasScenarios: true },
+      "Soybean": { times: ["2050", "2080"], hasScenarios: true },
+      "Cassava": { times: ["2050", "2080"], hasScenarios: true },
+      "Taro": { times: ["2050", "2080"], hasScenarios: true },
+      "Yams": { times: ["2050", "2080"], hasScenarios: true }
     }
   }
 };

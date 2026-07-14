@@ -240,7 +240,7 @@ function getLayerId(datalaag, time, scenario) {
     if (isGeojsonLayer(layerName)) {
       const config = getGeojsonLayerConfig(layerName);
       if (!config) return null;
-      const baseUrl = getGeojsonLayerUrl(layerName, time, scenario);
+      const baseUrl = getGeojsonLayerUrl(layerName, time, scenario, countryConfig);
       if (!baseUrl) throw new Error(`No URL configured for ${layerName}`);
       const data = await fetchJsonWithRetry(baseUrl);
       /** @param {number} op */

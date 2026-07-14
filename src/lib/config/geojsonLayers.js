@@ -72,9 +72,10 @@ function getWaterStressColor(category) {
 }
 
 /**
- * Crop impact layers all share one source file (kenya_admin2_deltas.geojson).
- * Each crop+season is exposed as its own layer that reads a different
- * property family. Property naming: `<cropKey>__<ssp>__<period>__median`
+ * Crop impact layers all read a single per-country source file (the country's
+ * `cropDeltasFilename`, e.g. kenya_admin2_deltas.geojson / ghana_admin2_deltas.geojson).
+ * Each crop is exposed as its own layer that reads a different property family.
+ * Property naming: `<cropKey>__<ssp>__<period>__median`
  *   - period: mid (~2050) | late (~2080)
  *   - ssp: ssp126 (Low) | ssp585 (High)
  *
@@ -83,7 +84,7 @@ function getWaterStressColor(category) {
  * biggest area & yields). _2 = "short rains" (plant Oct–Nov, harvest Jan–Feb
  * — ~5% of area, lower yields). Single-season crops have no suffix.
  */
-const CROP_IMPACT_LAYERS = [
+const KENYA_CROP_LAYERS = [
   { name: "Maize (long rains)", cropKey: "maize_1" },
   { name: "Maize (short rains)", cropKey: "maize_2" },
   { name: "Beans (long rains)", cropKey: "pulses_beans_1" },
@@ -93,6 +94,37 @@ const CROP_IMPACT_LAYERS = [
   { name: "Millet", cropKey: "tropical_cereals_millet" },
   { name: "Pigeon peas", cropKey: "pulses_pigeon_peas" },
   { name: "Potatoes", cropKey: "temperate_roots" },
+]
+
+/**
+ * Ghana crops (11). Ghana is not bimodal (single growing season) so there are
+ * no long/short rains variants. cropKeys still use the LPJmL `_1` primary-season
+ * suffix where present. "Millet" reuses Kenya's identically-keyed entry (deduped
+ * below), so it is intentionally omitted here.
+ */
+const GHANA_CROP_LAYERS = [
+  { name: "Maize", cropKey: "maize_1" },
+  { name: "Rice", cropKey: "rice" },
+  { name: "Sorghum", cropKey: "tropical_cereals_sorghum_1" },
+  { name: "Millet", cropKey: "tropical_cereals_millet" },
+  { name: "Beans", cropKey: "pulses_beans_1" },
+  { name: "Pulses", cropKey: "pulses" },
+  { name: "Groundnuts", cropKey: "groundnuts" },
+  { name: "Soybean", cropKey: "soybean" },
+  { name: "Cassava", cropKey: "tropical_roots_cassava" },
+  { name: "Taro", cropKey: "tropical_roots_taro" },
+  { name: "Yams", cropKey: "tropical_roots_yams" },
+]
+
+/**
+ * Combined registry of every crop impact layer across all countries. Each
+ * country's `layerAvailability` selects which of these actually appear in its
+ * sidepanel. Deduped by display name (only "Millet" is shared, same cropKey);
+ * URLs resolve per-country via getGeojsonLayerUrl, so one entry serves both.
+ */
+const CROP_IMPACT_LAYERS = [
+  ...KENYA_CROP_LAYERS,
+  ...GHANA_CROP_LAYERS.filter((g) => !KENYA_CROP_LAYERS.some((k) => k.name === g.name)),
 ]
 
 const CROP_LEGEND_ITEMS = [
@@ -116,8 +148,8 @@ function buildCropImpactLayers() {
   const entries = {}
   for (const { name, cropKey } of CROP_IMPACT_LAYERS) {
     entries[name] = {
-      filename: "kenya_admin2_deltas.geojson",
-      baseUrl: "https://fsn1.your-objectstorage.com/kenyaciaviewer/",
+      // Source file + bucket are resolved per active country from its
+      // cropDeltasFilename / geojsonBaseUrl (see getGeojsonLayerUrl).
       propertyName: `${cropKey}__ssp585__late__median`,
       supportsTimeScenario: true,
       singleFileMultiTime: true,
@@ -275,11 +307,21 @@ export function getGeojsonLayerConfig(layerName) {
  * @param {string} layerName - Name of the layer
  * @param {string} time - Time period (optional, for layers that support it)
  * @param {string} scenario - Scenario (optional, for layers that support it)
+ * @param {import('./countries.js').CountryConfig} [countryConfig] - Active country (crop layers resolve their file from it)
  * @returns {string|null}
  */
-export function getGeojsonLayerUrl(layerName, time, scenario) {
+export function getGeojsonLayerUrl(layerName, time, scenario, countryConfig) {
   const config = getGeojsonLayerConfig(layerName)
   if (!config) return null
+
+  // Crop impact layers all read the active country's admin2 deltas file — same
+  // wide-format schema per country, but a different bucket + filename each.
+  if (isCropImpactLayer(layerName)) {
+    const base = countryConfig?.geojsonBaseUrl
+    const filename = countryConfig?.cropDeltasFilename
+    if (!base || !filename) return null
+    return `${base}${filename}`
+  }
 
   let filename = config.filename
 

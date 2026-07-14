@@ -152,9 +152,10 @@ export const layerInfo = {
 };
 
 // Populate Impact theme crop metadata. Baseline and source come from the
-// embedded metadata of kenya_admin2_deltas.geojson. Crops with two entries
-// (long rains / short rains) reflect Kenya's bimodal rainfall regime — two
-// distinct growing seasons per year, modelled separately.
+// embedded metadata of the per-country admin2 deltas file (kenya_/ghana_).
+// Crops with two entries (long rains / short rains) reflect Kenya's bimodal
+// rainfall regime — two distinct growing seasons per year, modelled separately.
+// Ghana crops are single-season (no suffix) and get no season clause.
 const SEASON_INFO = {
   'long rains': 'long rains growing season',
   'short rains': 'short rains growing season'
@@ -162,6 +163,7 @@ const SEASON_INFO = {
 // Shared model/methodology tail, identical for every crop+season.
 const CROP_MODEL_NOTE = 'Future window (2036–2065 or 2066–2095) vs. 1981–2010 reference, CMIP6 multi-model ensemble median (10 GCMs), LPJmL crop model. Projected gains may be overstated because LPJmL includes CO2 fertilization and assumes unlimited nitrogen, while real-world nutrient limitations may constrain these benefits.';
 const cropLayerNames = [
+  // Kenya (bimodal)
   'Maize (long rains)',
   'Maize (short rains)',
   'Beans (long rains)',
@@ -170,7 +172,18 @@ const cropLayerNames = [
   'Sorghum (short rains)',
   'Millet',
   'Pigeon peas',
-  'Potatoes'
+  'Potatoes',
+  // Ghana (single season); 'Millet' already defined above (shared cropKey)
+  'Maize',
+  'Rice',
+  'Sorghum',
+  'Beans',
+  'Pulses',
+  'Groundnuts',
+  'Soybean',
+  'Cassava',
+  'Taro',
+  'Yams'
 ];
 for (const name of cropLayerNames) {
   const cropLabel = name.replace(/\s*\(.*\)/i, '').toLowerCase();
