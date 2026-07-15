@@ -280,14 +280,12 @@ function getLayerId(datalaag, time, scenario) {
    */
   function getContextLayerFilename(layerName, time, scenario) {
     if (layerName.toLowerCase() === 'urban population') {
-      // Map time periods to population data years
+      // Map time periods to population data years. The country code in the
+      // filename varies per country (ken/gha/…); default to 'ken'.
+      const code = countryConfig?.africapolisCode || 'ken';
       const timeNormalized = time ? time.toLowerCase() : 'past';
-      if (timeNormalized === 'past' || timeNormalized === 'hist') {
-        return 'africapolis_agglomerations_ken_2025.geojson';
-      } else if (timeNormalized === '2050' || timeNormalized === '2080') {
-        return 'africapolis_agglomerations_ken_2050.geojson';
-      }
-      return 'africapolis_agglomerations_ken_2025.geojson'; // default
+      const year = (timeNormalized === '2050' || timeNormalized === '2080') ? '2050' : '2025';
+      return `africapolis_agglomerations_${code}_${year}.geojson`;
     }
     if (layerName.toLowerCase() === 'livestock density') {
       return 'kenya_livestock_tlu.geojson';
