@@ -8,7 +8,7 @@
   import Legend from "./Legend.svelte"
   import { getCountryConfig } from "$lib/config/countries.js"
   import { styleGeoJsonFeature, getLegendItems } from "$lib/utils/geojsonStyles.js"
-  import { isContextLayer, getContextLayerConfig } from "$lib/config/contextLayers.js"
+  import { isContextLayer, getContextLayerConfig, getAezColor } from "$lib/config/contextLayers.js"
   import { isGeojsonLayer, getGeojsonLayerConfig, getGeojsonLayerUrl } from "$lib/config/geojsonLayers.js"
 
   /** @type {any} */
@@ -290,6 +290,10 @@ function getLayerId(datalaag, time, scenario) {
     if (layerName.toLowerCase() === 'livestock density') {
       return 'kenya_livestock_tlu.geojson';
     }
+    if (layerName.toLowerCase() === 'agroclimatic zones') {
+      // Per-country file, resolved against the country's bucket by the loader.
+      return countryConfig?.agroZonesFilename || 'kenya_dissolved.geojson';
+    }
     // For other context layers in the future
     return `${layerName}.geojson`;
   }
@@ -338,23 +342,13 @@ function getLayerId(datalaag, time, scenario) {
   }
 
   /**
-   * Get AEZ (Agro-Ecological Zone) color based on zone name
+   * Get AEZ (Agro-Ecological Zone) color for the active country. Palettes live
+   * in contextLayers.js so the map fill and the legend share one source.
    * @param {string} aezName - AEZ zone name
    * @returns {string} Color for the zone
    */
   function getAEZColor(aezName) {
-    const colors = {
-      'Coastal Lowland': '#2E86AB',    // Blue
-      'Inner Lowland': '#F6AE2D',      // Orange/Yellow
-      'Lower Highland': '#4A7C59',     // Forest green
-      'Lower Midland': '#86BA90',      // Light green
-      'Nairobi City': '#E84855',       // Red
-      'Tropical Alpine': '#9B5DE5',    // Purple
-      'Upper Highland': '#1B4332',     // Dark green
-      'Upper Midland': '#95D5B2',      // Mint green
-      'Waterbody': '#48CAE4'           // Light blue
-    };
-    return colors[aezName] || '#888888';
+    return getAezColor(countryCode, aezName);
   }
 
   /**
@@ -431,7 +425,8 @@ function getLayerId(datalaag, time, scenario) {
     if (layerName.toLowerCase() === 'agroclimatic zones') {
       /** @param {number} op */
       const styleFor = (op) => (/** @type {any} */ feature) => ({
-        fillColor: getAEZColor(feature.properties?.AEZ_Name || ''),
+        // Kenya's file keys zones on AEZ_Name, Ghana's on Name.
+        fillColor: getAEZColor(feature.properties?.AEZ_Name ?? feature.properties?.Name ?? ''),
         weight: 1, opacity: 1, color: '#333333', fillOpacity: 0.7 * op
       });
       const layer = L.geoJSON(data, { style: styleFor(getOpacity(layerName)), interactive: false });

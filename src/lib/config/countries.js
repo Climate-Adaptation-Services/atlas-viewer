@@ -17,6 +17,7 @@
  * @property {string} [geojsonBaseUrl] - Base URL for GeoJSON data files (when dataType is 'geojson')
  * @property {string} [cropDeltasFilename] - Filename of the admin2 crop-yield deltas GeoJSON for this country (crop impact layers all read this one file)
  * @property {string} [africapolisCode] - Lowercase country code used in the Africapolis population filenames (e.g. 'ken', 'gha')
+ * @property {string} [agroZonesFilename] - Filename of the agro-ecological zones GeoJSON for this country (Agroclimatic zones layer)
  * @property {Record<string, LayerAvailability>} [layerAvailability] - Data availability per layer
  */
 
@@ -49,6 +50,7 @@ export const countryConfigs = {
     geojsonBaseUrl: "https://fsn1.your-objectstorage.com/kenyaciaviewer/",
     cropDeltasFilename: "kenya_admin2_deltas.geojson",
     africapolisCode: "ken",
+    agroZonesFilename: "kenya_dissolved.geojson",
     mask: "kenya",
     layerAvailability: {
       // Climate layers - all have Past, 2050, 2080 with low/high scenarios
@@ -90,9 +92,12 @@ export const countryConfigs = {
     geojsonBaseUrl: "https://fsn1.your-objectstorage.com/ghanaciaviewer/",
     cropDeltasFilename: "ghana_admin2_deltas.geojson",
     africapolisCode: "gha",
+    agroZonesFilename: "ghana_agro.geojson",
     layerAvailability: {
       // Context — urban population (Africapolis agglomerations, 2025 + 2050).
       "Urban population": { times: ["Past", "2050"], hasScenarios: false },
+      // Context — agro-ecological zones (8 zones, colored on the `Name` property).
+      "Agroclimatic zones": { times: ["Past"], hasScenarios: false },
       // Impact theme — crop yield change layers (share ghana_admin2_deltas.geojson).
       // Ghana has a single growing season (not bimodal like Kenya), so crops have
       // no long/short rains suffix. The source file carries 11 crops; per-feature

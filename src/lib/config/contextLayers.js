@@ -115,8 +115,9 @@ export const contextLayerConfigs = {
   "Agroclimatic zones": {
     name: "Agroclimatic zones",
     type: "polygon",
-    // Full URL for the agroclimatic zones GeoJSON
-    url: "https://fsn1.your-objectstorage.com/kenyaciaviewer/kenya_dissolved.geojson",
+    // No `url`: the loader resolves the file per active country from its
+    // `agroZonesFilename` + `geojsonBaseUrl` (Kenya: kenya_dissolved.geojson on
+    // AEZ_Name; Ghana: ghana_agro.geojson on Name). See getContextLayerFilename.
     getPopupContent: () => null, // No popup for this layer
     clickThreshold: 0,
     popupOptions: {},
@@ -173,6 +174,50 @@ export const contextLayerConfigs = {
     clickThreshold: 0,
     popupOptions: { maxWidth: 300, minWidth: 200, className: "compact-popup" },
   },
+}
+
+/**
+ * Agro-ecological zone palettes per country — single source of truth for both
+ * the map fill (BackgroundMap) and the legend (LegendCard), so they never drift.
+ * Ordered as they should appear in the legend. Zone names MUST match the source
+ * GeoJSON's category value exactly (Kenya reads property `AEZ_Name`, Ghana `Name`).
+ * @type {Record<string, Array<{name: string, color: string}>>}
+ */
+export const aezZonesByCountry = {
+  kenya: [
+    { name: "Coastal Lowland", color: "#2E86AB" },
+    { name: "Inner Lowland", color: "#F6AE2D" },
+    { name: "Lower Highland", color: "#4A7C59" },
+    { name: "Lower Midland", color: "#86BA90" },
+    { name: "Nairobi City", color: "#E84855" },
+    { name: "Tropical Alpine", color: "#9B5DE5" },
+    { name: "Upper Highland", color: "#1B4332" },
+    { name: "Upper Midland", color: "#95D5B2" },
+    { name: "Waterbody", color: "#48CAE4" },
+  ],
+  // Ghana ecological zones, wet (south) → dry (north). "Decidous forest" is
+  // spelled as in the source data — do not correct it or the join breaks.
+  ghana: [
+    { name: "Wet evergreen", color: "#1B5E20" },
+    { name: "Moist evergreen", color: "#2E7D32" },
+    { name: "Decidous forest", color: "#66BB6A" },
+    { name: "Transitional zone", color: "#C5E1A5" },
+    { name: "Coastal savanna", color: "#F4A259" },
+    { name: "Guinea savanna", color: "#E9C46A" },
+    { name: "Sudan savanna", color: "#CE9B51" },
+    { name: "Waterbody - Volta lake", color: "#48CAE4" },
+  ],
+}
+
+/**
+ * Fill color for an agro-ecological zone, by country + zone name.
+ * @param {string} countryCode
+ * @param {string} zoneName
+ * @returns {string} Hex color (gray fallback for unknown zones)
+ */
+export function getAezColor(countryCode, zoneName) {
+  const zones = aezZonesByCountry[(countryCode || "").toLowerCase()] || []
+  return zones.find((z) => z.name === zoneName)?.color || "#888888"
 }
 
 /**

@@ -1,8 +1,13 @@
 <script>
   import { browser } from "$app/environment"
+  import { page } from "$app/stores"
   import { getLegendItems } from "$lib/utils/geojsonStyles.js"
   import { isGeojsonLayer, getGeojsonLayerLegend } from "$lib/config/geojsonLayers.js"
+  import { aezZonesByCountry } from "$lib/config/contextLayers.js"
   import { getLayerInfo } from "$lib/config/layerInfo.js"
+
+  // Active country (from the ?country= URL param), for per-country legends.
+  $: countryCode = ($page.url.searchParams.get("country") || "zimbabwe").toLowerCase()
 
   // Props — one card describes one layer
   /** @type {string} */
@@ -214,23 +219,11 @@
     ]
   }
 
-  /**
-   * Get AEZ (Agro-Ecological Zone) legend items
-   * @returns {Array<{color: string, label: string}>}
-   */
-  const getAEZLegendItems = () => {
-    return [
-      { color: "#2E86AB", label: "Coastal Lowland" },
-      { color: "#F6AE2D", label: "Inner Lowland" },
-      { color: "#4A7C59", label: "Lower Highland" },
-      { color: "#86BA90", label: "Lower Midland" },
-      { color: "#E84855", label: "Nairobi City" },
-      { color: "#9B5DE5", label: "Tropical Alpine" },
-      { color: "#1B4332", label: "Upper Highland" },
-      { color: "#95D5B2", label: "Upper Midland" },
-      { color: "#48CAE4", label: "Waterbody" },
-    ]
-  }
+  // AEZ (Agro-Ecological Zone) legend items for the active country. Colors and
+  // order come from the shared palette in contextLayers.js, so the legend always
+  // matches the map fill. Reactive on countryCode: the "Agroclimatic zones" card
+  // is reused across a country switch (same each-key), so this must re-derive.
+  $: aezLegendItems = (aezZonesByCountry[countryCode] || []).map((z) => ({ color: z.color, label: z.name }))
 
   /**
    * Get livestock-density legend items (TLU per km², quantile-aligned classes)
@@ -314,7 +307,7 @@
     <!-- Agroclimatic zones Context Layer Legend -->
     {#if dataType === "context" && layerName === "Agroclimatic zones"}
       <div style="display: flex; flex-direction: column; gap: 4px; padding: 4px 0;">
-        {#each getAEZLegendItems() as item}
+        {#each aezLegendItems as item}
           <div style="display: flex; align-items: center; gap: 6px;">
             <div class="color-box" style="background-color: {item.color}; flex-shrink: 0;"></div>
             <span style="font-size: 11px; line-height: 1.2;">{item.label}</span>
