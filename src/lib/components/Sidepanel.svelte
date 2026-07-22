@@ -90,9 +90,15 @@
   $: isLayerAvailable = (/** @type {string} */ layer) =>
     countryConfig?.layerAvailability?.[layer] !== undefined
 
-  // Top-level categories that have at least one available layer for this country
+  // External hazard source (shown when a country has no in-tool hazard layers)
+  $: hazardExternalLink = countryConfig?.hazardExternalLink || null
+
+  // Top-level categories that have at least one available layer for this country.
+  // Hazards also shows when the country has no hazard layers but an external
+  // hazard source to link out to (e.g. Ghana → GMet Climate Atlas).
   $: availableCategories = categories.filter(cat =>
-    getCategoryLayers(cat.id).some(isLayerAvailable)
+    getCategoryLayers(cat.id).some(isLayerAvailable) ||
+    (cat.id === "hazard" && !!hazardExternalLink)
   )
 
   // Hazard sub-themes (heat/drought/rain) with their available layers — drives the accordions.
@@ -103,6 +109,10 @@
 
   // All available hazard layers (flattened) — used for the valid-selection guard
   $: hazardLayers = hazardThemeOptions.flatMap(t => t.layers)
+
+  // Show the external-source card (instead of layers) when Hazards is selected
+  // but this country has no in-tool hazard layers, only an external link.
+  $: showHazardExternal = $category === "hazard" && hazardLayers.length === 0 && !!hazardExternalLink
 
   // Context layers (Solution-category layers are shown separately below)
   $: contextLayerOptions = contextLayers.filter(isLayerAvailable)
@@ -353,7 +363,30 @@
     {/each}
   </div>
 
-  {#if accordionGroups.length}
+  {#if showHazardExternal}
+    <div class="external-hazard-card">
+      <img
+        class="external-hazard-icon"
+        src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/heat.svg"
+        alt=""
+      />
+      <p class="external-hazard-text">
+        Climate hazard maps for {countryConfig?.name || "this country"} are published by the
+        {hazardExternalLink?.source}.
+      </p>
+      <a
+        class="external-hazard-btn"
+        href={hazardExternalLink?.url}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open Climate Atlas
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M14 5h5v5M19 5l-8 8M12 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    </div>
+  {:else if accordionGroups.length}
     {#each accordionGroups as t}
       {@const groupSelected = t.layers.filter(l => $selectedLayers.includes(l))}
       <button
@@ -410,7 +443,7 @@
     </div>
   {/if}
 
-  {#if availableTimeOptions.length > 1}
+  {#if !showHazardExternal && availableTimeOptions.length > 1}
     <h2 style="display: inline-flex; align-items: center; gap: 0.5em; margin-top: 2vh;">
       Time period
       <span
@@ -442,13 +475,13 @@
         {/each}
       </div>
     </div>
-  {:else if availableTimeOptions.length === 1}
+  {:else if !showHazardExternal && availableTimeOptions.length === 1}
     <div class="time-period-label">
       <span class="time-period-text">Time period:</span>
       <span class="time-period-value">{availableTimeOptions[0].name}</span>
     </div>
   {/if}
-  {#if showScenarios}
+  {#if !showHazardExternal && showScenarios}
     <h2 style="display: inline-flex; align-items: center; gap: 0.5em;">
       Emissions scenario
       <span
@@ -728,6 +761,59 @@
      margin-left bleeding all the way to the edge. */
   .layer-list {
     padding-left: 1.6vw;
+  }
+
+  /* Link-out card shown under Hazards for countries whose hazard data lives
+     on an external site (e.g. Ghana → GMet Climate Atlas). */
+  .external-hazard-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1vh;
+    margin-top: 1.5vh;
+    padding: 1.6vh 1.2vw;
+    background: rgba(1, 126, 159, 0.06);
+    border: 1px solid rgba(1, 126, 159, 0.15);
+    border-radius: 10px;
+  }
+
+  .external-hazard-icon {
+    width: max(22px, 2.4vh);
+    height: auto;
+    filter: grayscale(1);
+    opacity: 0.5;
+  }
+
+  .external-hazard-text {
+    margin: 0;
+    font-size: 1.6vh;
+    line-height: 1.45;
+    color: #555;
+  }
+
+  .external-hazard-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    padding: 0.7vh 1vw;
+    background: #017e9f;
+    color: #fff;
+    font-size: 1.6vh;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+  }
+
+  .external-hazard-btn:hover {
+    background: #016983;
+  }
+
+  .external-hazard-btn svg {
+    width: 1.5vh;
+    height: 1.5vh;
+    min-width: 13px;
+    min-height: 13px;
   }
 
   .keuzes {
@@ -1179,26 +1265,35 @@
     color: #666;
   }
 
-  /* Top-level category buttons (4 across, text only) */
+  /* Top-level category buttons (text only). One row when the panel is wide
+     enough; wraps to a 2×2 grid on narrow panels (small laptops). */
   .category-buttons {
-    gap: 0.5vw;
+    flex-wrap: wrap;
+    /* row-gap · column-gap — the row gap gives breathing room once wrapped. */
+    gap: 0.8vh 0.5vw;
     margin-top: 1.5vh;
     margin-bottom: 2vh;
   }
 
   .category-btn {
     max-width: none;
-    /* min-width:0 lets the 4 buttons share the row evenly; without it flex
-       items keep their content width and "Solutions"/"Context" overflow the
-       panel's right edge. */
-    min-width: 0;
-    padding: 0.9vh 0.3vw;
+    /* Grow to share the row, but never shrink below the longest label
+       ("Solutions"). The panel is only 18vw wide, so on small laptops four
+       buttons at this min width no longer fit on one line — flex-wrap then
+       drops them to a 2×2 grid instead of the labels spilling out of the
+       pills (which is what happened with min-width:0 + no wrap). */
+    flex: 1 1 auto;
+    min-width: 74px;
+    padding: 0.9vh 0.2vw;
     min-height: 4.5vh;
   }
 
   .category-btn .caption {
     margin-top: 0;
-    font-size: clamp(11px, 1.5vh, 14px);
+    /* Scales with viewport height; the px floor/ceiling keep it legible.
+       Slight negative tracking buys a little more room for "Solutions". */
+    font-size: clamp(10px, 1.4vh, 14px);
+    letter-spacing: -0.2px;
     white-space: nowrap;
   }
 

@@ -19,6 +19,7 @@
  * @property {string} [africapolisCode] - Lowercase country code used in the Africapolis population filenames (e.g. 'ken', 'gha')
  * @property {string} [agroZonesFilename] - Filename of the agro-ecological zones GeoJSON for this country (Agroclimatic zones layer)
  * @property {Record<string, LayerAvailability>} [layerAvailability] - Data availability per layer
+ * @property {{ url: string, source: string }} [hazardExternalLink] - External source for hazard data when this country has no in-tool hazard layers. Shown as a link-out card under the Hazards category.
  */
 
 /**
@@ -93,6 +94,12 @@ export const countryConfigs = {
     cropDeltasFilename: "ghana_admin2_deltas.geojson",
     africapolisCode: "gha",
     agroZonesFilename: "ghana_agro.geojson",
+    // Ghana has no in-tool hazard layers; hazard maps are published by the
+    // national met service. The Hazards category shows a link-out card instead.
+    hazardExternalLink: {
+      url: "https://www.meteo.gov.gh/climate-atlas/climate-change/",
+      source: "Ghana Meteorological Agency (GMet)"
+    },
     layerAvailability: {
       // Context — urban population (Africapolis agglomerations, 2025 + 2050).
       "Urban population": { times: ["Past", "2050"], hasScenarios: false },
