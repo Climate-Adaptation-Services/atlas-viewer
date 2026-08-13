@@ -3,6 +3,7 @@
   import { page } from "$app/stores"
   import { getLegendItems } from "$lib/utils/geojsonStyles.js"
   import { isGeojsonLayer, getGeojsonLayerLegend } from "$lib/config/geojsonLayers.js"
+  import { isGridIndicatorLayer, getGridIndicatorSubhead } from "$lib/config/gridIndicatorLayers.js"
   import { aezZonesByCountry } from "$lib/config/contextLayers.js"
   import { getLayerInfo } from "$lib/config/layerInfo.js"
 
@@ -261,6 +262,10 @@
     <div class="legend-subhead">
       {#if dataType === "context"}
         {getLegendUnit(layerName) || ""}
+      {:else if isGridIndicatorLayer(layerName)}
+        <!-- Grid indicators read as absolute for Past and as change for 2050/2080,
+             so the subhead has to say which one is on screen. -->
+        {getGridIndicatorSubhead(layerName, time)}
       {:else if isGeojsonLayer(layerName)}
         {getLegendUnit(layerName) || ""}
       {:else if isShowingChange && isClimateLayer(layerName)}
@@ -330,7 +335,7 @@
 
     <!-- GeoJSON Layer Legends (generic handling for all configured GeoJSON layers) -->
     {#if dataType !== "context" && isGeojsonLayer(layerName)}
-      {@const legendItems = getGeojsonLayerLegend(layerName)}
+      {@const legendItems = getGeojsonLayerLegend(layerName, time)}
       {#if legendItems}
         <div style="display: flex; flex-direction: column; gap: 6px; padding: 4px 0;">
           {#each legendItems as item}

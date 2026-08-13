@@ -11,6 +11,8 @@
     contextLayers,
     getCategoryLayers,
   } from "$lib/config/categories.js"
+  import { cropImpactLayerNames } from "$lib/config/geojsonLayers.js"
+  import { gridImpactGroups } from "$lib/config/gridIndicatorLayers.js"
   import { createEventDispatcher } from "svelte"
 
   const dispatch = createEventDispatcher()
@@ -110,8 +112,13 @@
   // All available hazard layers (flattened) — used for the valid-selection guard
   $: hazardLayers = hazardThemeOptions.flatMap(t => t.layers)
 
-  // Show the external-source card (instead of layers) when Hazards is selected
-  // but this country has no in-tool hazard layers, only an external link.
+  // The link-out card sits at the top of Hazards whenever the country has an
+  // external source — as a companion above the in-tool layers when there are
+  // any, and on its own when there are none.
+  $: showHazardLink = $category === "hazard" && !!hazardExternalLink
+
+  // True only in that second case: no in-tool hazard layers at all, so there is
+  // nothing for the time/scenario controls to act on and they stay hidden.
   $: showHazardExternal = $category === "hazard" && hazardLayers.length === 0 && !!hazardExternalLink
 
   // Context layers (Solution-category layers are shown separately below)
@@ -177,40 +184,65 @@
     category.set(availableCategories[0].id)
   }
 
-  // Inline icon for the Impact "Crop yield changes" accordion (a leaf/plant glyph)
+  const hazardIconUrl = "https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/heat.svg"
+
+  // Inline icons for the Impact accordions (a leaf/plant glyph, and a worker)
   const cropIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M6.05 8.05c-2.73 2.73-2.73 7.15-.02 9.88 1.47-3.4 4.09-6.24 7.36-7.93-2.77 2.34-4.71 5.61-5.39 9.32 2.6 1.23 5.8.78 7.95-1.37C19.43 14.47 20 4 20 4S9.53 4.57 6.05 8.05z"/></svg>`
+  const labourIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a2.4 2.4 0 1 1 0 4.8A2.4 2.4 0 0 1 12 2zm-2 5.9h4c1.6 0 2.9 1.3 2.9 2.9v3.4h-1.7l-.6 7.8h-5.2l-.6-7.8H7.1v-3.4c0-1.6 1.3-2.9 2.9-2.9z"/></svg>`
+
+  /** @type {Record<string, string>} */
+  const impactGroupIcons = { labour: labourIconSvg }
+
+  // Crop layers available for this country — kept separate from the gridded
+  // impact indicators so each gets its own accordion instead of everything
+  // landing under "Crop yield changes".
+  $: cropLayerOptions = cropImpactLayerNames.filter(isLayerAvailable)
 
   // Accordion groups for the current category: Hazard → heat/drought/rain;
-  // Impact → a single "Crop yield changes" group. Other categories have none (flat list).
+  // Impact → "Crop yield changes" + one group per gridded indicator group
+  // (Labour productivity). Other categories have none (flat list).
   $: accordionGroups =
     $category === "hazard"
       ? hazardThemeOptions
-      : $category === "impact" && impactLayerOptions.length
-        ? [{ id: "cropyield", name: "Crop yield changes", icon: null, iconSvg: cropIconSvg, layers: impactLayerOptions }]
+      : $category === "impact"
+        ? [
+            ...(cropLayerOptions.length
+              ? [{ id: "cropyield", name: "Crop yield changes", icon: null, iconSvg: cropIconSvg, layers: cropLayerOptions }]
+              : []),
+            ...gridImpactGroups
+              .map(g => ({
+                id: g.id,
+                name: g.name,
+                icon: /** @type {string|null} */ (null),
+                iconSvg: impactGroupIcons[g.id] || null,
+                layers: g.layers.filter(isLayerAvailable),
+              }))
+              .filter(g => g.layers.length > 0),
+          ]
         : []
+
+  // Layers of the current category that sit in no accordion group — listed on
+  // their own below the accordions (Tree cover, Solar PV potential, Wind speed),
+  // and the whole list for categories that have no accordions at all.
+  $: groupedLayerSet = new Set(accordionGroups.flatMap(g => g.layers))
+  $: looseLayers = visibleLayers.filter(l => !groupedLayerSet.has(l))
 
   // --- Accordion state (multiple groups may be open at once) ---
   let expandedThemes = /** @type {Record<string, boolean>} */ ({})
-  let autoOpenedCategory = /** @type {string|null} */ (null)
+  let collapsedForCategory = /** @type {string|null} */ (null)
 
   /** @param {string} id */
   function toggleTheme(id) {
     expandedThemes = { ...expandedThemes, [id]: !expandedThemes[id] }
   }
 
-  // On entering a category, reveal its layers: open accordion groups that contain a
-  // selected layer, or — if none are selected — the first group, so its options show.
-  // (Once per category switch, so the user can still close them afterwards.)
-  $: if ($category !== autoOpenedCategory) {
-    autoOpenedCategory = $category
-    const toOpen = /** @type {Record<string, boolean>} */ ({})
-    for (const g of accordionGroups) {
-      if (g.layers.some(l => $selectedLayers.includes(l))) toOpen[g.id] = true
-    }
-    if (Object.keys(toOpen).length === 0 && accordionGroups.length) {
-      toOpen[accordionGroups[0].id] = true
-    }
-    if (Object.keys(toOpen).length) expandedThemes = { ...expandedThemes, ...toOpen }
+  // Accordions always start collapsed — on load and on every category switch, so
+  // entering a category shows the group headers rather than one pre-opened list.
+  // A collapsed group still names its selected layer in the header, so nothing
+  // active is hidden. Within a category the user's own toggles stick.
+  $: if ($category !== collapsedForCategory) {
+    collapsedForCategory = $category
+    expandedThemes = {}
   }
 
   export let selectedTime = 0
@@ -350,7 +382,9 @@
     Explore climate hazards, impacts and adaptation solutions{countryConfig?.name ? ` for ${countryConfig.name}` : ""}.
   </p>
 
-  <div class="theme-buttons category-buttons">
+  <!-- Three or fewer categories always share one row (Ghana has no Solutions);
+       four still fall back to the 2×2 wrap on narrow panels. -->
+  <div class="theme-buttons category-buttons" class:single-row={availableCategories.length <= 3}>
     {#each availableCategories as cat}
       <button
         class="theme-btn category-btn"
@@ -363,13 +397,30 @@
     {/each}
   </div>
 
-  {#if showHazardExternal}
+  {#if showHazardLink && hazardLayers.length}
+    <!-- Companion link above the country's own hazard layers. The whole row is the
+         link: a separate button competes with the text for width in this narrow
+         panel and squeezes it down to a few characters per line. The in-tool
+         layers are heat stress, evapotranspiration, soil moisture and runoff —
+         temperature and rainfall are what the national atlas adds. -->
+    <a
+      class="external-hazard-inline"
+      href={hazardExternalLink?.url}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <span class="external-hazard-inline-text">
+        Temperature and rainfall maps: {hazardExternalLink?.source}
+      </span>
+      <svg class="external-hazard-inline-arrow" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M14 5h5v5M19 5l-8 8M12 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  {:else if showHazardLink}
+    <!-- No in-tool hazard layers: the card is the whole content of the category,
+         so it keeps the roomier stacked layout. -->
     <div class="external-hazard-card">
-      <img
-        class="external-hazard-icon"
-        src="https://raw.githubusercontent.com/sophievanderhorst/data/refs/heads/main/map-viewer/heat.svg"
-        alt=""
-      />
+      <img class="external-hazard-icon" src={hazardIconUrl} alt="" />
       <p class="external-hazard-text">
         Climate hazard maps for {countryConfig?.name || "this country"} are published by the
         {hazardExternalLink?.source}.
@@ -386,49 +437,51 @@
         </svg>
       </a>
     </div>
-  {:else if accordionGroups.length}
-    {#each accordionGroups as t}
-      {@const groupSelected = t.layers.filter(l => $selectedLayers.includes(l))}
-      <button
-        class="accordion-header"
-        on:click={() => toggleTheme(t.id)}
-        aria-expanded={expandedThemes[t.id] === true}
-      >
-        <span class="collapse-icon" class:expanded={expandedThemes[t.id]}>
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-        {#if t.icon}
-          <img class="accordion-icon" src={t.icon} alt="" />
-        {:else if t.iconSvg}
-          <span class="accordion-icon accordion-icon-svg">{@html t.iconSvg}</span>
-        {/if}
-        <span class="accordion-title" class:active={groupSelected.length > 0}>{t.name}</span>
-        {#if !expandedThemes[t.id] && groupSelected.length}
-          <span class="accordion-selected">{groupSelected.join(', ')}</span>
-        {/if}
-      </button>
-      {#if expandedThemes[t.id]}
-        <div class="accordion-content">
-          {#each t.layers as option}
-            <div class="keuzes" class:selected={$selectedLayers.includes(option)}>
-              <button class="layer-name-btn" on:click={() => showLayer(option)}>{option}</button>
-              <button
-                class="layer-add-btn"
-                class:added={$selectedLayers.includes(option)}
-                on:click|stopPropagation={() => toggleCompare(option)}
-                title={$selectedLayers.includes(option) ? "In comparison — click to remove" : "Add to comparison"}
-                aria-label={$selectedLayers.includes(option) ? `Remove ${option} from comparison` : `Add ${option} to comparison`}
-              >{$selectedLayers.includes(option) ? "✓" : "+"}</button>
-            </div>
-          {/each}
-        </div>
+  {/if}
+
+  {#each accordionGroups as t}
+    {@const groupSelected = t.layers.filter(l => $selectedLayers.includes(l))}
+    <button
+      class="accordion-header"
+      on:click={() => toggleTheme(t.id)}
+      aria-expanded={expandedThemes[t.id] === true}
+    >
+      <span class="collapse-icon" class:expanded={expandedThemes[t.id]}>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      {#if t.icon}
+        <img class="accordion-icon" src={t.icon} alt="" />
+      {:else if t.iconSvg}
+        <span class="accordion-icon accordion-icon-svg">{@html t.iconSvg}</span>
       {/if}
-    {/each}
-  {:else}
+      <span class="accordion-title" class:active={groupSelected.length > 0}>{t.name}</span>
+      {#if !expandedThemes[t.id] && groupSelected.length}
+        <span class="accordion-selected">{groupSelected.join(', ')}</span>
+      {/if}
+    </button>
+    {#if expandedThemes[t.id]}
+      <div class="accordion-content">
+        {#each t.layers as option}
+          <div class="keuzes" class:selected={$selectedLayers.includes(option)}>
+            <button class="layer-name-btn" on:click={() => showLayer(option)}>{option}</button>
+            <button
+              class="layer-add-btn"
+              class:added={$selectedLayers.includes(option)}
+              on:click|stopPropagation={() => toggleCompare(option)}
+              title={$selectedLayers.includes(option) ? "In comparison — click to remove" : "Add to comparison"}
+              aria-label={$selectedLayers.includes(option) ? `Remove ${option} from comparison` : `Add ${option} to comparison`}
+            >{$selectedLayers.includes(option) ? "✓" : "+"}</button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  {/each}
+
+  {#if looseLayers.length}
     <div class="layer-list">
-      {#each visibleLayers as option}
+      {#each looseLayers as option}
         <div class="keuzes" class:selected={$selectedLayers.includes(option)}>
           <button class="layer-name-btn" on:click={() => showLayer(option)}>{option}</button>
           <button
@@ -775,6 +828,46 @@
     background: rgba(1, 126, 159, 0.06);
     border: 1px solid rgba(1, 126, 159, 0.15);
     border-radius: 10px;
+  }
+
+  /* Companion link shown above a country's own hazard layers: the whole row is
+     the anchor, so the label wraps across the full panel width instead of being
+     squeezed beside a fixed-width button. */
+  .external-hazard-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.6vw;
+    margin-top: 1vh;
+    padding: 0.9vh 0.9vw;
+    background: rgba(1, 126, 159, 0.06);
+    border: 1px solid rgba(1, 126, 159, 0.15);
+    border-radius: 8px;
+    color: #017e9f;
+    font-size: 1.45vh;
+    line-height: 1.35;
+    text-decoration: none;
+    transition: background 0.15s ease;
+  }
+
+  .external-hazard-inline:hover {
+    background: rgba(1, 126, 159, 0.12);
+  }
+
+  .external-hazard-inline-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .external-hazard-inline:hover .external-hazard-inline-text {
+    text-decoration: underline;
+  }
+
+  .external-hazard-inline-arrow {
+    flex-shrink: 0;
+    width: 1.4vh;
+    height: 1.4vh;
+    min-width: 12px;
+    min-height: 12px;
   }
 
   .external-hazard-icon {
@@ -1286,6 +1379,24 @@
     min-width: 74px;
     padding: 0.9vh 0.2vw;
     min-height: 4.5vh;
+  }
+
+  /* With three or fewer categories the row always fits, so drop the min-width
+     that exists to protect the four-button case and let them divide the row
+     evenly instead of wrapping into a ragged 2+1. */
+  .category-buttons.single-row {
+    flex-wrap: nowrap;
+  }
+
+  .category-buttons.single-row .category-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .category-buttons.single-row .category-btn .caption {
+    font-size: clamp(9px, 1.35vh, 14px);
   }
 
   .category-btn .caption {

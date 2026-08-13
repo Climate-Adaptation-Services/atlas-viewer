@@ -8,7 +8,14 @@
   import { getClimateLayerConfig } from '$lib/config/climateLayers.js';
   import { isGeojsonLayer, isCropImpactLayer, getCropKey } from '$lib/config/geojsonLayers.js';
   import { getCountryConfig } from '$lib/config/countries.js';
-  import { renderCropYieldChart } from '$lib/utils/chart.js';
+  import { renderCropYieldChart, renderIndicatorChangeChart } from '$lib/utils/chart.js';
+  import {
+    isGridIndicatorLayer,
+    isGridIndicatorFeature,
+    getGridIndicatorCellData,
+    formatIndicatorValue,
+    formatIndicatorChange
+  } from '$lib/config/gridIndicatorLayers.js';
   import Chart from 'chart.js/auto';
 
   // Track map parameter changes
@@ -24,6 +31,7 @@
   export let getLegendUnit; // Function to get legend unit
   export let countryCode = 'zimbabwe' // default country
 
+  /** @type {any} */
   let popup = null;
 
   // Highlight state for the currently-selected admin2 polygon (crop popup).
@@ -341,6 +349,107 @@
         // Highlight the selected admin2 polygon so users see which area the
         // chart describes. Replaces any previous highlight.
         highlightAdmin(clickedSubLayer);
+        return;
+      }
+
+      // --- Gridded indicator popup (bar chart of the change per 0.5° cell) ---
+      // Same shape as the crop popup: both scenarios for both future periods, so
+      // the chart is independent of the sidepanel toggles. Placed before the
+      // climate branch so the rainfall chart never renders for these layers.
+      if (isGridIndicatorLayer($datalaag)) {
+        // Find the clicked cell. `isGridIndicatorFeature` keeps the hit test on
+        // grid cells: with several layers stacked, a bounds match could otherwise
+        // land on an admin2 polygon of the crop layer underneath.
+        /** @type {any} */
+        let clickedCell = null;
+        /** @type {any} */
+        let clickedCellLayer = null;
+        map.eachLayer((/** @type {any} */ group) => {
+          if (clickedCell || !group || typeof group.eachLayer !== 'function') return;
+          group.eachLayer((/** @type {any} */ sub) => {
+            if (clickedCell || !sub.feature || !sub.getBounds) return;
+            if (!isGridIndicatorFeature(sub.feature)) return;
+            try {
+              if (sub.getBounds().contains(e.latlng) &&
+                  isPointInGeometry(e.latlng, sub.feature.geometry)) {
+                clickedCell = sub.feature;
+                clickedCellLayer = sub;
+              }
+            } catch { /* ignore */ }
+          });
+        });
+
+        if (!clickedCell) {
+          clearAdminHighlight();
+          if (popup && popup.isOpen()) popup.close();
+          return;
+        }
+
+        const cellData = getGridIndicatorCellData($datalaag, clickedCell);
+        const unitSuffix = cellData?.unit ? ` ${cellData.unit}` : '';
+        // Runoff, solar PV and wind speed report their change as a percentage of
+        // the baseline, so the change carries a different unit than the level.
+        const changeSuffix = cellData?.changeUnit ? ` ${cellData.changeUnit}` : '';
+
+        // Same layout as the climate popup: the value for the current selection
+        // on top, the chart (or the pointer to the future periods) below.
+        Object.assign(popup.options, { maxWidth: 400, minWidth: 350 });
+        popup.setLatLng(e.latlng);
+
+        // On Past there is exactly one number per cell, so state it. Charting the
+        // four future bars there would answer a question the map isn't asking.
+        if ($time !== '2050' && $time !== '2080') {
+          const value = cellData?.hist;
+          popup.setContent(`
+            <div class="popup-content">
+              <div class="value-text"><strong>${value == null
+                ? 'No data available'
+                : `Historical: ${formatIndicatorValue(value, cellData?.decimals)}${unitSuffix}`}</strong></div>
+              <div class="csv-data">
+                <div style="padding: 10px; font-style: italic;">
+                  Explore the data for 2050 and 2080 to find out more about projected changes.
+                </div>
+              </div>
+            </div>`).openOn(map);
+          highlightAdmin(clickedCellLayer);
+          return;
+        }
+
+        const hasChange = cellData && Object.values(cellData.changes).some((v) => v != null);
+        if (!cellData || !hasChange) {
+          popup.setContent(`
+            <div class="popup-content">
+              <div class="value-text"><strong>No data available</strong></div>
+            </div>`).openOn(map);
+          highlightAdmin(clickedCellLayer);
+          return;
+        }
+
+        // Value for the active period + scenario, so the number on top matches
+        // what the map is showing; the chart adds the other three for context.
+        const activeChange =
+          cellData.changes[`${($scenario || 'High').toLowerCase() === 'low' ? 'low' : 'high'}_${$time}`];
+
+        const gridChartId = 'grid-chart-' + Date.now();
+        popup.setContent(`
+          <div class="popup-content">
+            <div class="value-text"><strong>${activeChange == null
+              ? 'No data available'
+              : `Change: ${formatIndicatorChange(activeChange, cellData.changeDecimals)}${changeSuffix}`}</strong></div>
+            <div class="csv-data">
+              <div class="chart-title">${$datalaag} projection</div>
+              <div class="chart-container" style="width: 380px; height: 250px; margin: 10px auto 5px; position: relative;">
+                <canvas id="${gridChartId}" style="display: block;"></canvas>
+              </div>
+            </div>
+          </div>`).openOn(map);
+
+        setTimeout(() => {
+          const canvas = /** @type {HTMLCanvasElement|null} */ (document.getElementById(gridChartId));
+          if (canvas) renderIndicatorChangeChart(canvas, cellData);
+        }, 100);
+
+        highlightAdmin(clickedCellLayer);
         return;
       }
 

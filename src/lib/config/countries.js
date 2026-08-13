@@ -1,3 +1,5 @@
+import { gridIndicatorAvailability } from "$lib/config/gridIndicatorLayers.js"
+
 /**
  * Layer availability configuration type
  * @typedef {Object} LayerAvailability
@@ -94,13 +96,20 @@ export const countryConfigs = {
     cropDeltasFilename: "ghana_admin2_deltas.geojson",
     africapolisCode: "gha",
     agroZonesFilename: "ghana_agro.geojson",
-    // Ghana has no in-tool hazard layers; hazard maps are published by the
-    // national met service. The Hazards category shows a link-out card instead.
+    // Ghana has no temperature/rainfall hazard layers of its own; those maps are
+    // published by the national met service. The Hazards category shows this
+    // link-out card only while no in-tool hazard layer is available — the
+    // gridded WBGT/evapotranspiration/runoff layers below now take precedence
+    // (see Sidepanel: showHazardExternal).
     hazardExternalLink: {
       url: "https://www.meteo.gov.gh/climate-atlas/climate-change/",
       source: "Ghana Meteorological Agency (GMet)"
     },
     layerAvailability: {
+      // Gridded 0.5° indicators from the PIK/ISIMIP delivery (12 layers, built by
+      // scripts/build_ghana_grid_indicators.py). Past = absolute value,
+      // 2050/2080 = change vs 1985-2014, both SSPs.
+      ...gridIndicatorAvailability(),
       // Context — urban population (Africapolis agglomerations, 2025 + 2050).
       "Urban population": { times: ["Past", "2050"], hasScenarios: false },
       // Context — agro-ecological zones (8 zones, colored on the `Name` property).

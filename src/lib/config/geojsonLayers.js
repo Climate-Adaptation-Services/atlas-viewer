@@ -3,6 +3,11 @@
  * These are layers that are stored as static GeoJSON files rather than WMS or CSV data
  */
 
+import {
+  gridIndicatorLayerConfigs,
+  isGridIndicatorLayer,
+} from "$lib/config/gridIndicatorLayers.js"
+
 /**
  * @typedef {Object} GeojsonLayerStyle
  * @property {Function} getColor - Function to get fill color based on feature properties
@@ -249,6 +254,10 @@ export const geojsonLayerConfigs = {
     ],
   },
   ...buildCropImpactLayers(),
+  // Gridded 0.5° indicator layers (WBGT, labour productivity, runoff, …).
+  // Absolute values for Past, change vs baseline for 2050/2080 — see
+  // gridIndicatorLayers.js.
+  ...gridIndicatorLayerConfigs,
   "River Flood": {
     filename: "kenya_river_flood.geojson",
     baseUrl: "https://fsn1.your-objectstorage.com/kenyaciaviewer/",
@@ -323,6 +332,15 @@ export function getGeojsonLayerUrl(layerName, time, scenario, countryConfig) {
     return `${base}${filename}`
   }
 
+  // Grid indicator layers carry their own filename but live in the active
+  // country's bucket, so the base URL is resolved per country rather than
+  // hardcoded in the layer config.
+  if (isGridIndicatorLayer(layerName)) {
+    const base = countryConfig?.geojsonBaseUrl
+    if (!base) return null
+    return `${base}${config.filename}`
+  }
+
   let filename = config.filename
 
   // If the layer supports time periods, modify the filename, unless all time periods
@@ -344,11 +362,19 @@ export function getGeojsonLayerUrl(layerName, time, scenario, countryConfig) {
 }
 
 /**
- * Get legend items for a GeoJSON layer
+ * Get legend items for a GeoJSON layer.
+ * Layers whose legend depends on the period (grid indicators: absolute values
+ * for Past, change vs baseline for 2050/2080) expose `legendItemsFor(time)`;
+ * everything else has one fixed `legendItems` list.
  * @param {string} layerName - Name of the layer
+ * @param {string} [time] - The layer's period ('Past' | '2050' | '2080')
  * @returns {Array<{color: string, label: string}>|null}
  */
-export function getGeojsonLayerLegend(layerName) {
+export function getGeojsonLayerLegend(layerName, time) {
   const config = getGeojsonLayerConfig(layerName)
-  return config?.legendItems || null
+  if (!config) return null
+  if (typeof (/** @type {any} */ (config).legendItemsFor) === "function") {
+    return /** @type {any} */ (config).legendItemsFor(time || "Past")
+  }
+  return config.legendItems || null
 }

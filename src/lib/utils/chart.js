@@ -2,6 +2,13 @@
  * Utility functions for chart rendering in the atlas viewer
  */
 import Chart from 'chart.js/auto';
+import { formatIndicatorValue, formatIndicatorChange } from '$lib/config/gridIndicatorLayers.js';
+
+/** Scenario colours, shared by every popup chart so the two read the same way. */
+const COLOR_LOW = '#017e9f';  // petrol (tool brand colour) for SSP1-2.6
+const COLOR_HIGH = '#d8392c'; // warm red for SSP5-8.5
+const COLOR_LOW_BORDER = '#015c75';
+const COLOR_HIGH_BORDER = '#7a201a';
 
 /**
  * Bar chart for crop yield change at a clicked admin2 polygon.
@@ -35,9 +42,6 @@ export function renderCropYieldChart(canvas, data) {
   const lowP90s     = [stat(data.low_2050,  'p90'),    stat(data.low_2080,  'p90')];
   const highP10s    = [stat(data.high_2050, 'p10'),    stat(data.high_2080, 'p10')];
   const highP90s    = [stat(data.high_2050, 'p90'),    stat(data.high_2080, 'p90')];
-
-  const COLOR_LOW  = '#017e9f'; // petrol (tool brand colour) for SSP1-2.6
-  const COLOR_HIGH = '#d8392c'; // warm red for SSP5-8.5
 
   // Y-axis range driven by the data and anchored at 0 — no symmetric padding,
   // so an all-positive (or all-negative) series doesn't waste half the plot and
@@ -105,7 +109,7 @@ export function renderCropYieldChart(canvas, data) {
           label: 'Low (SSP1-2.6)',
           data: lowMedians,
           backgroundColor: COLOR_LOW,
-          borderColor: '#015c75',
+          borderColor: COLOR_LOW_BORDER,
           borderWidth: 1,
           borderRadius: 3,
           categoryPercentage: 0.7,
@@ -115,7 +119,7 @@ export function renderCropYieldChart(canvas, data) {
           label: 'High (SSP5-8.5)',
           data: highMedians,
           backgroundColor: COLOR_HIGH,
-          borderColor: '#7a201a',
+          borderColor: COLOR_HIGH_BORDER,
           borderWidth: 1,
           borderRadius: 3,
           categoryPercentage: 0.7,
@@ -162,12 +166,172 @@ export function renderCropYieldChart(canvas, data) {
           }
         },
         x: {
-          position: { y: 0 }, // keep the x-axis (and year labels) pinned to the zero line
+          // Labels along the bottom edge rather than pinned to the zero line: a
+          // crop whose yield falls under every scenario would otherwise get its
+          // year labels drawn on top of the bars. Zero stays readable through the
+          // emphasised gridline on the y axis.
           grid: { display: false }
         }
       }
     },
     plugins: [errorBarPlugin]
+  });
+}
+
+/**
+ * A "nice" axis step (1, 2 or 5 × a power of ten) giving roughly four ticks
+ * across a span. The gridded indicators range from ±0.4 (runoff) to +66
+ * (tropical nights), so a fixed step cannot serve them all.
+ * @param {number} span
+ * @returns {number}
+ */
+function niceStep(span) {
+  if (!isFinite(span) || span <= 0) return 1;
+  const raw = span / 4;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(raw)));
+  const normalized = raw / magnitude;
+  const multiple = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return multiple * magnitude;
+}
+
+/**
+ * Bar chart of a gridded indicator's change at a clicked 0.5° cell.
+ * Four bars — 2050 Low, 2050 High, 2080 Low, 2080 High — grouped by period,
+ * with the same scenario colours as the crop yield popup.
+ *
+ * The bars show the CHANGE rather than the absolute level on purpose: a bar
+ * encodes magnitude by its length, so absolute values like a 24-30 °C WBGT would
+ * either need a truncated axis (misleading) or a zero baseline that makes every
+ * bar look identical. Change bars sit honestly on zero, and the absolute level
+ * is in the tooltip and the baseline line above the chart.
+ *
+ * @param {HTMLCanvasElement} canvas
+ * @param {{
+ *   changes: Record<string, number|null>,
+ *   absolutes: Record<string, number|null>,
+ *   unit: string|null,
+ *   decimals?: number,
+ *   changeUnit?: string|null,
+ *   changeDecimals?: number
+ * }} data
+ */
+export function renderIndicatorChangeChart(canvas, data) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  Chart.defaults.font.family = "Silka, Belanosima, Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif";
+  Chart.defaults.color = '#333';
+
+  const lowChanges = [data.changes.low_2050, data.changes.low_2080];
+  const highChanges = [data.changes.high_2050, data.changes.high_2080];
+  const lowAbsolutes = [data.absolutes.low_2050, data.absolutes.low_2080];
+  const highAbsolutes = [data.absolutes.high_2050, data.absolutes.high_2080];
+
+  const allValues = [...lowChanges, ...highChanges].filter(
+    /** @returns {v is number} */ (v) => typeof v === 'number'
+  );
+  const dataMax = allValues.length ? Math.max(...allValues) : 1;
+  const dataMin = allValues.length ? Math.min(...allValues) : 0;
+  const step = niceStep(Math.max(Math.abs(dataMax), Math.abs(dataMin)));
+  let yMax = dataMax > 0 ? Math.ceil(dataMax / step) * step : 0;
+  let yMin = dataMin < 0 ? Math.floor(dataMin / step) * step : 0;
+  if (yMax === yMin) yMax = step; // guard against a degenerate all-zero range
+
+  // Axis ticks: decimals follow the step, so a ±0.4 runoff axis keeps its
+  // precision while a 0-66 tropical-nights axis stays free of trailing zeros.
+  const tickDecimals = step >= 1 ? 0 : Math.min(3, Math.ceil(-Math.log10(step)));
+  // The bars are changes, which some layers report as a percentage of the
+  // baseline rather than in the layer's own unit; the "Level" line in the
+  // tooltip is an absolute value and keeps the layer's unit.
+  const changeUnit = data.changeUnit === undefined ? data.unit : data.changeUnit;
+  const changeSuffix = changeUnit ? ` ${changeUnit}` : '';
+  const levelSuffix = data.unit ? ` ${data.unit}` : '';
+  /** @param {number} v */
+  const signedTick = (v) => `${v > 0 ? '+' : ''}${v.toFixed(tickDecimals)}`;
+
+  // Tooltip decimals follow the VALUE, not the axis step: WBGT warms by +1.0 to
+  // +3.5 on a step-1 axis, and rounding those to whole degrees in the readout
+  // would erase the difference between the scenarios. Shared with the popup's
+  // own readouts so a number never appears with two different precisions.
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['2050', '2080'],
+      datasets: [
+        {
+          label: 'Low (SSP1-2.6)',
+          data: lowChanges,
+          backgroundColor: COLOR_LOW,
+          borderColor: COLOR_LOW_BORDER,
+          borderWidth: 1,
+          borderRadius: 3,
+          categoryPercentage: 0.7,
+          barPercentage: 0.85
+        },
+        {
+          label: 'High (SSP5-8.5)',
+          data: highChanges,
+          backgroundColor: COLOR_HIGH,
+          borderColor: COLOR_HIGH_BORDER,
+          borderWidth: 1,
+          borderRadius: 3,
+          categoryPercentage: 0.7,
+          barPercentage: 0.85
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { boxWidth: 12, boxHeight: 12, padding: 8, font: { size: 11 } }
+        },
+        tooltip: {
+          callbacks: {
+            title: /** @param {any[]} items */ (items) => `${items[0].label} · ${items[0].dataset.label}`,
+            label: /** @param {any} tctx */ (tctx) => {
+              const isLow = tctx.datasetIndex === 0;
+              const change = (isLow ? lowChanges : highChanges)[tctx.dataIndex];
+              const absolute = (isLow ? lowAbsolutes : highAbsolutes)[tctx.dataIndex];
+              if (change == null) return 'No data';
+              return [
+                `Change: ${formatIndicatorChange(change, data.changeDecimals)}${changeSuffix}`,
+                ...(absolute == null
+                  ? []
+                  : [`Level: ${formatIndicatorValue(absolute, data.decimals)}${levelSuffix}`])
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          min: yMin,
+          max: yMax,
+          title: {
+            display: true,
+            text: `Change vs 1985-2014${changeUnit ? ` (${changeUnit})` : ''}`,
+            font: { size: 11 }
+          },
+          grid: {
+            color: /** @param {any} c */ (c) => (c.tick.value === 0 ? '#666' : '#e0e0e0'),
+            lineWidth: /** @param {any} c */ (c) => (c.tick.value === 0 ? 1.5 : 1)
+          },
+          ticks: { stepSize: step, callback: /** @param {any} v */ (v) => signedTick(Number(v)) }
+        },
+        x: {
+          // Labels along the bottom edge, NOT pinned to the zero line: when every
+          // bar is negative — which is the normal case for labour productivity —
+          // a zero-pinned axis draws the period labels on top of the bars. Zero
+          // stays readable through the emphasised gridline on the y axis.
+          grid: { display: false }
+        }
+      }
+    }
   });
 }
 

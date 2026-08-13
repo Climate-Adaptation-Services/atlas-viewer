@@ -138,6 +138,67 @@ export const layerInfo = {
     projectionResolution: 'County (GADM admin1)'
   },
 
+  // Gridded indicator layers (0.5° impact data delivery)
+  // NOTE: source/sourceUrl are deliberately absent — the delivery ships no
+  // provenance metadata and the exact model chain is unconfirmed. Fill them in
+  // once known, like the units in gridIndicatorLayers.js.
+  'Wind speed': {
+    description: 'Average wind speed at 100 m above the ground — the hub height of a utility-scale turbine, so this reads as a wind-energy resource rather than as wind at the surface.',
+    projectionDescription: 'Projected change in average wind speed at 100 m, as a percentage of the 1985-2014 baseline.',
+    baseline: '1985–2014',
+    historicalResolution: '0.5°',
+    projectionResolution: '0.5°'
+  },
+  'Heat stress': {
+    description: 'Wet Bulb Globe Temperature (WBGT), a heat-stress index that combines temperature, humidity, wind and solar radiation into the heat load a working body actually experiences. Higher values mean less of the day can be worked safely.',
+    projectionDescription: 'Projected change in Wet Bulb Globe Temperature (WBGT) compared to the baseline period (1985–2014). WBGT combines temperature, humidity, wind and solar radiation into the heat load a working body actually experiences.',
+    baseline: '1985–2014',
+    historicalResolution: '0.5°',
+    projectionResolution: '0.5°'
+  },
+  'Tropical nights': {
+    description: 'Nights per year that stay warm — conventionally a night whose minimum temperature does not fall below 20 °C, giving the body no chance to cool down after a hot day. Southern Ghana already sits close to every night of the year, so the room to rise is mostly in the north.',
+    projectionDescription: 'Projected change in the number of warm nights per year compared to the baseline period (1985–2014). Cells already near 365 nights cannot rise further, so the increase concentrates in the north.',
+    baseline: '1985–2014',
+    historicalResolution: '0.5°',
+    projectionResolution: '0.5°'
+  },
+  'Potential evapotranspiration': {
+    description: 'How much water the atmosphere could draw from a well-watered surface — a measure of atmospheric demand for water, not of the evaporation that actually happens. Higher values mean soils and crops lose more water for the same rainfall.',
+    projectionDescription: 'Projected change in potential evapotranspiration compared to the baseline period (1985–2014). An increase means the same rainfall goes less far.',
+    baseline: '1985–2014',
+    historicalResolution: '0.5°',
+    projectionResolution: '0.5°'
+  },
+  'Soil moisture': {
+    description: 'Water held in the soil and available to plants.',
+    projectionDescription: 'Projected change in soil moisture compared to the baseline period (1985–2014). A decrease means less water within reach of roots between rains.',
+    baseline: '1985–2014',
+    historicalResolution: '0.5°',
+    projectionResolution: '0.5°'
+  },
+  'Runoff': {
+    description: 'The share of rainfall that flows off the land into streams and rivers instead of soaking into the soil or evaporating. Both flood peaks and dry-season river levels depend on it.',
+    projectionDescription: 'Projected change in runoff compared to the baseline period (1985–2014), as a percentage of that baseline. A single cell on Lake Volta carries far more runoff than the rest of the country, so the map is scaled to the range the other cells occupy.',
+    baseline: '1985–2014',
+    historicalResolution: '0.5°',
+    projectionResolution: '0.5°'
+  },
+  'Tree cover': {
+    description: 'Modelled share of the area covered by tree canopy.',
+    projectionDescription: 'Projected change in tree cover compared to the baseline period (1985–2014), in percentage points.',
+    baseline: '1985–2014',
+    historicalResolution: '0.5°',
+    projectionResolution: '0.5°'
+  },
+  'Solar PV potential': {
+    description: 'Electricity a photovoltaic installation yields per year per square metre of panel. It falls when it gets hotter, because panels lose efficiency, and when it gets cloudier.',
+    projectionDescription: 'Projected change in photovoltaic yield compared to the baseline period (1985–2014), as a percentage of that baseline.',
+    baseline: '1985–2014',
+    historicalResolution: '0.5°',
+    projectionResolution: '0.5°'
+  },
+
   // Solution layers (Justdiggit suitability rasters)
   'Bund suitability': {
     description: 'Areas suitable for constructing water-retention bunds — earthen structures that capture rainwater and reduce runoff to restore degraded land.',
@@ -197,6 +258,25 @@ for (const name of cropLayerNames) {
     projectionSourceUrl: null,
     baseline: '1981–2010',
     projectionResolution: 'GADM admin2'
+  };
+}
+
+// Labour productivity: one layer per work intensity, identical wording apart
+// from the intensity itself. Same 0.5° delivery as the other gridded indicators.
+/** @type {Record<string, string>} */
+const WORK_INTENSITIES = {
+  'Labour productivity (light work)': 'light',
+  'Labour productivity (moderate work)': 'moderate',
+  'Labour productivity (heavy work)': 'heavy',
+  'Labour productivity (very heavy work)': 'very heavy'
+};
+for (const [name, intensity] of Object.entries(WORK_INTENSITIES)) {
+  layerInfo[name] = {
+    description: `The share of the working day that can still be worked at ${intensity} physical intensity before heat forces rest. It follows from heat stress: as Wet Bulb Globe Temperature rises, more of the day has to be spent recovering. Each intensity is drawn on its own colour scale, so shades are not comparable between the four layers.`,
+    projectionDescription: `Projected change in the share of the working day that can be worked at ${intensity} physical intensity, in percentage points compared to the baseline period (1985–2014).`,
+    baseline: '1985–2014',
+    historicalResolution: '0.5°',
+    projectionResolution: '0.5°'
   };
 }
 

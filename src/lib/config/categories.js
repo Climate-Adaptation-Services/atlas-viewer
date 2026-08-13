@@ -11,17 +11,31 @@
  */
 
 import { cropImpactLayerNames } from "$lib/config/geojsonLayers.js"
+import { gridHazardLayersByTheme, gridImpactLayerNames } from "$lib/config/gridIndicatorLayers.js"
 
-// Hazard sub-themes (heat / drought / rain) — the layer list shown within Hazard
+// Hazard sub-themes (heat / drought / rain) — the layer list shown within Hazard.
+// The gridded indicator layers are appended per theme, after the climate layers.
 /** @type {Record<string, string[]>} */
 export const hazardThemeLayerMap = {
-  heat: ["Average temperature", "Minimum temperature", "Maximum temperature", "Days above 35°C"],
-  drought: ["Dry spells", "Water Stress"],
-  rain: ["Total rainfall", "Days above 20 mm", "River Flood"],
+  heat: [
+    "Average temperature",
+    "Minimum temperature",
+    "Maximum temperature",
+    "Days above 35°C",
+    ...(gridHazardLayersByTheme.heat || []),
+  ],
+  drought: ["Dry spells", "Water Stress", ...(gridHazardLayersByTheme.drought || [])],
+  rain: [
+    "Total rainfall",
+    "Days above 20 mm",
+    "River Flood",
+    ...(gridHazardLayersByTheme.rain || []),
+  ],
 }
 
-// Layer lists per category (UI grouping only)
-export const impactLayers = cropImpactLayerNames
+// Layer lists per category (UI grouping only). Crop yield layers first, then the
+// gridded impact indicators (labour productivity, tree cover, PV, wind).
+export const impactLayers = [...cropImpactLayerNames, ...gridImpactLayerNames]
 export const solutionLayers = ["Bund suitability", "Tree cover (FMNR) suitability"]
 export const contextLayers = ["Urban population", "Agroclimatic zones", "Livestock density"]
 
