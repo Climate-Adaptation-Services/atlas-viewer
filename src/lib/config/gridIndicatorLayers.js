@@ -29,8 +29,10 @@
  *
  * Ramps come from d3-scale-chromatic and are sampled across their full width to
  * match matplotlib's discretised colour bars (palest class nearly white, darkest
- * nearly black). Two figures use matplotlib's `terrain` reversed, which no d3
- * ramp matches — see TERRAIN_REVERSED.
+ * nearly black). Where a figure's bar is not a standard ramp the layer carries an
+ * explicit palette instead — see TERRAIN_REVERSED (wind speed) and
+ * BLUE_TO_PURPLE_10 (tropical nights, which departs from its figure's colours in
+ * favour of the CAS day-count palette).
  */
 
 import {
@@ -51,6 +53,25 @@ import {
  * as six categories rather than a rising quantity; kept to match the report.
  */
 const TERRAIN_REVERSED = ["#ffffff", "#997c76", "#ccbe7d", "#99eb85", "#00b3b3", "#333399"]
+
+/**
+ * Ten-step blue → cyan → green → yellow → orange → pink → purple ramp, the
+ * palette CAS day-count legends use in the other viewers. Ordered low → high.
+ * Read off a supplied legend image, so the values are close rather than exact —
+ * replace with the source configuration's hex codes if they turn up.
+ */
+const BLUE_TO_PURPLE_10 = [
+  "#4a90d9",
+  "#74c7e3",
+  "#52c9b6",
+  "#5cbf7a",
+  "#a5cf4f",
+  "#e0c34f",
+  "#e88b5a",
+  "#cd6faf",
+  "#9a63c0",
+  "#6b4f92",
+]
 
 /** Fill for cells with no value — same grey the other layers use. */
 const NO_DATA = "#d1d1d1"
@@ -150,17 +171,16 @@ const GRID_INDICATORS = [
     theme: "heat",
     unit: "nights/year",
     decimals: 0, // a count of nights — no fractions in the readout
-    // Scales, colours and unit taken from the delivered tropical-nights summary
-    // figure: 300-360 nights/year in steps of 10 for the absolute map, and Reds
-    // over 0-45 nights/year in steps of 5 for the change.
+    // The change scale follows the delivered figure (Reds over 0-45 nights/year
+    // in steps of 5). The absolute scale uses the ten-step CAS day-count palette
+    // instead of the figure's reversed-terrain bar.
     //
-    // The figure's absolute colour bar is matplotlib's `terrain` reversed, which
-    // is why it needs an explicit palette rather than a ramp — it runs white →
-    // taupe → khaki → light green → teal → blue. Note that this is a multi-hue
-    // ramp with no light-to-dark ordering, so it reads as six categories rather
-    // than as a rising quantity; kept anyway so the layer matches the report.
-    absBounds: [310, 320, 330, 340, 350],
-    absPalette: TERRAIN_REVERSED,
+    // Ten classes to use the whole palette, with round 10-night steps up to 350
+    // and finer ones above it: Ghana's cells crowd against the 365-night ceiling
+    // (p75 is 359), so that is where the classes have to separate "warm every
+    // night" from "warm most nights". No class is empty.
+    absBounds: [300, 310, 320, 330, 340, 350, 355, 360, 363],
+    absPalette: BLUE_TO_PURPLE_10,
     // Top class is open-ended where the figure caps at 45: the north reaches
     // +66 nights under High/2080.
     changeBounds: [5, 10, 15, 20, 25, 30, 35, 40],
