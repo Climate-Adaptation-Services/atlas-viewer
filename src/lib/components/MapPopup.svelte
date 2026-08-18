@@ -180,14 +180,20 @@
             const resp = await fetch(url);
             const data = await resp.json();
             const props = data?.features?.[0]?.properties || {};
-            // Binary raster: GRAY_INDEX 1 = present, 0 = absent. Labels are
-            // configurable per layer via wmsValueLabels.
+            // GRAY_INDEX raster value. Binary layers (1 = present, 0 = absent)
+            // label via wmsValueLabels; classified layers via wmsClassLabels.
+            // wmsNoDataValues lists fill values to treat as "no data" (e.g. 128).
             const raw = props.GRAY_INDEX;
             const valueLabels = layerConfig.wmsValueLabels || {};
+            const classLabels = layerConfig.wmsClassLabels || null;
+            const noDataValues = layerConfig.wmsNoDataValues || [];
             let label;
-            if (raw === 1 || raw === '1') label = valueLabels.present || 'Present';
+            if (raw === undefined || raw === null || noDataValues.includes(Number(raw))) {
+              label = valueLabels.none || 'No data at this location';
+            } else if (classLabels) {
+              label = classLabels[String(raw)] || `Class ${raw}`;
+            } else if (raw === 1 || raw === '1') label = valueLabels.present || 'Present';
             else if (raw === 0 || raw === '0') label = valueLabels.absent || 'Absent';
-            else if (raw === undefined || raw === null) label = valueLabels.none || 'No data at this location';
             else label = `${raw}`;
             popup.setContent(`
               <div class="popup-content">

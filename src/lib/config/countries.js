@@ -66,6 +66,8 @@ export const countryConfigs = {
       "Days above 35°C": { times: ["Past", "2050", "2080"], hasScenarios: true },
       // Regular map layers
       "Water Stress": { times: ["Past", "2050", "2080"], hasScenarios: true },
+      // WMS raster from the cia_kenya GeoServer workspace (drought hazard theme)
+      "Desertification risk": { times: ["Past"], hasScenarios: false },
       // Impact theme — crop yield change layers (all share kenya_admin2_deltas.geojson).
       // Kenya bimodal rainy seasons: long rains (Mar–May plant, Jul–Aug harvest, main)
       // and short rains (Oct–Nov plant, Jan–Feb harvest, secondary ~5% of area).

@@ -24,7 +24,12 @@ export const hazardThemeLayerMap = {
     "Days above 35°C",
     ...(gridHazardLayersByTheme.heat || []),
   ],
-  drought: ["Dry spells", "Water Stress", ...(gridHazardLayersByTheme.drought || [])],
+  drought: [
+    "Dry spells",
+    "Water Stress",
+    "Desertification risk",
+    ...(gridHazardLayersByTheme.drought || []),
+  ],
   rain: [
     "Total rainfall",
     "Days above 20 mm",

@@ -18,6 +18,8 @@
  * @property {string} [legendUrl] - Full GetLegendGraphic URL (when type is 'wms')
  * @property {string} [attribution] - Map attribution string (when type is 'wms')
  * @property {{present?: string, absent?: string, none?: string}} [wmsValueLabels] - Popup labels for a binary GRAY_INDEX raster (1 = present, 0 = absent, no feature = none)
+ * @property {number[]} [wmsNoDataValues] - Raster values to treat as "no data" in the popup (e.g. a 128 nodata fill)
+ * @property {Record<string, string>} [wmsClassLabels] - Popup labels for a classified GRAY_INDEX raster, keyed by raster value (unlisted values fall back to "Class N")
  */
 
 /**
@@ -168,6 +170,32 @@ export const contextLayerConfigs = {
     wmsValueLabels: {
       present: "Suitable for tree cover (FMNR)",
       absent: "Not suitable",
+      none: "No data at this location",
+    },
+    getPopupContent: () => null,
+    clickThreshold: 0,
+    popupOptions: { maxWidth: 300, minWidth: 200, className: "compact-popup" },
+  },
+  "Desertification risk": {
+    name: "Desertification risk",
+    type: "wms",
+    wmsEndpoint:
+      "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_kenya/wms",
+    wmsLayer: "kenya_desertification_risk_v20260805",
+    // No named style yet — the GeoServer styling is still being made. An empty
+    // style uses the layer's default, so the map tiles and the GetLegendGraphic
+    // legend both pick up the new style automatically once it is published as
+    // the layer default. If it gets published under a name instead, set it here.
+    wmsStyle: "",
+    wmsVersion: "1.3.0",
+    legendUrl:
+      "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_kenya/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image%2Fpng&width=20&height=20&layer=kenya_desertification_risk_v20260805",
+    // Classified raster: GRAY_INDEX holds integer risk classes (2/3/4 observed);
+    // 128 is the nodata fill (per WCS DescribeCoverage). TODO: fill in the class
+    // names below once the styling/legend defines them (e.g. "1": "Low risk").
+    wmsNoDataValues: [128],
+    wmsClassLabels: {},
+    wmsValueLabels: {
       none: "No data at this location",
     },
     getPopupContent: () => null,
