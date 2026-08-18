@@ -165,21 +165,21 @@ export const layerInfo = {
   },
   'Potential evapotranspiration': {
     description: 'How much water the atmosphere could draw from a well-watered surface — a measure of atmospheric demand for water, not of the evaporation that actually happens. Higher values mean soils and crops lose more water for the same rainfall.',
-    projectionDescription: 'Projected change in potential evapotranspiration compared to the baseline period (1985–2014). An increase means the same rainfall goes less far.',
+    projectionDescription: 'Projected change in potential evapotranspiration compared to the baseline period (1985–2014).',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
   },
   'Soil moisture': {
     description: 'Water held in the soil and available to plants.',
-    projectionDescription: 'Projected change in soil moisture compared to the baseline period (1985–2014). A decrease means less water within reach of roots between rains.',
+    projectionDescription: 'Projected change in soil moisture compared to the baseline period (1985–2014).',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
   },
   'Runoff': {
     description: 'The share of rainfall that flows off the land into streams and rivers instead of soaking into the soil or evaporating. Both flood peaks and dry-season river levels depend on it.',
-    projectionDescription: 'Projected change in runoff compared to the baseline period (1985–2014), as a percentage of that baseline. A single cell on Lake Volta carries far more runoff than the rest of the country, so the map is scaled to the range the other cells occupy.',
+    projectionDescription: 'Projected change in runoff compared to the baseline period (1985–2014), as a percentage of that baseline.',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
