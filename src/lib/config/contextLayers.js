@@ -182,19 +182,19 @@ export const contextLayerConfigs = {
     wmsEndpoint:
       "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_kenya/wms",
     wmsLayer: "kenya_desertification_risk_v20260805",
-    // No named style yet — the GeoServer styling is still being made. An empty
-    // style uses the layer's default, so the map tiles and the GetLegendGraphic
-    // legend both pick up the new style automatically once it is published as
-    // the layer default. If it gets published under a name instead, set it here.
-    wmsStyle: "",
+    wmsStyle: "kenya_desertification_risk_raster",
     wmsVersion: "1.3.0",
     legendUrl:
       "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_kenya/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image%2Fpng&width=20&height=20&layer=kenya_desertification_risk_v20260805",
-    // Classified raster: GRAY_INDEX holds integer risk classes (2/3/4 observed);
-    // 128 is the nodata fill (per WCS DescribeCoverage). TODO: fill in the class
-    // names below once the styling/legend defines them (e.g. "1": "Low risk").
+    // Classified raster: GRAY_INDEX 1 (very high) → 4 (low), matching the SLD's
+    // ColorMap labels; 128 is the nodata fill (per WCS DescribeCoverage).
     wmsNoDataValues: [128],
-    wmsClassLabels: {},
+    wmsClassLabels: {
+      "1": "Very high desertification risk",
+      "2": "High desertification risk",
+      "3": "Moderate desertification risk",
+      "4": "Low desertification risk",
+    },
     wmsValueLabels: {
       none: "No data at this location",
     },

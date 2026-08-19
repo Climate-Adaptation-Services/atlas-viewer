@@ -116,10 +116,9 @@ export const layerInfo = {
     source: 'World Resources Institute, Aqueduct Floods',
     sourceUrl: 'https://www.wri.org/aqueduct'
   },
-  // TODO: add source/sourceUrl and the risk-class definitions once the
-  // GeoServer styling for this layer is finalised.
+  // TODO: add source/sourceUrl once the data provenance is documented.
   'Desertification risk': {
-    description: 'Risk of desertification — the degradation of land in dry areas, where soils and vegetation lose their productive capacity.'
+    description: 'Risk of desertification — the degradation of land in dry areas, where soils and vegetation lose their productive capacity. Shown in four classes, from low to very high risk.'
   },
   // Impact theme — per-crop+season entries are added dynamically below the
   // layerInfo object via the for-loop. See cropLayerNames.
