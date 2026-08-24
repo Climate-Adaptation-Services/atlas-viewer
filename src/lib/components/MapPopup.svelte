@@ -1,0 +1,913 @@
+<script>
+  import { onMount } from 'svelte';
+  import { datalaag, time, scenario, csvData, selectedLayer, opacityMap } from '$lib/stores.js';
+  import { loadCsvData } from '$lib/utils/csv.js';
+  import { isPointInCountry, isPointInGeometry } from '$lib/utils/geo.js';
+  import { prepareChartData, renderPopupChart } from '$lib/utils/popupChart.js';
+  import { isContextLayer, getContextLayerConfig } from '$lib/config/contextLayers.js';
+  import { getClimateLayerConfig } from '$lib/config/climateLayers.js';
+  import { isGeojsonLayer, isCropImpactLayer, getCropKey } from '$lib/config/geojsonLayers.js';
+  import { getCountryConfig } from '$lib/config/countries.js';
+  import { renderCropYieldChart, renderIndicatorChangeChart } from '$lib/utils/chart.js';
+  import {
+    isGridIndicatorLayer,
+    isGridIndicatorFeature,
+    getGridIndicatorCellData,
+    formatIndicatorValue,
+    formatIndicatorChange
+  } from '$lib/config/gridIndicatorLayers.js';
+  import Chart from 'chart.js/auto';
+
+  // Track map parameter changes
+  let currentDataLayer;
+  let currentTime;
+  let currentScenario;
+
+  // Props
+  export let map;        // Leaflet map instance
+  export let L;          // Leaflet library
+  export let wmsLayers;  // WMS layers
+  export let getLayerId; // Function to get layer ID
+  export let getLegendUnit; // Function to get legend unit
+  export let countryCode = 'zimbabwe' // default country
+
+  /** @type {any} */
+  let popup = null;
+
+  // Highlight state for the currently-selected admin2 polygon (crop popup).
+  // We remember the original style so we can restore it on close.
+  /** @type {any} */
+  let highlightedLayer = null;
+  /** @type {any} */
+  let highlightedOriginalStyle = null;
+
+  function clearAdminHighlight() {
+    if (highlightedLayer && highlightedOriginalStyle) {
+      try { highlightedLayer.setStyle(highlightedOriginalStyle); } catch { /* layer may be gone */ }
+    }
+    highlightedLayer = null;
+    highlightedOriginalStyle = null;
+  }
+
+  /** @param {any} subLayer */
+  function highlightAdmin(subLayer) {
+    if (!subLayer || typeof subLayer.setStyle !== 'function') return;
+    clearAdminHighlight();
+    const opts = subLayer.options || {};
+    highlightedOriginalStyle = {
+      weight: opts.weight ?? 0.3,
+      color: opts.color ?? '#666',
+      opacity: opts.opacity ?? 0.4
+    };
+    highlightedLayer = subLayer;
+    subLayer.setStyle({ weight: 3, color: '#017e9f', opacity: 1 });
+    if (typeof subLayer.bringToFront === 'function') {
+      try { subLayer.bringToFront(); } catch { /* ignore */ }
+    }
+  }
+
+  // Re-apply the highlight after BackgroundMap's opacity-driven restyle runs,
+  // otherwise dragging the slider while a popup is open briefly clears the
+  // border. Deferred to the next tick so it lands after the restyle.
+  $: if (highlightedLayer && $opacityMap !== undefined) {
+    const layerRef = highlightedLayer;
+    setTimeout(() => {
+      if (layerRef === highlightedLayer && typeof layerRef.setStyle === 'function') {
+        layerRef.setStyle({ weight: 3, color: '#017e9f', opacity: 1 });
+        if (typeof layerRef.bringToFront === 'function') {
+          try { layerRef.bringToFront(); } catch { /* ignore */ }
+        }
+      }
+    }, 0);
+  }
+
+  // Track previous store values
+  let previousDatalaag = '';
+  let previousScenario = '';
+  let previousTime = '';
+
+  // Check if current layer is a context layer or GeoJSON layer
+  $: isCurrentLayerContext = isContextLayer($selectedLayer);
+  $: isCurrentLayerGeojson = isGeojsonLayer($datalaag);
+
+  // Watch for store changes to reload CSV (only for standard climate layers)
+  $: if ($datalaag !== previousDatalaag || $scenario !== previousScenario || $time !== previousTime) {
+    previousDatalaag = $datalaag;
+    previousScenario = $scenario;
+    previousTime = $time;
+
+    // Only load CSV for standard climate layers (not context layers or GeoJSON layers)
+    if (!isCurrentLayerContext && !isCurrentLayerGeojson && typeof document !== 'undefined' && document.readyState === 'complete') {
+      csvData.set([]);
+      loadCsvData($datalaag, $scenario, countryCode);
+      if (popup && popup.isOpen()) {
+        const latlng = popup.getLatLng();
+        if (latlng) map.fire('click', { latlng });
+      }
+    }
+  }
+
+  // Initialize popup on mount
+  onMount(() => {
+    if (L && map) setupPopup();
+    // Only load CSV for standard climate layers
+    if (!isCurrentLayerContext && !isCurrentLayerGeojson) {
+      loadCsvData($datalaag, $scenario, countryCode);
+    }
+
+    return () => {
+      if (popup) popup.remove();
+    };
+  });
+
+  // Setup popup only once
+  $: if (L && map && !popup) setupPopup();
+
+  // Close popup on parameter changes
+  $: if (popup && ($datalaag !== currentDataLayer || $time !== currentTime || $scenario !== currentScenario)) {
+    currentDataLayer = $datalaag;
+    currentTime = $time;
+    currentScenario = $scenario;
+    popup.close();
+  }
+
+  /** Setup Leaflet popup and click handler */
+  function setupPopup() {
+    if (!map) return;
+
+    // Create popup with default options (will be updated per layer)
+    popup = L.popup({
+      autoPan: true
+    });
+    // Clear the admin2 polygon highlight whenever the popup is closed for any
+    // reason — X button, click outside, layer/crop/scenario switch.
+    popup.on('remove', clearAdminHighlight);
+
+    map.on('click', async function (e) {
+      const lat = e.latlng.lat.toFixed(6);
+      const lng = e.latlng.lng.toFixed(6);
+
+      // Check if current layer is a context layer
+      const layerConfig = getContextLayerConfig($selectedLayer);
+
+      // For context layers, show different popup content
+      if (layerConfig) {
+        // WMS-backed context layers: query the value via WMS GetFeatureInfo
+        // instead of scanning local GeoJSON features.
+        if (layerConfig.type === 'wms') {
+          const size = map.getSize();
+          const pt = map.latLngToContainerPoint(e.latlng);
+          const crs = map.options.crs; // L.CRS.EPSG3857
+          const sw = crs.project(map.getBounds().getSouthWest());
+          const ne = crs.project(map.getBounds().getNorthEast());
+          const params = new URLSearchParams({
+            service: 'WMS', version: '1.3.0', request: 'GetFeatureInfo',
+            layers: layerConfig.wmsLayer || '', query_layers: layerConfig.wmsLayer || '',
+            styles: layerConfig.wmsStyle || '', crs: 'EPSG:3857',
+            bbox: `${sw.x},${sw.y},${ne.x},${ne.y}`, // 3857 axis order: minx,miny,maxx,maxy
+            width: String(size.x), height: String(size.y),
+            i: String(Math.round(pt.x)), j: String(Math.round(pt.y)),
+            info_format: 'application/json'
+          });
+          const url = `${layerConfig.wmsEndpoint}?${params}`;
+
+          Object.assign(popup.options, layerConfig.popupOptions);
+          popup.setLatLng(e.latlng)
+            .setContent('<div class="popup-content">Loading…</div>')
+            .openOn(map);
+
+          try {
+            const resp = await fetch(url);
+            const data = await resp.json();
+            const props = data?.features?.[0]?.properties || {};
+            // GRAY_INDEX raster value. Binary layers (1 = present, 0 = absent)
+            // label via wmsValueLabels; classified layers via wmsClassLabels.
+            // wmsNoDataValues lists fill values to treat as "no data" (e.g. 128).
+            const raw = props.GRAY_INDEX;
+            const valueLabels = layerConfig.wmsValueLabels || {};
+            const classLabels = layerConfig.wmsClassLabels || null;
+            const noDataValues = layerConfig.wmsNoDataValues || [];
+            let label;
+            if (raw === undefined || raw === null || noDataValues.includes(Number(raw))) {
+              label = valueLabels.none || 'No data at this location';
+            } else if (classLabels) {
+              label = classLabels[String(raw)] || `Class ${raw}`;
+            } else if (raw === 1 || raw === '1') label = valueLabels.present || 'Present';
+            else if (raw === 0 || raw === '0') label = valueLabels.absent || 'Absent';
+            else label = `${raw}`;
+            popup.setContent(`
+              <div class="popup-content">
+                <div class="value-text"><strong>${label}</strong></div>
+              </div>`);
+          } catch (error) {
+            console.error('Error fetching WMS GetFeatureInfo:', error);
+            popup.setContent('<div class="popup-content">Error loading value</div>');
+          }
+          return;
+        }
+
+        // Find the clicked feature based on layer type
+        let clickedFeature = null;
+        let minDistance = Infinity;
+
+        map.eachLayer(layer => {
+          if (layer.feature) {
+            // Handle point geometries
+            if (layerConfig.type === 'point' && layer.feature.geometry.type === 'Point') {
+              const featureLatlng = L.latLng(
+                layer.feature.geometry.coordinates[1],
+                layer.feature.geometry.coordinates[0]
+              );
+              const distance = e.latlng.distanceTo(featureLatlng);
+
+              // Check if click is within threshold
+              if (distance < layerConfig.clickThreshold && distance < minDistance) {
+                minDistance = distance;
+                clickedFeature = layer.feature;
+              }
+            }
+            // Future: Add support for polygon geometries here
+            // if (layerConfig.type === 'polygon' && ...) { ... }
+          }
+        });
+
+        if (clickedFeature) {
+          // Use the layer-specific popup content generator
+          const content = layerConfig.getPopupContent(clickedFeature, $time, $scenario);
+
+          if (content) {
+            // Position popup at the feature's actual location, not the click location
+            const featureLatlng = L.latLng(
+              clickedFeature.geometry.coordinates[1],
+              clickedFeature.geometry.coordinates[0]
+            );
+
+            // Apply layer-specific popup options
+            Object.assign(popup.options, layerConfig.popupOptions);
+
+            popup.setLatLng(featureLatlng).setContent(content).openOn(map);
+          }
+        } else {
+          // No feature clicked, close popup if open
+          if (popup && popup.isOpen()) {
+            popup.close();
+          }
+        }
+        // Always return early for context layers to prevent climate popup from showing
+        return;
+      }
+
+      // --- Crop yield change popup (bar chart with p10-p90 error bars) ---
+      // Shows both emissions scenarios (Low + High) side-by-side for 2050 and
+      // 2080, so users see best/worst case in one glance regardless of the
+      // sidepanel scenario toggle. Lives before the climate branch so the
+      // wrong (rainfall) chart never renders for crop layers.
+      if (isCropImpactLayer($datalaag)) {
+        const cropKey = getCropKey($datalaag);
+
+        // Find the admin2 polygon under the click — iterate sub-layers of the
+        // active L.GeoJSON group. Use a cheap bounds prefilter, then a precise
+        // point-in-polygon test: bounding boxes of neighbouring admin2s overlap,
+        // so a bounds-only match can pick the wrong (often dataless) polygon and
+        // wrongly report "no yield projection available".
+        let clickedFeature = null;
+        /** @type {any} */
+        let clickedSubLayer = null;
+        map.eachLayer((/** @type {any} */ group) => {
+          if (clickedFeature || !group || typeof group.eachLayer !== 'function') return;
+          group.eachLayer((/** @type {any} */ sub) => {
+            if (clickedFeature || !sub.feature || !sub.getBounds) return;
+            try {
+              if (sub.getBounds().contains(e.latlng) &&
+                  isPointInGeometry(e.latlng, sub.feature.geometry)) {
+                clickedFeature = sub.feature;
+                clickedSubLayer = sub;
+              }
+            } catch { /* ignore */ }
+          });
+        });
+
+        if (!clickedFeature || !cropKey) {
+          clearAdminHighlight();
+          if (popup && popup.isOpen()) popup.close();
+          return;
+        }
+
+        const props = clickedFeature.properties || {};
+        /** @param {string} key */
+        const pick = (key) => {
+          const v = props[key];
+          return typeof v === 'number' && !isNaN(v) ? v : null;
+        };
+        /** @param {string} ssp @param {string} period */
+        const statBlock = (ssp, period) => ({
+          median: pick(`${cropKey}__${ssp}__${period}__median`),
+          p10:    pick(`${cropKey}__${ssp}__${period}__p10`),
+          p90:    pick(`${cropKey}__${ssp}__${period}__p90`)
+        });
+        const chartData = {
+          low_2050:  statBlock('ssp126', 'mid'),
+          high_2050: statBlock('ssp585', 'mid'),
+          low_2080:  statBlock('ssp126', 'late'),
+          high_2080: statBlock('ssp585', 'late')
+        };
+
+        const allNull = Object.values(chartData).every(
+          (b) => b.median == null && b.p10 == null && b.p90 == null
+        );
+        const adminName = props.NAME_2 && isNaN(Number(props.NAME_2))
+          ? `${props.NAME_2}${props.NAME_1 ? ', ' + props.NAME_1 : ''}`
+          : (props.NAME_1 || 'Selected area');
+
+        Object.assign(popup.options, { maxWidth: 400, minWidth: 340 });
+        popup.setLatLng(e.latlng);
+
+        if (allNull) {
+          popup.setContent(`
+            <div class="popup-content">
+              <div class="chart-title">${$datalaag}</div>
+              <div class="chart-subtitle">${adminName}</div>
+              <div style="padding: 14px 8px; color: #666; text-align: center;">
+                No yield projection available for this admin2.
+              </div>
+            </div>`).openOn(map);
+          return;
+        }
+
+        const chartId = 'crop-chart-' + Date.now();
+        popup.setContent(`
+          <div class="popup-content">
+            <div class="chart-title">${$datalaag}</div>
+            <div class="chart-subtitle">${adminName}</div>
+            <div style="width: 340px; height: 240px; margin: 8px auto 4px; position: relative;">
+              <canvas id="${chartId}" style="display:block;"></canvas>
+            </div>
+            <div style="font-size: 11px; color: #666; text-align: center; padding: 0 6px 4px;">
+              Bar height = ensemble median. Whiskers = p10–p90 model range.
+            </div>
+          </div>`).openOn(map);
+
+        setTimeout(() => {
+          const canvas = /** @type {HTMLCanvasElement|null} */ (document.getElementById(chartId));
+          if (canvas) renderCropYieldChart(canvas, chartData);
+        }, 100);
+
+        // Highlight the selected admin2 polygon so users see which area the
+        // chart describes. Replaces any previous highlight.
+        highlightAdmin(clickedSubLayer);
+        return;
+      }
+
+      // --- Gridded indicator popup (bar chart of the change per 0.5° cell) ---
+      // Same shape as the crop popup: both scenarios for both future periods, so
+      // the chart is independent of the sidepanel toggles. Placed before the
+      // climate branch so the rainfall chart never renders for these layers.
+      if (isGridIndicatorLayer($datalaag)) {
+        // Find the clicked cell. `isGridIndicatorFeature` keeps the hit test on
+        // grid cells: with several layers stacked, a bounds match could otherwise
+        // land on an admin2 polygon of the crop layer underneath.
+        /** @type {any} */
+        let clickedCell = null;
+        /** @type {any} */
+        let clickedCellLayer = null;
+        map.eachLayer((/** @type {any} */ group) => {
+          if (clickedCell || !group || typeof group.eachLayer !== 'function') return;
+          group.eachLayer((/** @type {any} */ sub) => {
+            if (clickedCell || !sub.feature || !sub.getBounds) return;
+            if (!isGridIndicatorFeature(sub.feature)) return;
+            try {
+              if (sub.getBounds().contains(e.latlng) &&
+                  isPointInGeometry(e.latlng, sub.feature.geometry)) {
+                clickedCell = sub.feature;
+                clickedCellLayer = sub;
+              }
+            } catch { /* ignore */ }
+          });
+        });
+
+        if (!clickedCell) {
+          clearAdminHighlight();
+          if (popup && popup.isOpen()) popup.close();
+          return;
+        }
+
+        const cellData = getGridIndicatorCellData($datalaag, clickedCell);
+        const unitSuffix = cellData?.unit ? ` ${cellData.unit}` : '';
+        // Runoff, solar PV and wind speed report their change as a percentage of
+        // the baseline, so the change carries a different unit than the level.
+        const changeSuffix = cellData?.changeUnit ? ` ${cellData.changeUnit}` : '';
+
+        // Same layout as the climate popup: the value for the current selection
+        // on top, the chart (or the pointer to the future periods) below.
+        Object.assign(popup.options, { maxWidth: 400, minWidth: 350 });
+        popup.setLatLng(e.latlng);
+
+        // On Past there is exactly one number per cell, so state it. Charting the
+        // four future bars there would answer a question the map isn't asking.
+        if ($time !== '2050' && $time !== '2080') {
+          const value = cellData?.hist;
+          popup.setContent(`
+            <div class="popup-content">
+              <div class="value-text"><strong>${value == null
+                ? 'No data available'
+                : `Historical: ${formatIndicatorValue(value, cellData?.decimals)}${unitSuffix}`}</strong></div>
+              <div class="csv-data">
+                <div style="padding: 10px; font-style: italic;">
+                  Explore the data for 2050 and 2080 to find out more about projected changes.
+                </div>
+              </div>
+            </div>`).openOn(map);
+          highlightAdmin(clickedCellLayer);
+          return;
+        }
+
+        const hasChange = cellData && Object.values(cellData.changes).some((v) => v != null);
+        if (!cellData || !hasChange) {
+          popup.setContent(`
+            <div class="popup-content">
+              <div class="value-text"><strong>No data available</strong></div>
+            </div>`).openOn(map);
+          highlightAdmin(clickedCellLayer);
+          return;
+        }
+
+        // Value for the active period + scenario, so the number on top matches
+        // what the map is showing; the chart adds the other three for context.
+        const activeChange =
+          cellData.changes[`${($scenario || 'High').toLowerCase() === 'low' ? 'low' : 'high'}_${$time}`];
+
+        const gridChartId = 'grid-chart-' + Date.now();
+        popup.setContent(`
+          <div class="popup-content">
+            <div class="value-text"><strong>${activeChange == null
+              ? 'No data available'
+              : `Change: ${formatIndicatorChange(activeChange, cellData.changeDecimals)}${changeSuffix}`}</strong></div>
+            <div class="csv-data">
+              <div class="chart-title">${$datalaag} projection</div>
+              <div class="chart-container" style="width: 380px; height: 250px; margin: 10px auto 5px; position: relative;">
+                <canvas id="${gridChartId}" style="display: block;"></canvas>
+              </div>
+            </div>
+          </div>`).openOn(map);
+
+        setTimeout(() => {
+          const canvas = /** @type {HTMLCanvasElement|null} */ (document.getElementById(gridChartId));
+          if (canvas) renderIndicatorChangeChart(canvas, cellData);
+        }, 100);
+
+        highlightAdmin(clickedCellLayer);
+        return;
+      }
+
+      // Validate point inside selected country
+      const isInside = isPointInCountry(e.latlng, countryCode);
+      console.log(isInside, 'check')
+      if (!isInside) {
+        if (map.hasLayer(popup)) popup.closePopup(popup);
+        return;
+      }
+
+      // Apply climate layer popup options
+      const climateConfig = getClimateLayerConfig($selectedLayer);
+      Object.assign(popup.options, climateConfig.popupOptions);
+
+      // Show loading popup
+      popup
+        .setLatLng(e.latlng)
+        .setContent(`<div class="popup-content">Loading data...</div>`)
+        .openOn(map);
+
+      // --- Special simplified popup for "Days above 35°C" (only for 2050/2080) ---
+      if ($datalaag === 'Days above 35°C' && ['2050', '2080'].includes($time || '')) {
+        const csvPoints = $csvData;
+        if (csvPoints && csvPoints.length > 0) {
+          // Find closest CSV point
+          const threshold = 0.5;
+          const nearbyPoints = csvPoints
+            .filter(point =>
+              Math.abs(parseFloat(point.lat) - parseFloat(lat)) < threshold &&
+              Math.abs(parseFloat(point.lon) - parseFloat(lng)) < threshold
+            )
+            .sort((a, b) => {
+              const distA = Math.hypot(parseFloat(a.lat) - lat, parseFloat(a.lon) - lng);
+              const distB = Math.hypot(parseFloat(b.lat) - lat, parseFloat(b.lon) - lng);
+              return distA - distB;
+            });
+
+          if (nearbyPoints.length > 0) {
+            const closestPoint = nearbyPoints[0];
+            const sameLocationPoints = csvPoints.filter(
+              point => point.lat === closestPoint.lat && point.lon === closestPoint.lon
+            );
+
+            // Get scenario code for filtering
+            const scenarioCode = $scenario === 'Low' ? 'ssp126' : 'ssp585';
+
+            // Debug: log unique period/scenario combos
+            const combos = [...new Set(sameLocationPoints.map(p => `${p.sceno}|${p.period_mean}`))];
+            console.log('[Days35] combos:', combos);
+
+            // Find values for hist, 2050, 2080
+            const histPoint = sameLocationPoints.find(p => String(p.sceno) === 'historical');
+            const p2050 = sameLocationPoints.find(p => String(p.sceno) === scenarioCode && String(p.period_mean).startsWith('2036'));
+            const p2080 = sameLocationPoints.find(p => String(p.sceno) === scenarioCode && String(p.period_mean).startsWith('2066'));
+
+            const histVal = histPoint ? parseFloat(histPoint.value) : null;
+            const val2050 = p2050 ? parseFloat(p2050.value) : null;
+            const val2080 = p2080 ? parseFloat(p2080.value) : null;
+
+            // If all values are 0, show a message instead of an empty chart
+            if ((histVal || 0) === 0 && (val2050 || 0) === 0 && (val2080 || 0) === 0) {
+              popup.setContent(`
+                <div class="popup-content">
+                  <div class="chart-title">Days above 35°C</div>
+                  <div style="text-align: center; padding: 15px 10px; color: #666;">
+                    No days above 35°C projected for this location.
+                  </div>
+                </div>`);
+              return;
+            }
+
+            const barChartId = 'bar-chart-' + Date.now();
+
+            popup.setContent(`
+              <div class="popup-content">
+                <div class="chart-title">Days above 35°C</div>
+                <div class="chart-subtitle">${$scenario} emissions scenario</div>
+                <div class="chart-container" style="width: 300px; height: 220px; margin: 10px auto 5px; position: relative;">
+                  <canvas id="${barChartId}" style="display: block;"></canvas>
+                </div>
+              </div>`);
+
+            setTimeout(() => {
+              const canvas = document.getElementById(barChartId);
+              if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                  new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                      labels: ['Historical', '2050', '2080'],
+                      datasets: [{
+                        data: [histVal, val2050, val2080],
+                        backgroundColor: ['#6b7280', '#f97316', '#ef4444'],
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                      }]
+                    },
+                    options: {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                          callbacks: {
+                            label: (ctx) => `${Math.round(ctx.raw)} days/year`
+                          }
+                        }
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          title: {
+                            display: true,
+                            text: 'days/year',
+                            font: { size: 12 }
+                          },
+                          ticks: {
+                            precision: 0
+                          }
+                        },
+                        x: {
+                          grid: { display: false }
+                        }
+                      }
+                    }
+                  });
+                }
+              }
+            }, 200);
+          } else {
+            popup.setContent(`<div class="popup-content">No data available for this location.</div>`);
+          }
+        } else {
+          popup.setContent(`<div class="popup-content">Loading data...</div>`);
+        }
+        return;
+      }
+
+      // Active layer ID for WMS request
+      const layerId = getLayerId($datalaag, $time, $scenario);
+
+      // Check if we're using a country with WMS or CSV only
+      const isWmsCountry = countryCode.toLowerCase() === 'zimbabwe';
+
+      // Prepare CSV data
+      const csvPoints = $csvData;
+      let csvContent = '';
+      let chartId = 'chart-' + Date.now();
+      let sameScenarioPoints = [];
+
+      if (csvPoints && csvPoints.length > 0) {
+
+        // Find closest CSV point
+        const threshold = 0.5; // degrees
+        const nearbyPoints = csvPoints
+          .filter(point =>
+            Math.abs(parseFloat(point.lat) - parseFloat(lat)) < threshold &&
+            Math.abs(parseFloat(point.lon) - parseFloat(lng)) < threshold
+          )
+          .sort((a, b) => {
+            const distA = Math.hypot(parseFloat(a.lat) - lat, parseFloat(a.lon) - lng);
+            const distB = Math.hypot(parseFloat(b.lat) - lat, parseFloat(b.lon) - lng);
+            return distA - distB;
+          });
+
+        if (nearbyPoints.length > 0) {
+          const closestPoint = nearbyPoints[0];
+          const sameLocationPoints = csvPoints.filter(
+            point => point.lat === closestPoint.lat && point.lon === closestPoint.lon
+          );
+
+          sameScenarioPoints = prepareChartData(sameLocationPoints);
+
+          const currentTime = $time || '';
+          const showChart = ['2050', '2080'].includes(currentTime);
+
+          if (showChart) {
+            csvContent = `
+              <div class="csv-data">
+                <div class="chart-title">${$datalaag} projection</div>
+                <div class="chart-subtitle">${$scenario} emissions scenario</div>
+                <div class="chart-container" style="width: 380px; height: 250px; margin: 10px auto 5px; position: relative;">
+                  <canvas id="${chartId}" style="display: block;"></canvas>
+                </div>
+                <div class="chart-legend">
+                  <span class="legend-item"><span class="legend-line"></span> Model average</span>
+                  <span class="legend-item"><span class="legend-shade"></span> Model range</span>
+                </div>
+              </div>`;
+          } else {
+            csvContent = `
+              <div class="csv-data">
+                <div style="padding: 10px; font-style: italic;">
+                  Explore the data for 2050 and 2080 to find out more about projected changes.
+                </div>
+              </div>`;
+          }
+        }
+      }
+
+      // For countries with WMS (Zimbabwe), fetch WMS value
+      if (isWmsCountry && layerId && wmsLayers[layerId]) {
+        const url = `https://dev.cas-zimbabwe.predictia.es/wms?REQUEST=GetFeatureInfo&SERVICE=WMS&VERSION=1.1.1&lon=${lng}&lat=${lat}&layer=${layerId}`;
+
+        try {
+          const response = await fetch(url);
+          const data = await response.json();
+
+          let valueText = 'No data available';
+          const value = data[layerId];
+          if (value !== undefined) {
+            const isHistorical = !['2050', '2080'].includes($time || '');
+            const formattedValue = value > 0 && !isHistorical
+              ? `+${Math.round(value * 10) / 10}`
+              : `${Math.round(value * 10) / 10}`;
+
+            valueText = isHistorical
+              ? `Historical: ${formattedValue} ${getLegendUnit($datalaag)}`
+              : `Change: ${formattedValue} ${getLegendUnit($datalaag)}`;
+          }
+
+          // Render popup content
+          popup.setContent(`
+            <div class="popup-content">
+              <div class="value-text"><strong>${valueText}</strong></div>
+              ${csvContent}
+            </div>`);
+
+          // Render chart after DOM updates
+          if (['2050', '2080'].includes($time || '') && csvContent && chartId) {
+            setTimeout(() => {
+              const chartElement = document.getElementById(chartId);
+              if (chartElement) renderPopupChart(chartElement, sameScenarioPoints);
+            }, 200);
+          }
+        } catch (error) {
+          console.error('Error fetching WMS value:', error);
+          popup.setContent(`
+            <div class="popup-content">
+              Error loading value
+              ${csvContent}
+            </div>`);
+        }
+      } else {
+        // For Kenya or if no WMS layer is available - extract value from GeoJSON or CSV
+        let valueText = 'No data available';
+        let value;
+        
+        // First try to get value from GeoJSON layer at this point
+        try {
+          // Find all GeoJSON layers
+          let geojsonLayers = [];
+          map.eachLayer(layer => {
+            if (layer.feature) {
+              geojsonLayers.push(layer);
+            }
+          });
+          
+          if (geojsonLayers.length > 0) {
+            const point = e.latlng;
+            
+            // Loop through GeoJSON layers to find the one containing the clicked point
+            for (const layer of geojsonLayers) {
+              // Method 1: Using getBounds if available
+              try {
+                if (layer.getBounds && layer.getBounds().contains(point)) {
+                  if (layer.feature?._value !== undefined) {
+                    value = layer.feature._value;
+                  } else if (layer.feature?.properties?.value !== undefined) {
+                    value = layer.feature.properties.value;
+                  }
+                }
+              } catch (err) { /* ignore errors */ }
+              
+              // We can only use getBounds method for checking if point is in polygon
+              // since isPointInPolygon is not available outside geo.js
+              
+              // If we found a value, no need to check other layers
+              if (value !== undefined) break;
+            }
+          }
+        } catch (err) {
+          console.log('Error accessing GeoJSON value:', err);
+        }
+        
+        // Fallback to nearest CSV point if GeoJSON value not found
+        if (value === undefined && csvPoints && csvPoints.length > 0) {
+          const threshold = 0.05; // Smaller threshold for more accurate point matching
+          const nearestPoint = csvPoints
+            .filter(point => 
+              Math.abs(parseFloat(point.lat) - parseFloat(String(lat))) < threshold &&
+              Math.abs(parseFloat(point.lon) - parseFloat(String(lng))) < threshold
+            )
+            .sort((a, b) => {
+              const distA = Math.hypot(parseFloat(a.lat) - parseFloat(String(lat)), parseFloat(a.lon) - parseFloat(String(lng)));
+              const distB = Math.hypot(parseFloat(b.lat) - parseFloat(String(lat)), parseFloat(b.lon) - parseFloat(String(lng)));
+              return distA - distB;
+            })[0];
+            
+          if (nearestPoint && nearestPoint.value !== undefined) {
+            value = parseFloat(nearestPoint.value);
+            console.log('Using CSV value:', value);
+          }
+        }
+        
+        // Format the value if found
+        if (value !== undefined) {
+          const isHistorical = !['2050', '2080'].includes($time || '');
+          // Round to whole numbers for precipitation and days above 35, otherwise use 1 decimal place
+          const useWholeNumbers = $datalaag.toLowerCase().includes('total') || $datalaag === 'Days above 35°C';
+          const roundedValue = useWholeNumbers ? Math.round(value) : Math.round(value * 10) / 10;
+          
+          const formattedValue = value > 0 && !isHistorical
+            ? `+${roundedValue}`
+            : `${roundedValue}`;
+
+          valueText = isHistorical
+            ? `Historical: ${formattedValue} ${getLegendUnit($datalaag)}`
+            : `Change: ${formattedValue} ${getLegendUnit($datalaag)}`;
+        }
+        
+        // Render popup content with same format as Zimbabwe
+        popup.setContent(`
+          <div class="popup-content">
+            <div class="value-text"><strong>${valueText}</strong></div>
+            ${csvContent}
+          </div>`);
+        
+        // Render chart after DOM updates - exactly like in the Zimbabwe case
+        if (['2050', '2080'].includes($time || '') && csvContent && chartId) {
+          setTimeout(() => {
+            const chartElement = document.getElementById(chartId);
+            if (chartElement) renderPopupChart(chartElement, sameScenarioPoints);
+          }, 200);
+        }
+      }
+    });
+  }
+</script>
+
+<style>
+  :global(.leaflet-popup-content) {
+    padding: 5px 10px;
+    margin: 5px 0;
+  }
+
+  /* Wide popup - for content that needs more space (e.g., charts) */
+  :global(.wide-popup .leaflet-popup-content) {
+    margin: 8px 0;
+    width: 370px !important;
+  }
+
+  /* Compact popup - for simple content */
+  :global(.compact-popup .leaflet-popup-content) {
+    margin: 8px 0;
+    width: auto !important;
+  }
+
+  /* Responsive width for mobile */
+  @media (max-width: 768px) {
+    /* Compact popup narrower on mobile */
+    :global(.compact-popup .leaflet-popup-content) {
+      max-width: 280px !important;
+      min-width: 180px !important;
+    }
+
+    /* Wide popup responsive on mobile but stays usable */
+    :global(.wide-popup .leaflet-popup-content) {
+      width: 90vw !important;
+      max-width: 370px !important;
+    }
+  }
+
+  :global(.atlas-popup) {
+    font-size: 14px;
+    color: #333;
+  }
+
+  :global(.chart-container) {
+    margin: 10px auto;
+    width: 300px !important;
+    height: 250px !important;
+  }
+
+  :global(.popup-content) {
+    padding: 5px;
+    font-size: 14px;
+  }
+
+  :global(.value-text) {
+    margin-bottom: 8px;
+    font-size: 15px;
+    text-align: center;
+  }
+
+  :global(.chart-title) {
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 2px;
+    font-size: 15px;
+  }
+
+  :global(.chart-subtitle) {
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #333;
+    font-style: italic;
+  }
+
+  :global(.chart-legend) {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    font-size: 12px;
+    color: #333;
+    margin-bottom: 8px;
+  }
+
+  :global(.legend-item) {
+    display: flex;
+    align-items: center;
+  }
+
+  :global(.legend-line) {
+    display: inline-block;
+    width: 20px;
+    height: 3px;
+    background-color: rgb(75, 192, 192);
+    margin-right: 5px;
+  }
+
+  :global(.legend-shade) {
+    display: inline-block;
+    width: 20px;
+    height: 10px;
+    background-color: rgba(75, 192, 192, 0.2);
+    margin-right: 5px;
+  }
+
+  :global(.csv-data) {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+    font-size: 13px;
+  }
+
+  :global(.chart-container) {
+    margin-top: 15px;
+    width: 250px;
+    height: 200px;
+  }
+</style>

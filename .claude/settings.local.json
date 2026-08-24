@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:kenya-csv-data.s3.eu-north-1.amazonaws.com)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(npm run dev)",
+      "WebFetch(domain:atlas-viewer.vercel.app)",
+      "PowerShell(winget --version)",
+      "PowerShell(winget install --id Python.Python.3.12 --accept-source-agreements --accept-package-agreements --silent --scope user)"
+    ]
+  }
+}
