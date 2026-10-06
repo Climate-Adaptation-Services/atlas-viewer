@@ -148,7 +148,7 @@
       const lng = e.latlng.lng.toFixed(6);
 
       // Check if current layer is a context layer
-      const layerConfig = getContextLayerConfig($selectedLayer);
+      const layerConfig = getContextLayerConfig($selectedLayer, countryCode);
 
       // For context layers, show different popup content
       if (layerConfig) {

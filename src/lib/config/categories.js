@@ -25,9 +25,9 @@ export const hazardThemeLayerMap = {
     ...(gridHazardLayersByTheme.heat || []),
   ],
   drought: [
+    "Desertification risk",
     "Dry spells",
     "Water Stress",
-    "Desertification risk",
     ...(gridHazardLayersByTheme.drought || []),
   ],
   rain: [

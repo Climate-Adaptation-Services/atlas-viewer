@@ -83,7 +83,7 @@
   // Derived state
   $: isShowingChange = time === "2050" || time === "2080"
   $: displayedLayerName = abbreviateLayerName(layerName)
-  $: layerInfoData = getLayerInfo(layerName)
+  $: layerInfoData = getLayerInfo(layerName, countryCode)
 
   // Get scenario label for display
   $: scenarioLabel = scenario === "Low" ? "SSP1-2.6" : "SSP5-8.5"

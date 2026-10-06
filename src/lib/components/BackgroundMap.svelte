@@ -129,7 +129,7 @@ function getLayerId(datalaag, time, scenario) {
         name,
         dataType: isContextLayer(name) ? 'context' : countryConfig?.dataType,
         legendLayerId: getLayerId(name, lTime, lScenario),
-        legendUrl: getContextLayerConfig(name)?.legendUrl ?? null,
+        legendUrl: getContextLayerConfig(name, countryCode)?.legendUrl ?? null,
         time: lTime,
         scenario: lScenario,
       };
@@ -377,7 +377,7 @@ function getLayerId(datalaag, time, scenario) {
    */
   async function loadContextLayer(layerName, time, scenario) {
     if (!layerName || !countryConfig) return null;
-    const layerConfig = getContextLayerConfig(layerName);
+    const layerConfig = getContextLayerConfig(layerName, countryCode);
 
     // WMS context overlays (e.g. Bunds, Tree cover) — raster tiles.
     if (layerConfig?.type === "wms") {

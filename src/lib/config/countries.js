@@ -112,6 +112,9 @@ export const countryConfigs = {
       // scripts/build_ghana_grid_indicators.py). Past = absolute value,
       // 2050/2080 = change vs 1985-2014, both SSPs.
       ...gridIndicatorAvailability(),
+      // WMS raster from the cia_ghana GeoServer workspace (drought hazard theme);
+      // same layer name as Kenya, resolved per country via byCountry in contextLayers.
+      "Desertification risk": { times: ["Past"], hasScenarios: false },
       // Context — urban population (Africapolis agglomerations, 2025 + 2050).
       "Urban population": { times: ["Past", "2050"], hasScenarios: false },
       // Context — agro-ecological zones (8 zones, colored on the `Name` property).

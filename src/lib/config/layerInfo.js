@@ -16,6 +16,8 @@
  * @property {string} [baseline] - Baseline period
  * @property {string} [historicalResolution] - Spatial resolution for historical data
  * @property {string} [projectionResolution] - Spatial resolution for projection data
+ * @property {string} [resolution] - Fallback resolution (used when same for both periods)
+ * @property {Record<string, Partial<LayerInfo>>} [byCountry] - Per-country overrides (lowercase country code), merged over the base entry by getLayerInfo
  */
 
 /**
@@ -29,7 +31,7 @@ export const layerInfo = {
     projectionDescription: 'Projected change in average maximum temperature compared to the baseline period (1981–2010).',
     historicalSource: 'ERA5',
     historicalSourceUrl: 'https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels',
-    projectionSource: 'ISIMIP3B',
+    projectionSource: 'ISIMIP3b',
     projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
     historicalResolution: '0.25°',
@@ -40,7 +42,7 @@ export const layerInfo = {
     projectionDescription: 'Projected change in average minimum temperature compared to the baseline period (1981–2010).',
     historicalSource: 'ERA5',
     historicalSourceUrl: 'https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels',
-    projectionSource: 'ISIMIP3B',
+    projectionSource: 'ISIMIP3b',
     projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
     historicalResolution: '0.25°',
@@ -51,7 +53,7 @@ export const layerInfo = {
     projectionDescription: 'Projected change in average temperature compared to the baseline period (1981–2010).',
     historicalSource: 'ERA5',
     historicalSourceUrl: 'https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels',
-    projectionSource: 'ISIMIP3B',
+    projectionSource: 'ISIMIP3b',
     projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
     historicalResolution: '0.25°',
@@ -64,7 +66,7 @@ export const layerInfo = {
     projectionDescription: 'Projected change in yearly rainfall compared to the baseline period (1981–2010).',
     historicalSource: 'CHIRPSv2',
     historicalSourceUrl: 'https://www.chc.ucsb.edu/data/chirps',
-    projectionSource: 'ISIMIP3B',
+    projectionSource: 'ISIMIP3b',
     projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
     historicalResolution: '0.05°',
@@ -75,7 +77,7 @@ export const layerInfo = {
     projectionDescription: 'Projected change in the number of days per year with more than 20mm rainfall compared to the baseline period (1981–2010).',
     historicalSource: 'CHIRPSv2',
     historicalSourceUrl: 'https://www.chc.ucsb.edu/data/chirps',
-    projectionSource: 'ISIMIP3B',
+    projectionSource: 'ISIMIP3b',
     projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
     historicalResolution: '0.05°',
@@ -86,7 +88,7 @@ export const layerInfo = {
     projectionDescription: 'Projected change in the number of periods per year with 5 consecutive days without significant rainfall compared to the baseline period (1981–2010).',
     historicalSource: 'CHIRPSv2',
     historicalSourceUrl: 'https://www.chc.ucsb.edu/data/chirps',
-    projectionSource: 'ISIMIP3B',
+    projectionSource: 'ISIMIP3b',
     projectionSourceUrl: 'https://www.isimip.org/',
     baseline: '1981–2010',
     historicalResolution: '0.05°',
@@ -119,7 +121,14 @@ export const layerInfo = {
   'Desertification risk': {
     description: 'Desertification Vulnerability is assessed using a relative vulnerability index that combines 11 environmental and human-pressure variables within a Multi-Criteria Evaluation (MCE) framework, implemented on a 10-metre analysis grid. The variables include Aridity Index, Vegetation Health (NDVI), Land Use/Land Cover (LULC), Livestock Density, Population Density, Soil Quality (TGSI), Temperature, Soil Moisture, Slope, Settlement Proximity, and Road Proximity.',
     source: 'Kenya Desertification Vulnerability Model, developed by Mohammed Hamed Hassan Abubakr (August 2026)',
-    resolution: '10 m'
+    resolution: '10 m',
+    byCountry: {
+      // Same model set-up and 4-class scheme as Kenya, published to the
+      // cia_ghana workspace as ghana_desertification_risk_v20260928.
+      ghana: {
+        source: 'Ghana Desertification Vulnerability Model, developed by Mohammed Hamed Hassan Abubakr (September 2026)'
+      }
+    }
   },
   // Impact theme — per-crop+season entries are added dynamically below the
   // layerInfo object via the for-loop. See cropLayerNames.
@@ -144,12 +153,13 @@ export const layerInfo = {
   },
 
   // Gridded indicator layers (0.5° impact data delivery)
-  // NOTE: source/sourceUrl are deliberately absent — the delivery ships no
-  // provenance metadata and the exact model chain is unconfirmed. Fill them in
-  // once known, like the units in gridIndicatorLayers.js.
+  // Source confirmed 2026-08: ISIMIP3b, for the historical slice as well as the
+  // projections, so a single `source` covers both periods.
   'Wind speed': {
     description: 'Average wind speed at 100 m above the ground — the hub height of a utility-scale turbine, so this reads as a wind-energy resource rather than as wind at the surface.',
     projectionDescription: 'Projected change in average wind speed at 100 m, as a percentage of the 1985-2014 baseline.',
+    source: 'ISIMIP3b',
+    sourceUrl: 'https://www.isimip.org/',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
@@ -157,6 +167,8 @@ export const layerInfo = {
   'Heat stress': {
     description: 'Wet Bulb Globe Temperature (WBGT), a heat-stress index that combines temperature, humidity, wind and solar radiation into the heat load a working body actually experiences. Higher values mean less of the day can be worked safely.',
     projectionDescription: 'Projected change in Wet Bulb Globe Temperature (WBGT) compared to the baseline period (1985–2014). WBGT combines temperature, humidity, wind and solar radiation into the heat load a working body actually experiences.',
+    source: 'ISIMIP3b',
+    sourceUrl: 'https://www.isimip.org/',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
@@ -164,6 +176,8 @@ export const layerInfo = {
   'Tropical nights': {
     description: 'Nights per year that stay warm — conventionally a night whose minimum temperature does not fall below 20 °C, giving the body no chance to cool down after a hot day. Southern Ghana already sits close to every night of the year, so the room to rise is mostly in the north.',
     projectionDescription: 'Projected change in the number of warm nights per year compared to the baseline period (1985–2014). Cells already near 365 nights cannot rise further, so the increase concentrates in the north.',
+    source: 'ISIMIP3b',
+    sourceUrl: 'https://www.isimip.org/',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
@@ -171,6 +185,8 @@ export const layerInfo = {
   'Potential evapotranspiration': {
     description: 'How much water the atmosphere could draw from a well-watered surface — a measure of atmospheric demand for water, not of the evaporation that actually happens. Higher values mean soils and crops lose more water for the same rainfall.',
     projectionDescription: 'Projected change in potential evapotranspiration compared to the baseline period (1985–2014).',
+    source: 'ISIMIP3b',
+    sourceUrl: 'https://www.isimip.org/',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
@@ -178,6 +194,8 @@ export const layerInfo = {
   'Soil moisture': {
     description: 'Water held in the soil and available to plants.',
     projectionDescription: 'Projected change in soil moisture compared to the baseline period (1985–2014).',
+    source: 'ISIMIP3b',
+    sourceUrl: 'https://www.isimip.org/',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
@@ -185,6 +203,8 @@ export const layerInfo = {
   'Runoff': {
     description: 'The share of rainfall that flows off the land into streams and rivers instead of soaking into the soil or evaporating. Both flood peaks and dry-season river levels depend on it.',
     projectionDescription: 'Projected change in runoff compared to the baseline period (1985–2014), as a percentage of that baseline.',
+    source: 'ISIMIP3b',
+    sourceUrl: 'https://www.isimip.org/',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
@@ -192,6 +212,8 @@ export const layerInfo = {
   'Tree cover': {
     description: 'Modelled share of the area covered by tree canopy.',
     projectionDescription: 'Projected change in tree cover compared to the baseline period (1985–2014), in percentage points.',
+    source: 'ISIMIP3b',
+    sourceUrl: 'https://www.isimip.org/',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
@@ -199,6 +221,8 @@ export const layerInfo = {
   'Solar PV potential': {
     description: 'Electricity a photovoltaic installation yields per year per square metre of panel. It falls when it gets hotter, because panels lose efficiency, and when it gets cloudier.',
     projectionDescription: 'Projected change in photovoltaic yield compared to the baseline period (1985–2014), as a percentage of that baseline.',
+    source: 'ISIMIP3b',
+    sourceUrl: 'https://www.isimip.org/',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
@@ -279,6 +303,8 @@ for (const [name, intensity] of Object.entries(WORK_INTENSITIES)) {
   layerInfo[name] = {
     description: `The share of the working day that can still be worked at ${intensity} physical intensity before heat forces rest. It follows from heat stress: as Wet Bulb Globe Temperature rises, more of the day has to be spent recovering. Each intensity is drawn on its own colour scale, so shades are not comparable between the four layers.`,
     projectionDescription: `Projected change in the share of the working day that can be worked at ${intensity} physical intensity, in percentage points compared to the baseline period (1985–2014).`,
+    source: 'ISIMIP3b',
+    sourceUrl: 'https://www.isimip.org/',
     baseline: '1985–2014',
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
@@ -286,10 +312,15 @@ for (const [name, intensity] of Object.entries(WORK_INTENSITIES)) {
 }
 
 /**
- * Get information for a specific layer
+ * Get information for a specific layer. When a country code is given and the
+ * entry has a `byCountry` override for it, that override is merged over the base.
  * @param {string} layerName - Name of the layer
+ * @param {string} [countryCode] - Active country code (case-insensitive)
  * @returns {LayerInfo|null}
  */
-export function getLayerInfo(layerName) {
-  return layerInfo[layerName] || null;
+export function getLayerInfo(layerName, countryCode) {
+  const base = layerInfo[layerName];
+  if (!base) return null;
+  const override = countryCode ? base.byCountry?.[countryCode.toLowerCase()] : null;
+  return override ? { ...base, ...override } : base;
 }

@@ -20,6 +20,7 @@
  * @property {{present?: string, absent?: string, none?: string}} [wmsValueLabels] - Popup labels for a binary GRAY_INDEX raster (1 = present, 0 = absent, no feature = none)
  * @property {number[]} [wmsNoDataValues] - Raster values to treat as "no data" in the popup (e.g. a 128 nodata fill)
  * @property {Record<string, string>} [wmsClassLabels] - Popup labels for a classified GRAY_INDEX raster, keyed by raster value (unlisted values fall back to "Class N")
+ * @property {Record<string, Partial<ContextLayerConfig>>} [byCountry] - Per-country overrides (keyed by lowercase country code) merged over the base config by getContextLayerConfig. Lets one layer name point at a different WMS layer per country.
  */
 
 /**
@@ -179,6 +180,8 @@ export const contextLayerConfigs = {
   "Desertification risk": {
     name: "Desertification risk",
     type: "wms",
+    // Base config = Kenya. Ghana overrides the endpoint/layer below (byCountry);
+    // both rasters share the same 4-class scheme and SLD colours.
     wmsEndpoint:
       "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_kenya/wms",
     wmsLayer: "kenya_desertification_risk_v20260805",
@@ -189,6 +192,19 @@ export const contextLayerConfigs = {
     // Classified raster: GRAY_INDEX 1 (very high) → 4 (low), matching the SLD's
     // ColorMap labels; 128 is the nodata fill (per WCS DescribeCoverage).
     wmsNoDataValues: [128],
+    byCountry: {
+      ghana: {
+        wmsEndpoint:
+          "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_ghana/wms",
+        wmsLayer: "ghana_desertification_risk_v20260928",
+        wmsStyle: "ghana_desertification_risk_raster",
+        legendUrl:
+          "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_ghana/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image%2Fpng&width=20&height=20&layer=ghana_desertification_risk_v20260928",
+        // Ghana raster (EPSG:32631, ~10 m) uses 0 as its nodata fill, not 128
+        // (per WCS DescribeCoverage nilValue).
+        wmsNoDataValues: [0],
+      },
+    },
     wmsClassLabels: {
       "1": "Very high desertification risk",
       "2": "High desertification risk",
@@ -266,10 +282,17 @@ export function isContextLayer(layerName) {
 }
 
 /**
- * Get configuration for a context layer
+ * Get configuration for a context layer. When a country code is given and the
+ * layer defines a `byCountry` entry for it, that override is merged over the
+ * base config (so e.g. Kenya and Ghana can share one "Desertification risk"
+ * layer name but point at different WMS layers).
  * @param {string} layerName - Name of the layer
+ * @param {string} [countryCode] - Active country code (case-insensitive)
  * @returns {ContextLayerConfig|null}
  */
-export function getContextLayerConfig(layerName) {
-  return contextLayerConfigs[layerName] || null
+export function getContextLayerConfig(layerName, countryCode) {
+  const base = contextLayerConfigs[layerName]
+  if (!base) return null
+  const override = countryCode ? base.byCountry?.[countryCode.toLowerCase()] : null
+  return override ? { ...base, ...override } : base
 }

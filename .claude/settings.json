@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:confluence.ecmwf.int)",
+      "PowerShell($g = Get-Content \"build\\\\ghana_grid\\\\ghana_grid_wbgt.geojson\" -Raw | ConvertFrom-Json; $f = $g.features; \"cells: $\\($f.Count\\)\"; $props = $f[0].psobject.Properties.Name; \"sample keys:\"; \\($f[0].properties.psobject.Properties.Name -join ', '\\))"
+    ]
+  }
+}
