@@ -130,6 +130,7 @@ function getLayerId(datalaag, time, scenario) {
         dataType: isContextLayer(name) ? 'context' : countryConfig?.dataType,
         legendLayerId: getLayerId(name, lTime, lScenario),
         legendUrl: getContextLayerConfig(name, countryCode)?.legendUrl ?? null,
+        legendItems: getContextLayerConfig(name, countryCode)?.legendItems ?? null,
         time: lTime,
         scenario: lScenario,
       };

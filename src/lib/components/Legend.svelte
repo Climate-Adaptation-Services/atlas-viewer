@@ -3,7 +3,7 @@
 
   /**
    * One descriptor per active layer.
-   * @type {Array<{name: string, dataType: string, legendLayerId: string|null, legendUrl: string|null, time: string, scenario: string}>}
+   * @type {Array<{name: string, dataType: string, legendLayerId: string|null, legendUrl: string|null, legendItems?: Array<{color: string, label: string}>|null, time: string, scenario: string}>}
    */
   export let layers = []
   /** Shared WMS endpoint for the current country (for GetLegendGraphic images). @type {string|null} */
@@ -18,6 +18,7 @@
         dataType={layer.dataType}
         legendLayerId={layer.legendLayerId}
         legendUrl={layer.legendUrl}
+        legendItems={layer.legendItems ?? null}
         time={layer.time}
         scenario={layer.scenario}
         {wmsEndpoint}
