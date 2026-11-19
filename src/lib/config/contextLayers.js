@@ -199,12 +199,11 @@ export const contextLayerConfigs = {
           "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_ghana/wms",
         wmsLayer: "ghana_desertification_risk_v20260928",
         wmsStyle: "ghana_desertification_risk_raster",
-        // The Ghana raster only holds values 1–3 (sampled on a grid across the
-        // country: 1 in the northern savanna, 2 almost everywhere else, 3 in
-        // patches of Ashanti/Eastern — the pattern of the report's High /
-        // Moderate / Low map). The server SLD labels those 1 = "Very high" …
-        // 4 = "Low", so its GetLegendGraphic is off by one. Draw the legend
-        // ourselves and label the three classes High / Moderate / Low.
+        // The Ghana raster only holds values 1–3 (verified by sampling a full
+        // GetMap render: #C0392B, #FFAA01, #A3FF74 — the SLD's 4th colour never
+        // appears). The server SLD labels those 1 = "Very high" … 4 = "Low", so
+        // its GetLegendGraphic is off by one. Draw the legend ourselves instead
+        // and label the three classes High / Moderate / Low (colours as drawn).
         legendUrl: null,
         legendItems: [
           { color: "#C0392B", label: "High desertification risk" },
