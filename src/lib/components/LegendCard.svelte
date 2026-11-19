@@ -21,6 +21,8 @@
   export let wmsEndpoint = null
   /** @type {string|null} */
   export let legendUrl = null
+  /** Viewer-drawn legend rows for WMS context layers; wins over legendUrl. @type {Array<{color: string, label: string}>|null} */
+  export let legendItems = null
   /** This layer's own time period. @type {string} */
   export let time = "Past"
   /** This layer's own emissions scenario. @type {string} */
@@ -43,7 +45,10 @@
       // but in viewport coordinates so overflow can't clip it.
       const right = Math.round(window.innerWidth - r.left + 12)
       const bottom = Math.round(window.innerHeight - r.bottom)
-      infoPopupStyle = `right:${right}px; bottom:${bottom}px;`
+      // Cap the height at the space above the anchor so a long description
+      // scrolls instead of running off the top of the screen.
+      const maxHeight = Math.max(160, Math.round(r.bottom - 12))
+      infoPopupStyle = `right:${right}px; bottom:${bottom}px; max-height:${maxHeight}px; overflow-y:auto; box-sizing:border-box;`
     }
   }
 
@@ -304,8 +309,19 @@
       </div>
     {/if}
 
-    <!-- WMS-backed Context Layer Legend (GetLegendGraphic image) -->
-    {#if dataType === "context" && legendUrl}
+    <!-- WMS-backed Context Layer Legend: viewer-drawn rows when configured
+         (colours/labels guaranteed to match the map), else the server's
+         GetLegendGraphic image -->
+    {#if dataType === "context" && legendItems && legendItems.length}
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 4px 0;">
+        {#each legendItems as item}
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="color-box" style="background-color: {item.color}; flex-shrink: 0;"></div>
+            <span style="font-size: 13px; line-height: 1.2;">{item.label}</span>
+          </div>
+        {/each}
+      </div>
+    {:else if dataType === "context" && legendUrl}
       <img class="legend-image-context" alt="Legend for {layerName}" src={legendUrl} />
     {/if}
 

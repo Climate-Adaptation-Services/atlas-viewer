@@ -15,7 +15,8 @@
  * @property {string} [wmsLayer] - WMS layer name (when type is 'wms')
  * @property {string} [wmsStyle] - WMS style name (when type is 'wms')
  * @property {string} [wmsVersion] - WMS version, e.g. '1.3.0' (when type is 'wms')
- * @property {string} [legendUrl] - Full GetLegendGraphic URL (when type is 'wms')
+ * @property {string|null} [legendUrl] - Full GetLegendGraphic URL (when type is 'wms')
+ * @property {Array<{color: string, label: string}>} [legendItems] - Legend drawn by the viewer itself (colour swatch + label). Takes precedence over legendUrl; use it when the server's GetLegendGraphic does not match what the map actually draws.
  * @property {string} [attribution] - Map attribution string (when type is 'wms')
  * @property {{present?: string, absent?: string, none?: string}} [wmsValueLabels] - Popup labels for a binary GRAY_INDEX raster (1 = present, 0 = absent, no feature = none)
  * @property {number[]} [wmsNoDataValues] - Raster values to treat as "no data" in the popup (e.g. a 128 nodata fill)
@@ -189,8 +190,8 @@ export const contextLayerConfigs = {
     wmsVersion: "1.3.0",
     legendUrl:
       "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_kenya/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image%2Fpng&width=20&height=20&layer=kenya_desertification_risk_v20260805",
-    // Classified raster: GRAY_INDEX 1 (very high) → 4 (low), matching the SLD's
-    // ColorMap labels; 128 is the nodata fill (per WCS DescribeCoverage).
+    // Classified raster: GRAY_INDEX 2 (high) → 4 (low), matching the Kenya SLD's
+    // three ColorMap entries; 128 is the nodata fill (per WCS DescribeCoverage).
     wmsNoDataValues: [128],
     byCountry: {
       ghana: {
@@ -198,15 +199,29 @@ export const contextLayerConfigs = {
           "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_ghana/wms",
         wmsLayer: "ghana_desertification_risk_v20260928",
         wmsStyle: "ghana_desertification_risk_raster",
-        legendUrl:
-          "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_ghana/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image%2Fpng&width=20&height=20&layer=ghana_desertification_risk_v20260928",
+        // The Ghana raster only holds values 1–3 (sampled on a grid across the
+        // country: 1 in the northern savanna, 2 almost everywhere else, 3 in
+        // patches of Ashanti/Eastern — the pattern of the report's High /
+        // Moderate / Low map). The server SLD labels those 1 = "Very high" …
+        // 4 = "Low", so its GetLegendGraphic is off by one. Draw the legend
+        // ourselves and label the three classes High / Moderate / Low.
+        legendUrl: null,
+        legendItems: [
+          { color: "#C0392B", label: "High desertification risk" },
+          { color: "#FFAA01", label: "Moderate desertification risk" },
+          { color: "#A3FF74", label: "Low desertification risk" },
+        ],
+        wmsClassLabels: {
+          "1": "High desertification risk",
+          "2": "Moderate desertification risk",
+          "3": "Low desertification risk",
+        },
         // Ghana raster (EPSG:32631, ~10 m) uses 0 as its nodata fill, not 128
         // (per WCS DescribeCoverage nilValue).
         wmsNoDataValues: [0],
       },
     },
     wmsClassLabels: {
-      "1": "Very high desertification risk",
       "2": "High desertification risk",
       "3": "Moderate desertification risk",
       "4": "Low desertification risk",

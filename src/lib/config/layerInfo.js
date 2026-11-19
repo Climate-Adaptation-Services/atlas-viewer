@@ -118,17 +118,16 @@ export const layerInfo = {
     source: 'World Resources Institute, Aqueduct Floods',
     sourceUrl: 'https://www.wri.org/aqueduct'
   },
+  // Method text follows the final report (static/desertification-risk-report.pdf,
+  // condensed edition Nov 2026), which the Source link opens. The shared method
+  // is DESERTIFICATION_METHOD; each country appends its own weighting and
+  // validation status below the layerInfo object.
   'Desertification risk': {
-    description: 'Desertification Vulnerability is assessed using a relative vulnerability index that combines 11 environmental and human-pressure variables within a Multi-Criteria Evaluation (MCE) framework, implemented on a 10-metre analysis grid. The variables include Aridity Index, Vegetation Health (NDVI), Land Use/Land Cover (LULC), Livestock Density, Population Density, Soil Quality (TGSI), Temperature, Soil Moisture, Slope, Settlement Proximity, and Road Proximity.',
-    source: 'Kenya Desertification Vulnerability Model, developed by Mohammed Hamed Hassan Abubakr (August 2026)',
-    resolution: '10 m',
-    byCountry: {
-      // Same model set-up and 4-class scheme as Kenya, published to the
-      // cia_ghana workspace as ghana_desertification_risk_v20260928.
-      ghana: {
-        source: 'Ghana Desertification Vulnerability Model, developed by Mohammed Hamed Hassan Abubakr (September 2026)'
-      }
-    }
+    description: '',
+    source: 'Multi-Criteria Desertification Risk Model: Ghana, Zimbabwe, Kenya. Final report by Mohammed Hamed Hassan Abubakr, Climate Adaptation Services / SAFE4ALL (2026)',
+    sourceUrl: '/desertification-risk-report.pdf',
+    resolution: '10 m grid (climate, population and livestock inputs are coarser)',
+    byCountry: {}
   },
   // Impact theme — per-crop+season entries are added dynamically below the
   // layerInfo object via the for-loop. See cropLayerNames.
@@ -309,6 +308,26 @@ for (const [name, intensity] of Object.entries(WORK_INTENSITIES)) {
     historicalResolution: '0.5°',
     projectionResolution: '0.5°'
   };
+}
+
+// Desertification risk: one shared method, plus a per-country note on how the
+// weights were set and how far the map has been validated (report §3–§6).
+// Kept short on purpose: the info popup is 280px wide. The full method is in
+// the report behind the Source link.
+const DESERTIFICATION_METHOD = 'Relative desertification risk from a multi-criteria model based on the MEDALUS framework. It combines 11 indicators of climate (aridity, soil moisture, temperature), vegetation health (NDVI), soil and slope, land cover and human pressure (livestock, population, distance to settlements and roads). Each indicator is scored 1–5 and the scores are combined with country-specific weights. High risk marks conditions associated with degradation; it does not prove that land is degrading there and is not a forecast. Maps are comparable within a country, not between countries.';
+/** @type {Record<string, string>} */
+const DESERTIFICATION_COUNTRY_NOTES = {
+  kenya: 'Kenya: expert-based weights, with aridity (25%) and NDVI (18%) weighted most. Checked visually against satellite imagery; quantitative validation is pending, so treat the map as provisional.',
+  ghana: 'Ghana: weights from an Analytic Hierarchy Process, with NDVI (25%) and aridity (22%) weighted most. The map agrees broadly with UNCCD land-degradation data and with expert field knowledge of the Tamale area; it has not been validated in the field.',
+  zimbabwe: 'Zimbabwe: weights from an Analytic Hierarchy Process, with NDVI (25%) and aridity (22%) weighted most. Checked visually against satellite imagery; quantitative validation is pending, so treat the map as provisional.'
+};
+{
+  const entry = layerInfo['Desertification risk'];
+  entry.description = DESERTIFICATION_METHOD;
+  entry.byCountry = {};
+  for (const [code, note] of Object.entries(DESERTIFICATION_COUNTRY_NOTES)) {
+    entry.byCountry[code] = { description: `${DESERTIFICATION_METHOD} ${note}` };
+  }
 }
 
 /**

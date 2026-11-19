@@ -33,7 +33,7 @@ export const countryConfigs = {
     center: [-19, 27],
     zoom: 6,
     dataType: "geojson",
-    geojsonBaseUrl: "https://fsn1.your-objectstorage.com/zimciaviewer/",
+    geojsonBaseUrl: "https://zimciaviewer.fsn1.your-objectstorage.com/",
     mask: "zimbabwe",
     layerAvailability: {
       // Climate layers - all have Past, 2050, 2080 with low/high scenarios
@@ -50,7 +50,7 @@ export const countryConfigs = {
     center: [0.0236, 37.9062], // Kenya's geographic center
     zoom: 6,
     dataType: "geojson",
-    geojsonBaseUrl: "https://fsn1.your-objectstorage.com/kenyaciaviewer/",
+    geojsonBaseUrl: "https://kenyaciaviewer.fsn1.your-objectstorage.com/",
     cropDeltasFilename: "kenya_admin2_deltas.geojson",
     africapolisCode: "ken",
     agroZonesFilename: "kenya_dissolved.geojson",
@@ -94,7 +94,7 @@ export const countryConfigs = {
     center: [7.9465, -1.0232], // Ghana's geographic center
     zoom: 7,
     dataType: "geojson",
-    geojsonBaseUrl: "https://fsn1.your-objectstorage.com/ghanaciaviewer/",
+    geojsonBaseUrl: "https://ghanaciaviewer.fsn1.your-objectstorage.com/",
     cropDeltasFilename: "ghana_admin2_deltas.geojson",
     africapolisCode: "gha",
     agroZonesFilename: "ghana_agro.geojson",

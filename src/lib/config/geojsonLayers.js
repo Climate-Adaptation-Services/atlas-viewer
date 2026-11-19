@@ -213,7 +213,7 @@ export function getCropKey(layerName) {
 export const geojsonLayerConfigs = {
   "Water Stress": {
     filename: "kenya_water_stress.geojson", // Base filename, will be modified for time periods
-    baseUrl: "https://fsn1.your-objectstorage.com/kenyaciaviewer/",
+    baseUrl: "https://kenyaciaviewer.fsn1.your-objectstorage.com/",
     propertyName: "bws_cat",
     supportsTimeScenario: true, // Flag to indicate this layer supports time and scenario
     getStyle: (feature, time, scenario) => {
@@ -260,7 +260,7 @@ export const geojsonLayerConfigs = {
   ...gridIndicatorLayerConfigs,
   "River Flood": {
     filename: "kenya_river_flood.geojson",
-    baseUrl: "https://fsn1.your-objectstorage.com/kenyaciaviewer/",
+    baseUrl: "https://kenyaciaviewer.fsn1.your-objectstorage.com/",
     propertyName: "DN", // Property containing the flood depth value
     getStyle: (feature) => {
       const depth = feature.properties?.DN ?? 0
