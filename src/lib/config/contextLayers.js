@@ -181,8 +181,8 @@ export const contextLayerConfigs = {
   "Desertification risk": {
     name: "Desertification risk",
     type: "wms",
-    // Base config = Kenya. Ghana overrides the endpoint/layer below (byCountry);
-    // both rasters share the same 4-class scheme and SLD colours.
+    // Base config = Kenya. Ghana and Zimbabwe override the endpoint/layer below
+    // (byCountry); all three show three classes (High / Moderate / Low).
     wmsEndpoint:
       "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_kenya/wms",
     wmsLayer: "kenya_desertification_risk_v20260805",
@@ -218,6 +218,26 @@ export const contextLayerConfigs = {
         // Ghana raster (EPSG:32631, ~10 m) uses 0 as its nodata fill, not 128
         // (per WCS DescribeCoverage nilValue).
         wmsNoDataValues: [0],
+      },
+      zimbabwe: {
+        wmsEndpoint:
+          "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_zimbabwe/wms",
+        wmsLayer: "zimbabwe_desertification_risk_v20261022",
+        // No named style: the layer's default style is the Kenya SLD (2 = high,
+        // 3 = moderate, 4 = low), but requesting it by name in this workspace
+        // returns StyleNotDefined.
+        wmsStyle: "",
+        legendUrl:
+          "https://climate-adaptation-services.geospatialhosting.com/geoserver/cia_zimbabwe/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image%2Fpng&width=20&height=20&layer=zimbabwe_desertification_risk_v20261022",
+        // Same value scheme and 128 nodata fill as Kenya (sampled on a grid
+        // across the country: only 2, 3, 4 and 128 occur). The report groups
+        // overlay values 1–2 as High, so 1 is labelled too in case it occurs.
+        wmsClassLabels: {
+          "1": "High desertification risk",
+          "2": "High desertification risk",
+          "3": "Moderate desertification risk",
+          "4": "Low desertification risk",
+        },
       },
     },
     wmsClassLabels: {

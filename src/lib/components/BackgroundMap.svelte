@@ -562,6 +562,9 @@ function getLayerId(datalaag, time, scenario) {
     if (mapElement) {
       map = L.map("map", {
         zoomControl: false, // Disable default zoom control
+        zoomSnap: 0.25, // Allow fractional zoom levels (default 1)
+        zoomDelta: 0.5, // Step size for +/- buttons and keyboard (default 1)
+        wheelPxPerZoomLevel: 120, // More scrolling needed per zoom level (default 60)
       }).setView(countryConfig.center, countryConfig.zoom); // Center on the selected country
 
       // Add a custom zoom control at the bottom-right

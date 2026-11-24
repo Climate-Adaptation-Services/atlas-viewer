@@ -42,7 +42,9 @@ export const countryConfigs = {
       "Maximum temperature": { times: ["Past", "2050", "2080"], hasScenarios: true },
       "Total rainfall": { times: ["Past", "2050", "2080"], hasScenarios: true },
       "Days above 20 mm": { times: ["Past", "2050", "2080"], hasScenarios: true },
-      "Dry spells": { times: ["Past", "2050", "2080"], hasScenarios: true }
+      "Dry spells": { times: ["Past", "2050", "2080"], hasScenarios: true },
+      // WMS raster from the cia_zimbabwe GeoServer workspace (drought hazard theme)
+      "Desertification risk": { times: ["Past"], hasScenarios: false }
     }
   },
   kenya: {
