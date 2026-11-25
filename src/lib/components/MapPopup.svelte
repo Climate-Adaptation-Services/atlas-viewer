@@ -817,7 +817,7 @@
   }
 
   /* Responsive width for mobile */
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     /* Compact popup narrower on mobile */
     :global(.compact-popup .leaflet-popup-content) {
       max-width: 280px !important;
@@ -910,4 +910,32 @@
     width: 250px;
     height: 200px;
   }
+
+  /* Phones/tablets: charts follow the popup's width instead of a fixed 300px
+     (which ran past the popup's right edge), and the popup is given a width
+     that fits the screen. */
+  @media (max-width: 1024px) {
+    :global(.leaflet-popup-content:has(.chart-container)) {
+      width: min(84vw, 380px) !important;
+      box-sizing: border-box;
+    }
+
+    :global(.chart-container) {
+      width: 100% !important;
+      box-sizing: border-box;
+    }
+  }
+
+  /* Short screens (phone held sideways): keep the popup inside the screen. */
+  @media (max-height: 500px) {
+    :global(.leaflet-popup-content) {
+      max-height: calc(100vh - 70px);
+      overflow-y: auto;
+    }
+
+    :global(.chart-container) {
+      height: 45vh !important;
+    }
+  }
+
 </style>

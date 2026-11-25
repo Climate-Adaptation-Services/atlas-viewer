@@ -29,8 +29,18 @@
 	<div class:open={open} class="sidepanel-wrapper">
 		<div class="sidepanel">
 			<Sidepanel/>
+			<!-- Phones only: the drawer covers almost the whole map, so offer an
+			     obvious way back to it that stays in view while scrolling. -->
+			<div class="show-map-bar">
+				<button class="show-map-btn" type="button" on:click={togglePanel}>Show map</button>
+			</div>
 		</div>
 	</div>
+	{#if open}
+		<!-- Phones only: tapping the strip of map beside the drawer closes it
+		     (instead of opening a map popup behind the panel). -->
+		<button class="panel-backdrop" type="button" aria-label="Close panel" on:click={togglePanel}></button>
+	{/if}
 	<button
 		class="toggle-arrow"
 		class:panel-open={open}
@@ -125,19 +135,25 @@
 	border-radius: 3px;
 }
 
-/* Responsive width for mobile devices */
-@media (max-width: 800px) {
+/* Phones and tablets (also phones held sideways): a drawer on the left edge.
+   Capped at 360px so it does not swallow a wide-but-short screen. */
+@media (max-width: 1024px) {
 	.sidepanel-wrapper {
-		width: 85vw;
+		width: min(85vw, 360px);
 		left: 0;
 		top: 0;
 		height: 100vh;
+		height: 100dvh; /* excludes the mobile browser's address bar */
 	}
 
 	.sidepanel {
+		/* Keep the padding inside the drawer's width/height; without this the
+		   panel is wider and taller than its wrapper, so its bottom is cut off
+		   and a strip stays visible when it is closed. */
+		box-sizing: border-box;
 		border-radius: 0 15px 15px 0;
-		padding-left: 4vw;
-		padding-right: 4vw;
+		padding-left: min(4vw, 16px);
+		padding-right: min(4vw, 16px);
 		padding-top: 3vh;
 	}
 }
@@ -190,7 +206,7 @@
 }
 
 /* Position the toggle arrow for mobile */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
 	.toggle-arrow {
 		top: 12px;
 		left: 25px;
@@ -200,7 +216,7 @@
 	}
 
 	.toggle-arrow.panel-open {
-		left: calc(85vw - 15px); /* Position at right edge when open */
+		left: calc(min(85vw, 360px) - 15px); /* Position at right edge when open */
 	}
 
 	.toggle-arrow .tooltip {
@@ -233,5 +249,69 @@
 	opacity: 1;
 }
 
+/* "Show map" bar and tap-outside-to-close: phones only (see markup). */
+.show-map-bar,
+.panel-backdrop {
+	display: none;
+}
+
+@media (max-width: 600px) {
+	.show-map-bar {
+		display: block;
+		position: sticky;
+		bottom: 0;
+		margin-top: auto; /* sit at the bottom when the content is short */
+		padding: 16px 0 12px;
+		background: linear-gradient(to bottom, rgba(250, 250, 250, 0) 0, #fafafa 14px);
+	}
+
+	.show-map-btn {
+		display: block;
+		width: 100%;
+		height: 44px;
+		margin: 0;
+		padding: 0;
+		border: none;
+		border-radius: 10px;
+		background-color: #017e9f;
+		color: #fff;
+		font-size: 15px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.panel-backdrop {
+		display: block;
+		position: fixed;
+		inset: 0;
+		z-index: 1999999; /* just below the drawer, above map and legend */
+		margin: 0;
+		padding: 0;
+		border: none;
+		background: rgba(0, 0, 0, 0.15);
+	}
+}
+
+/* Phones and tablets: a finger-sized toggle. When the drawer is open it sits
+   just outside the drawer's edge, below the zoom buttons, so it no longer
+   covers the panel's content while scrolling. */
+@media (max-width: 1024px) {
+	.toggle-arrow {
+		width: 40px;
+		height: 40px;
+		left: 12px;
+		transition: left 0.3s ease, top 0.3s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+	}
+
+	.toggle-arrow.panel-open {
+		left: calc(min(85vw, 360px) + 8px);
+		top: 86px;
+	}
+
+	.toggle-arrow-icon {
+		width: 20px;
+		height: 20px;
+	}
+}
 
 </style>

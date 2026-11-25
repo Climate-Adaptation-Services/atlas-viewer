@@ -638,23 +638,23 @@
 
 <style>
   /* Mobile responsive styles */
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     section {
       padding-bottom: 2vh;
     }
 
     h2 {
-      font-size: 2.4vh !important;
+      font-size: max(2.4vh, 15px) !important;
       margin-top: 1.5vh !important;
       margin-bottom: 1vh !important;
     }
 
     .keuzes {
-      font-size: 2.2vh !important;
-      gap: 2.5vw !important;
+      font-size: max(2.2vh, 14px) !important;
+      gap: min(2.5vw, 10px) !important;
       margin-bottom: 0.2vh !important;
-      padding: 0.9vh 2.5vw !important;
-      margin-left: -2.5vw !important;
+      padding: max(0.9vh, 7px) min(2.5vw, 10px) !important;
+      margin-left: max(-2.5vw, -10px) !important;
       border-radius: 8px !important;
     }
 
@@ -663,13 +663,13 @@
       height: 3vh !important;
       min-width: 24px !important;
       min-height: 24px !important;
-      font-size: 2vh !important;
+      font-size: max(2vh, 13px) !important;
     }
 
     .buttons button {
       height: 5.5vh !important;
       width: 20vw !important;
-      font-size: 2.2vh !important;
+      font-size: max(2.2vh, 14px) !important;
       margin-right: 2vw !important;
       border-radius: 20px !important;
     }
@@ -1167,7 +1167,7 @@
   }
 
   /* Mobile timeline styles */
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     .timeline-wrapper {
       padding: 1vh 0 1.5vh 0;
     }
@@ -1183,7 +1183,7 @@
     }
 
     .marker-label {
-      font-size: 1.8vh;
+      font-size: max(1.8vh, 12px);
       margin-top: 0.6vh;
     }
 
@@ -1521,29 +1521,29 @@
   }
 
   /* Mobile styles for theme buttons */
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     .theme-buttons {
-      gap: 2vw;
+      gap: min(2vw, 8px);
       margin-bottom: 1.5vh;
     }
 
     .theme-btn {
-      padding: 1.2vh 1.5vw;
+      padding: max(1.2vh, 8px) min(1.5vw, 6px);
       border-radius: 10px;
       max-width: none;
     }
 
     .accordion-icon {
-      width: 5.5vw;
+      width: min(5.5vw, 22px);
       min-width: 20px;
     }
 
     .accordion-title {
-      font-size: 2.2vh;
+      font-size: max(2.2vh, 14px);
     }
 
     .caption {
-      font-size: 1.9vh;
+      font-size: max(1.9vh, 12px);
       margin-top: 0.5vh;
     }
   }
@@ -1603,14 +1603,14 @@
   }
 
   /* Mobile scenario styles */
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     .scenario-label {
-      font-size: 2.2vh;
+      font-size: max(2.2vh, 14px);
     }
 
     .scenario-option {
-      padding: 1.2vh 3vw;
-      font-size: 2vh;
+      padding: max(1.2vh, 8px) min(3vw, 12px);
+      font-size: max(2vh, 13px);
     }
   }
 
@@ -1800,9 +1800,9 @@
   }
 
   /* Mobile opacity slider */
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     .opacity-value {
-      font-size: 1.8vh;
+      font-size: max(1.8vh, 12px);
     }
 
     .opacity-slider input {
@@ -1817,6 +1817,66 @@
     .opacity-slider input::-moz-range-thumb {
       width: 3vh;
       height: 3vh;
+    }
+  }
+
+  /* Phone/tablet drawer on short screens (small phones, phones held sideways):
+     the panel's text is sized in vh, which gets unreadably small there. These
+     floors leave a normal tall phone untouched and only kick in below it. */
+  @media (max-width: 1024px) {
+    .app-title { font-size: max(2.6vh, 20px); }
+    .app-tagline { font-size: max(1.6vh, 13px); }
+    .category-btn .caption,
+    .category-buttons.single-row .category-btn .caption { font-size: clamp(11.5px, 1.4vh, 14px); }
+    .accordion-selected { font-size: max(1.5vh, 12px); }
+    .active-layer-name { font-size: max(1.6vh, 13px); }
+    .active-layer-meta { font-size: max(1.3vh, 11px); }
+    .transparency-label { font-size: max(1.3vh, 11px); }
+    .time-period-text,
+    .time-period-value { font-size: max(1.8vh, 13px); }
+    .external-hazard-inline-text { font-size: max(1.45vh, 12px); }
+  }
+
+  /* Phones/tablets: the small round buttons keep their look but get a
+     finger-sized tap area (an invisible margin around them). */
+  @media (max-width: 1024px) {
+    .about-btn,
+    .active-layer-remove,
+    .layer-add-btn,
+    .info-icon-wrapper {
+      position: relative;
+    }
+
+    .about-btn::after,
+    .active-layer-remove::after,
+    .layer-add-btn::after,
+    .info-icon-wrapper::after {
+      content: '';
+      position: absolute;
+      inset: -12px;
+    }
+
+    .active-layer-remove {
+      width: 24px;
+      height: 24px;
+      font-size: 20px;
+    }
+  }
+
+  /* Phones/tablets: the drawer is narrower than the row of four category
+     pills at their desktop minimum width, so let them share the row evenly
+     instead of dropping "Context" onto a second line. */
+  @media (max-width: 1024px) {
+    .category-buttons {
+      flex-wrap: nowrap;
+      gap: 6px;
+    }
+
+    .category-buttons .category-btn {
+      flex: 1 1 0;
+      min-width: 0;
+      padding-left: 2px;
+      padding-right: 2px;
     }
   }
 

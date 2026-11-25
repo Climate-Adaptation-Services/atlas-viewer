@@ -36,6 +36,8 @@
   /** @type {HTMLElement | undefined} */
   let cardEl
   let infoPopupStyle = ""
+  /** Legend body hidden, header only (toggle shown on phones/tablets). */
+  let collapsed = false
 
   function toggleInfo() {
     showInfo = !showInfo
@@ -48,7 +50,14 @@
       // Cap the height at the space above the anchor so a long description
       // scrolls instead of running off the top of the screen.
       const maxHeight = Math.max(160, Math.round(r.bottom - 12))
-      infoPopupStyle = `right:${right}px; bottom:${bottom}px; max-height:${maxHeight}px; overflow-y:auto; box-sizing:border-box;`
+      if (r.left - 12 < 300) {
+        // No room left of the card (phones, or a wide legend on a narrow
+        // screen): show the popup as a sheet across the bottom of the screen
+        // instead of letting it run off the left edge.
+        infoPopupStyle = `left:12px; right:12px; bottom:12px; min-width:0; max-width:none; max-height:70vh; overflow-y:auto; box-sizing:border-box;`
+      } else {
+        infoPopupStyle = `right:${right}px; bottom:${bottom}px; max-height:${maxHeight}px; overflow-y:auto; box-sizing:border-box;`
+      }
     }
   }
 
@@ -248,9 +257,21 @@
 </script>
 
 <div class="legend-card" bind:this={cardEl}>
-  <div class="legend-content">
+  <div class="legend-content" class:collapsed>
     <!-- Legend Header -->
     <div class="legend-header">
+      <!-- Phones/tablets only: fold the legend down to its title to free the map -->
+      <button
+        class="legend-collapse"
+        type="button"
+        aria-expanded={!collapsed}
+        aria-label={collapsed ? "Show legend" : "Hide legend"}
+        on:click={() => (collapsed = !collapsed)}
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d={collapsed ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"} stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
       <span class="legend-name">{displayedLayerName}</span>
       {#if layerInfoData}
         <button
@@ -727,7 +748,7 @@
     text-decoration: underline;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     .legend-name {
       font-size: 14px;
     }
@@ -764,4 +785,55 @@
       font-size: 13px;
     }
   }
+
+  /* Collapse toggle: hidden on desktop, where the legend has room. */
+  .legend-collapse {
+    display: none;
+  }
+
+  @media (max-width: 1024px) {
+    .legend-collapse {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      width: 20px;
+      height: 20px;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.06);
+      color: #666;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .legend-collapse svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* Finger-sized tap areas around the two small header buttons */
+    .info-icon-inline {
+      position: relative;
+    }
+
+    .legend-collapse::after,
+    .info-icon-inline::after {
+      content: '';
+      position: absolute;
+      inset: -10px;
+    }
+
+    /* !important: some legend bodies set display inline */
+    .legend-content.collapsed > :not(.legend-header) {
+      display: none !important;
+    }
+
+    .legend-content.collapsed .legend-header {
+      margin-bottom: 0;
+    }
+  }
+
 </style>
