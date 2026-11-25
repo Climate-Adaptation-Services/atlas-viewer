@@ -336,6 +336,13 @@
     tooltip.style.transform = 'none'
   }
 
+  /** True on devices with a real pointer. On touch screens a tap fires
+   *  mouseenter but never mouseleave, so a hover tooltip would stay open on
+   *  top of the list the tap just opened. */
+  function canHover() {
+    return typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches
+  }
+
   function hideTooltip() {
     const existing = document.getElementById('sidepanel-floating-tooltip')
     if (existing) existing.remove()
@@ -389,8 +396,8 @@
       <button
         class="theme-btn category-btn"
         class:active={$category === cat.id}
-        on:click={() => category.set(cat.id)}
-        on:mouseenter={(e) => showTooltip(e, cat.id, cat.description)}
+        on:click={() => { hideTooltip(); category.set(cat.id) }}
+        on:mouseenter={(e) => canHover() && showTooltip(e, cat.id, cat.description)}
         on:mouseleave={hideTooltip}>
         <span class="caption">{cat.name}</span>
       </button>
